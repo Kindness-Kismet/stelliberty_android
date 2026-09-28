@@ -9,7 +9,7 @@ Read [AGENTS.md](../../../AGENTS.md) and inspect the actual changes before writi
 
 ## Authorization
 
-- A request to draft a message covers the message only. Stage and commit when the user explicitly asks for a local commit.
+- 用户要求本地提交时执行暂存和提交；更新版本号的请求按 [version-bump 技能](../version-bump/SKILL.md) 包含本次版本提交授权。只要求撰写文案或明确要求不提交时，保留修改。
 - Push only after explicit confirmation covering the outgoing commits, remote, and destination branch. Permission to edit, commit, or open a pull request is separate from permission to push.
 - Finish the local result, report changes and validation, and list the whole outgoing range before asking to push. A confirmation already given for the same result and destination stands; ask again when the scope or destination changes.
 - Default to one focused local commit per task. Release metadata follows the [version-bump skill](../version-bump/SKILL.md).

@@ -165,6 +165,7 @@
     <string name="proxy_switch_mode">Switch Proxy Mode</string>
     <string name="proxy_switch_tun_stack">Switch TUN Stack</string>
     <string name="proxy_no_groups">No proxy groups</string>
+    <string name="proxy_request_failed">Proxy request failed: %1$s</string>
     <string name="proxy_search_groups">Search groups or nodes</string>
     <string name="proxy_no_matching_groups">No matching groups</string>
     <string name="proxy_hide_unavailable">Only available nodes</string>
@@ -269,6 +270,14 @@
     <!-- Log -->
     <string name="log_title">Logs</string>
     <string name="log_clear">Clear</string>
+    <string name="log_export">Export logs</string>
+    <string name="log_export_done">Log file saved</string>
+    <string name="log_level_filter">Minimum log level: %1$s</string>
+    <string name="log_level_and_above">%1$s and above</string>
+    <string name="log_level_debug">Debug</string>
+    <string name="log_level_info">Info</string>
+    <string name="log_level_warning">Warning</string>
+    <string name="log_level_error">Error</string>
     <string name="log_waiting">Waiting for logs...</string>
     <string name="log_not_connected">Not connected</string>
 

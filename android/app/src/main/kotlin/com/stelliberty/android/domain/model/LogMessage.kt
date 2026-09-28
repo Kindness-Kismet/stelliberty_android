@@ -4,6 +4,6 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class LogMessage(
-    val type: String = "",
-    val payload: String = "",
+    val type: LogLevel,
+    val payload: String,
 )

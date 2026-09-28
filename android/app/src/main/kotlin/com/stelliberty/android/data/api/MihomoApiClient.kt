@@ -25,6 +25,9 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
+import io.ktor.http.URLBuilder
+import io.ktor.http.Url
+import io.ktor.http.appendPathSegments
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
@@ -84,7 +87,7 @@ class MihomoApiClient(
     }
 
     suspend fun selectProxy(group: String, name: String) {
-        val response: HttpResponse = client.put("$baseUrl/proxies/$group") {
+        val response: HttpResponse = client.put(endpoint("proxies", group)) {
             contentType(ContentType.Application.Json)
             setBody(mapOf("name" to name))
         }
@@ -92,14 +95,14 @@ class MihomoApiClient(
     }
 
     suspend fun unfixProxy(group: String) {
-        val response: HttpResponse = client.delete("$baseUrl/proxies/$group")
+        val response: HttpResponse = client.delete(endpoint("proxies", group))
         ensureSuccess(response, "proxy group '$group'")
     }
 
     // 测速失败时内核回的是 404 / 503 / 504 加一段 message，这里必须按状态码判成失败：
     // 那种响应体解析成 DelayResult 会得到 delay=0，跟「真的 0 毫秒」再也分不开。
     suspend fun getProxyDelay(name: String, testUrl: String = "http://www.gstatic.com/generate_204", timeout: Int = 5000): DelayResult {
-        val response = client.get("$baseUrl/proxies/$name/delay") {
+        val response = client.get(endpoint("proxies", name, "delay")) {
             url {
                 parameters.append("url", testUrl)
                 parameters.append("timeout", timeout.toString())
@@ -117,7 +120,7 @@ class MihomoApiClient(
         testUrl: String = "http://www.gstatic.com/generate_204",
         timeout: Int = 5000,
     ): DelayResult {
-        val response = client.get("$baseUrl/providers/proxies/$provider/$name/healthcheck") {
+        val response = client.get(endpoint("providers", "proxies", provider, name, "healthcheck")) {
             url {
                 parameters.append("url", testUrl)
                 parameters.append("timeout", timeout.toString())
@@ -144,7 +147,7 @@ class MihomoApiClient(
     }
 
     suspend fun closeConnection(id: String) {
-        client.delete("$baseUrl/connections/$id")
+        client.delete(endpoint("connections", id))
     }
 
     suspend fun getProviders(): ProvidersResponse {
@@ -154,7 +157,7 @@ class MihomoApiClient(
     }
 
     suspend fun updateProvider(name: String) {
-        val response: HttpResponse = client.put("$baseUrl/providers/proxies/$name")
+        val response: HttpResponse = client.put(endpoint("providers", "proxies", name))
         ensureSuccess(response, "proxy provider '$name'")
     }
 
@@ -165,7 +168,7 @@ class MihomoApiClient(
     }
 
     suspend fun updateRuleProvider(name: String) {
-        val response: HttpResponse = client.put("$baseUrl/providers/rules/$name")
+        val response: HttpResponse = client.put(endpoint("providers", "rules", name))
         ensureSuccess(response, "rule provider '$name'")
     }
 
@@ -191,6 +194,11 @@ class MihomoApiClient(
     fun close() {
         client.close()
     }
+
+    // 名称属于单个路径段，斜线、百分号与查询符号都必须编码后再发送。
+    private fun endpoint(vararg segments: String): Url = URLBuilder(baseUrl).apply {
+        appendPathSegments(*segments, encodeSlash = true)
+    }.build()
 
     private suspend fun ensureSuccess(response: HttpResponse, context: String) {
         if (response.status.isSuccess()) return

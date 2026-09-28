@@ -458,6 +458,7 @@ fun AppNavigation(
                 logViewModel?.let {
                     LogScreen(
                         viewModel = it,
+                        filePicker = filePicker,
                         onBack = { navigator.pop() },
                     )
                 }
