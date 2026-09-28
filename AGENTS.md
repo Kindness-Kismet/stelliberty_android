@@ -15,7 +15,7 @@ miuix + mihomo 的 Android 代理客户端。单模块 `:app`（`com.android.app
 - 新增 composable 后临时加 `composeCompiler { reportsDestination.set(layout.buildDirectory.dir("compose_reports")) }`，再 `python scripts/build.py gradle :app:compileDebugKotlin --rerun-tasks` 跑报告，确认 restartable 全部 skippable、0 unstable 参数（当前 132 个），验完删掉临时配置。
 - `third_party/mihomo` 是 submodule、`third_party/scripta` 是 includeBuild 复合构建，改前先确认确需触及。
 - 保留用户已有的未提交改动；不用破坏性 reset/checkout；不修改或输出 `local.properties`。
-- 完成后先报告变更与验证结果。**未经用户明确授权，不执行 `git add`/`commit`，不创建或修改远程 PR**；要求撰写文案不代表授权执行这些操作。
+- 完成后先报告变更与验证结果。**未经用户明确授权，不执行 `git add`/`commit`，不创建或修改远程 PR**；用户要求更新版本号即包含按 `version-bump` 技能完成本次版本的本地提交，明确要求不提交时除外；要求撰写文案不代表授权执行这些操作。
 - **禁止擅自 `git push`**：先说明全部待推送提交、验证结果、远端和目标分支，再取得明确确认。提交或创建 PR 的授权不包含推送，也不能借 `gh pr create` 隐式推送；会话中已确认且范围、目标未变的推送无需重复询问。
 - **Commit 主题与正文、PR 标题与正文一律使用英文**。撰写或执行提交先阅读 `commit`，准备或创建、更新 PR 先阅读 `pr`；格式、范围与验证规则由对应技能维护。
 - Git 使用目录与后缀白名单。新增编译输入须核对 `.gitignore`；可下载产物不跟踪，Baseline Profile 必须保留。
