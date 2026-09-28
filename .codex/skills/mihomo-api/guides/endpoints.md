@@ -4,7 +4,7 @@
 
 代理组、节点与 provider 名称都是单个路径段，通过 `URLBuilder.appendPathSegments(encodeSlash = true)` 编码；原样拼接会把名称里的 `/`、`?`、`#`、`%` 当成地址结构或转义序列。
 
-内核的 `getEscapeParam` 仅在 chi 使用 `RawPath` 时解码；`RawPath` 为空时参数已由 HTTP 解析器解码，重复处理会把名称中的字面 `%2F` 等序列改掉。修正通过 `mihomo-route-path-decoding.patch` 随主仓库分发。
+内核的 `getEscapeParam` 仅在 chi 使用 `RawPath` 时解码；`RawPath` 为空时参数已由 HTTP 解析器解码，重复处理会把名称中的字面 `%2F` 等序列改掉。修正由 mihomo 派生仓库维护，主仓库通过子模块引用锁定。
 
 ## embed mode 下的配置接口
 
