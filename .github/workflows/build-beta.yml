@@ -1,0 +1,160 @@
+name: Beta Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [beta]
+    paths:
+      - android/**
+      - third_party/**
+      - scripts/**
+      - .gitmodules
+      - .github/workflows/**
+
+concurrency:
+  group: beta-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    name: Prepare beta release
+    runs-on: ubuntu-26.04
+    # 读取未公开草稿，避免复用已经占用的开发版编号。
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      should_build: ${{ steps.meta.outputs.should_build }}
+    steps:
+      - name: Require beta branch
+        run: test "$GITHUB_REF" = 'refs/heads/beta'
+
+      - name: Check out repository
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v7.0.0
+        with:
+          python-version: "3.x"
+
+      - name: Compute beta version
+        id: meta
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          version_file=android/buildSrc/src/main/kotlin/ProjectConfig.kt
+          current="$(sed -nE 's/.*const val VERSION_NAME = "([^"]+)".*/\1/p' "$version_file")"
+          if [[ ! "$current" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo '::error::ProjectConfig.VERSION_NAME must be major.minor.patch.'
+            exit 1
+          fi
+          if [ "$GITHUB_EVENT_NAME" = push ] && [[ ! "$BEFORE_SHA" =~ ^0+$ ]]; then
+            # 逐次检查推送提交，合并提交按第一父提交比较，避免版本改动被抵消后漏判。
+            if git log --first-parent --format= --patch "$BEFORE_SHA..$GITHUB_SHA" -- "$version_file" | grep -E '^[+-].*const val VERSION_NAME' > /dev/null ||
+               [ -n "$(git log --first-parent --format= --name-only "$BEFORE_SHA..$GITHUB_SHA" -- .github/CHANGELOG.md)" ]; then
+              echo 'should_build=false' >> "$GITHUB_OUTPUT"
+              echo '::notice::Stable release metadata changed; beta release skipped.'
+              exit 0
+            fi
+          fi
+
+          released_tags="$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq '.[] | select(.draft | not) | .tag_name')"
+          all_release_tags="$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq '.[].tag_name')"
+          known_tags="$(printf '%s\n%s\n' "$all_release_tags" "$(git tag --list 'v*')" | sort -u)"
+          stable="$current"
+          while IFS= read -r tag; do
+            if [[ "$tag" =~ ^v((0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*))$ ]]; then
+              candidate="${BASH_REMATCH[1]}"
+              stable="$(printf '%s\n%s\n' "$stable" "$candidate" | sort -V | tail -n 1)"
+            fi
+          done <<< "$released_tags"
+          IFS=. read -r major minor patch <<< "$stable"
+          target="$major.$minor.$((patch + 1))"
+          highest=0
+          previous_beta=0
+          beta_pattern="^v${major}\\.${minor}\\.$((patch + 1))-beta([1-9][0-9]*)$"
+          while IFS= read -r tag; do
+            if [[ "$tag" =~ $beta_pattern ]] && [ "${BASH_REMATCH[1]}" -gt "$highest" ]; then
+              highest="${BASH_REMATCH[1]}"
+            fi
+          done <<< "$known_tags"
+          while IFS= read -r tag; do
+            if [[ "$tag" =~ $beta_pattern ]] && [ "${BASH_REMATCH[1]}" -gt "$previous_beta" ]; then
+              previous_beta="${BASH_REMATCH[1]}"
+            fi
+          done <<< "$released_tags"
+          if [ "$major" -gt 20 ] || [ "$minor" -gt 99 ] || [ "$((patch + 1))" -gt 99 ] || [ "$highest" -ge 9998 ]; then
+            echo '::error::Version exceeds Android versionCode limits; update the stable version first.'
+            exit 1
+          fi
+          previous_tag=''
+          if [ "$previous_beta" -gt 0 ]; then
+            previous_tag="v$target-beta$previous_beta"
+          elif git show-ref --verify --quiet "refs/tags/beta-base/v$stable"; then
+            previous_tag="beta-base/v$stable"
+          elif git show-ref --verify --quiet "refs/tags/v$stable"; then
+            previous_tag="v$stable"
+          fi
+
+          should_build=true
+          if [ -n "$previous_tag" ] && [ "$GITHUB_EVENT_NAME" != workflow_dispatch ]; then
+            should_build=false
+            while IFS= read -r path; do
+              case "$path" in
+                android/*|third_party/*|scripts/*|.gitmodules|.github/workflows/*)
+                  should_build=true
+                  break
+                  ;;
+              esac
+            done < <(git diff --name-only "$previous_tag" "$GITHUB_SHA")
+          fi
+          version="$target-beta$((highest + 1))"
+          printf 'version=%s\nprevious_tag=%s\nshould_build=%s\n' "$version" "$previous_tag" "$should_build" >> "$GITHUB_OUTPUT"
+          printf '### Beta release\n\n- Version: `%s`\n- Base: `%s`\n- Build: `%s`\n' "$version" "${previous_tag:-initial release}" "$should_build" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Generate beta release notes
+        if: steps.meta.outputs.should_build == 'true'
+        env:
+          PREVIOUS_TAG: ${{ steps.meta.outputs.previous_tag }}
+        run: |
+          set -euo pipefail
+          mkdir -p build/release
+          if [ -z "$PREVIOUS_TAG" ]; then
+            test -s .github/CHANGELOG.md
+            cp .github/CHANGELOG.md build/release/notes.md
+          else
+            {
+              printf '## Changes\n\n'
+              while IFS=$'\t' read -r commit short subject; do
+                printf -- '- %s [`%s`](%s/%s/commit/%s)\n' "$subject" "$short" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$commit"
+              done < <(git log --reverse --no-merges --format='%H%x09%h%x09%s' "$PREVIOUS_TAG..$GITHUB_SHA")
+            } > build/release/notes.md
+          fi
+
+      - name: Upload release notes
+        if: steps.meta.outputs.should_build == 'true'
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: release-notes-beta
+          path: build/release/notes.md
+          if-no-files-found: error
+
+  package:
+    name: Build and publish beta APKs
+    needs: prepare
+    if: needs.prepare.outputs.should_build == 'true'
+    permissions:
+      contents: write
+      pull-requests: read
+    uses: ./.github/workflows/build.yml
+    with:
+      version: ${{ needs.prepare.outputs.version }}
+      channel: beta
+    secrets: inherit

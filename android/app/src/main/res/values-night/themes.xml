@@ -1,0 +1,18 @@
+<resources>
+
+    <style name="Theme.Stelliberty" parent="android:Theme.Material.NoActionBar">
+        <item name="android:forceDarkAllowed">false</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:colorAccent">#1A3825</item>
+        <item name="android:windowBackground">#101014</item>
+        <item name="android:navigationBarColor">#101014</item>
+        <item name="android:statusBarColor">#101014</item>
+    </style>
+
+    <style name="Theme.Stelliberty.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#101014</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="postSplashScreenTheme">@style/Theme.Stelliberty</item>
+    </style>
+
+</resources>

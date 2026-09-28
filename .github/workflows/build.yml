@@ -1,0 +1,241 @@
+name: Package Android Release
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+      channel:
+        required: true
+        type: string
+    secrets:
+      KEYSTORE_BASE64:
+        required: true
+      KEYSTORE_PASS:
+        required: true
+      KEY_ALIAS:
+        required: true
+      KEY_PASSWORD:
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  PYTHONDONTWRITEBYTECODE: "1"
+  GOTOOLCHAIN: local
+
+jobs:
+  build:
+    name: Build / ${{ matrix.abi }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        abi: [arm64-v8a, x86_64]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Check tracked file allowlist
+        run: |
+          set -euo pipefail
+          unexpected="$(git ls-files --cached --ignored --exclude-standard)"
+          if [ -n "$unexpected" ]; then
+            printf '::error::Tracked files are outside the allowlist:\n%s\n' "$unexpected"
+            exit 1
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v7.0.0
+        with:
+          python-version: "3.x"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4.0.4
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6.3.0
+        with:
+          cache-disabled: true
+
+      - name: Restore signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          python - <<'PY'
+          import base64
+          import os
+          from pathlib import Path
+
+          required = ("KEYSTORE_BASE64", "KEYSTORE_PASS", "KEY_ALIAS", "KEY_PASSWORD")
+          missing = [name for name in required if not os.environ.get(name)]
+          if missing:
+              raise SystemExit("Missing signing secrets: " + ", ".join(missing))
+          key = Path(os.environ["RUNNER_TEMP"]) / "stelliberty-release.jks"
+          key.write_bytes(base64.b64decode(os.environ["KEYSTORE_BASE64"], validate=True))
+          key.chmod(0o600)
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as output:
+              output.write(f"KEYSTORE_PATH={key}\n")
+          PY
+
+      - name: Compute resource cache epoch
+        id: resource-cache
+        run: |
+          echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
+          echo "day=$(date -u +%F)" >> "$GITHUB_OUTPUT"
+
+      # 按架构保存每次提交的编译结果，Gradle 根据任务输入判断能否复用。
+      - name: Cache Gradle dependencies and compilation
+        uses: actions/cache@v6.1.0
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ runner.arch }}-${{ matrix.abi }}-${{ steps.resource-cache.outputs.week }}-${{ github.sha }}
+          restore-keys: |
+            gradle-${{ runner.os }}-${{ runner.arch }}-${{ matrix.abi }}-${{ steps.resource-cache.outputs.week }}-
+            gradle-${{ runner.os }}-${{ runner.arch }}-${{ matrix.abi }}-
+
+      # 工具链按周刷新，地理数据每天刷新。
+      - name: Cache toolchains and Gradle launcher
+        uses: actions/cache@v6.1.0
+        with:
+          path: |
+            build/jdk
+            build/go
+            android/gradlew
+            android/gradlew.bat
+            android/gradle/wrapper/gradle-wrapper.jar
+          key: toolchains-${{ runner.os }}-${{ runner.arch }}-${{ steps.resource-cache.outputs.week }}-${{ hashFiles('scripts/prebuild.py', 'android/gradle/wrapper/gradle-wrapper.properties') }}
+
+      - name: Cache daily GeoIP data
+        uses: actions/cache@v6.1.0
+        with:
+          path: android/app/src/main/assets
+          key: geodata-${{ steps.resource-cache.outputs.day }}-${{ hashFiles('android/app/build.gradle.kts') }}
+
+      - name: Prepare build resources
+        run: python scripts/prebuild.py
+
+      - name: Cache Go dependencies and compilation
+        uses: actions/cache@v6.1.0
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-${{ runner.os }}-${{ runner.arch }}-${{ matrix.abi }}-${{ hashFiles('build/go/*/VERSION', 'android/app/src/main/native/stelliberty_core/go.sum', 'third_party/mihomo/go.sum') }}-${{ hashFiles('android/app/src/main/native/stelliberty_core/**', 'third_party/mihomo/**') }}
+          restore-keys: |
+            go-${{ runner.os }}-${{ runner.arch }}-${{ matrix.abi }}-${{ hashFiles('build/go/*/VERSION', 'android/app/src/main/native/stelliberty_core/go.sum', 'third_party/mihomo/go.sum') }}-
+            go-${{ runner.os }}-${{ runner.arch }}-${{ matrix.abi }}-
+
+      - name: Build signed APK
+        env:
+          APP_VERSION: ${{ inputs.version }}
+          TARGET_ABI: ${{ matrix.abi }}
+          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: python scripts/build.py --version "$APP_VERSION" --abi "$TARGET_ABI"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: stelliberty-${{ inputs.channel }}-${{ matrix.abi }}
+          path: build/apk/*.apk
+          if-no-files-found: error
+          compression-level: 0
+
+  publish:
+    name: Publish release
+    needs: build
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - name: Download APKs
+        uses: actions/download-artifact@v8.0.1
+        with:
+          pattern: stelliberty-${{ inputs.channel }}-*
+          path: artifacts
+          merge-multiple: true
+
+      - name: Download release notes
+        uses: actions/download-artifact@v8.0.1
+        with:
+          name: release-notes-${{ inputs.channel }}
+          path: release-notes
+
+      # 附件先上传到草稿，最后公开发布时才创建版本标签。
+      - name: Upload release draft
+        id: release
+        uses: softprops/action-gh-release@v3.0.3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          tag_name: v${{ inputs.version }}
+          target_commitish: ${{ github.sha }}
+          name: Stelliberty ${{ inputs.version }}
+          body_path: release-notes/notes.md
+          files: artifacts/*.apk
+          fail_on_unmatched_files: true
+          overwrite_files: true
+          draft: true
+          prerelease: ${{ inputs.channel == 'beta' }}
+          make_latest: false
+
+      - name: Record beta promotion baseline
+        if: inputs.channel == 'stable'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APP_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" > "$RUNNER_TEMP/release-pulls.json"
+          source_sha="$(python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          pulls = json.loads((Path(os.environ["RUNNER_TEMP"]) / "release-pulls.json").read_text())
+          sources = [p for p in pulls if p.get("merged_at") and p["base"]["ref"] == "main"
+                     and p["head"]["ref"] == "beta"
+                     and (p["head"].get("repo") or {}).get("full_name") == os.environ["GITHUB_REPOSITORY"]]
+          print(max(sources, key=lambda p: p["merged_at"])["head"]["sha"] if sources else os.environ["GITHUB_SHA"])
+          PY
+          )"
+          baseline="refs/tags/beta-base/v$APP_VERSION"
+          existing="$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/beta-base/v$APP_VERSION" \
+            --jq ".[] | select(.ref == \"$baseline\") | .object.sha")"
+          if [ -n "$existing" ]; then
+            test "$existing" = "$source_sha"
+          else
+            gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" \
+              -f ref="$baseline" -f sha="$source_sha" > /dev/null
+          fi
+
+      - name: Publish completed release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_ID: ${{ steps.release.outputs.id }}
+          CHANNEL: ${{ inputs.channel }}
+        run: |
+          set -euo pipefail
+          if [ "$CHANNEL" = beta ]; then
+            prerelease=true
+            latest=false
+          else
+            prerelease=false
+            latest=true
+          fi
+          gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" \
+            -F draft=false -F prerelease="$prerelease" -f make_latest="$latest" > /dev/null

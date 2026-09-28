@@ -1,0 +1,131 @@
+name: Stable Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Stable version matching ProjectConfig.VERSION_NAME
+        required: true
+        type: string
+  push:
+    branches: [main]
+    paths:
+      - android/buildSrc/src/main/kotlin/ProjectConfig.kt
+
+concurrency:
+  group: stable-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    name: Prepare stable release
+    runs-on: ubuntu-26.04
+    # 草稿列表要求推送权限，用于识别可重试的未完成发布。
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      should_build: ${{ steps.detect.outputs.should_build }}
+    steps:
+      - name: Require main branch
+        run: test "$GITHUB_REF" = 'refs/heads/main'
+
+      - name: Check out repository
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v7.0.0
+        with:
+          python-version: "3.x"
+
+      - name: Detect version change
+        id: detect
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          version_file=android/buildSrc/src/main/kotlin/ProjectConfig.kt
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] || [[ "$BEFORE_SHA" =~ ^0+$ ]]; then
+            echo 'should_build=true' >> "$GITHUB_OUTPUT"
+          elif git diff --unified=0 "$BEFORE_SHA" "$GITHUB_SHA" -- "$version_file" | grep -Eq '^[+-].*const val VERSION_NAME'; then
+            echo 'should_build=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'should_build=false' >> "$GITHUB_OUTPUT"
+            echo '::notice::Application version did not change; stable release skipped.'
+          fi
+
+      - name: Prepare stable version
+        id: meta
+        if: steps.detect.outputs.should_build == 'true'
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          version="$(sed -nE 's/.*const val VERSION_NAME = "([^"]+)".*/\1/p' android/buildSrc/src/main/kotlin/ProjectConfig.kt)"
+          if [[ ! "$version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo '::error::Stable version must be major.minor.patch.'
+            exit 1
+          fi
+          if [ -n "$REQUESTED_VERSION" ] && [ "$REQUESTED_VERSION" != "$version" ]; then
+            echo '::error::Update ProjectConfig.VERSION_NAME before requesting that stable version.'
+            exit 1
+          fi
+          tag="v$version"
+          existing="$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq ".[] | select(.tag_name == \"$tag\") | .draft")"
+          if [ "$existing" = false ]; then
+            echo "::error::Stable release $tag is already published."
+            exit 1
+          fi
+          if git show-ref --verify --quiet "refs/tags/$tag" && [ "$(git rev-parse "$tag^{commit}")" != "$GITHUB_SHA" ]; then
+            echo "::error::Tag $tag points to a different commit."
+            exit 1
+          fi
+          printf 'version=%s\n' "$version" >> "$GITHUB_OUTPUT"
+          printf '### Stable release\n\n- Version: `%s`\n- Commit: `%s`\n' "$version" "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Prepare bilingual changelog
+        if: steps.detect.outputs.should_build == 'true'
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          content = Path(".github/CHANGELOG.md").read_text(encoding="utf-8").strip()
+          sections = content.split("\n\n---\n\n")
+          if len(sections) != 2:
+              raise SystemExit("Expected English bullets, a separator, then Chinese bullets")
+          english, chinese = (section.splitlines() for section in sections)
+          if not english or len(english) != len(chinese):
+              raise SystemExit("Changelog translations must have matching bullet counts")
+          if any(not line.startswith("- ") or line.endswith((".", "。")) for line in english + chinese):
+              raise SystemExit("Use bullet items without headings or trailing punctuation")
+          output = Path("build/release/notes.md")
+          output.parent.mkdir(parents=True, exist_ok=True)
+          output.write_text(content + "\n", encoding="utf-8")
+          PY
+
+      - name: Upload release notes
+        if: steps.detect.outputs.should_build == 'true'
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: release-notes-stable
+          path: build/release/notes.md
+          if-no-files-found: error
+
+  package:
+    name: Build and publish stable APKs
+    needs: prepare
+    if: needs.prepare.outputs.should_build == 'true'
+    permissions:
+      contents: write
+      pull-requests: read
+    uses: ./.github/workflows/build.yml
+    with:
+      version: ${{ needs.prepare.outputs.version }}
+      channel: stable
+    secrets: inherit

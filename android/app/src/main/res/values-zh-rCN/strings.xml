@@ -1,0 +1,703 @@
+<resources>
+    <!-- Notification Channels -->
+    <string name="channel_vpn_name">VPN 服务状态</string>
+    <string name="channel_vpn_desc">Stelliberty 代理服务运行状态</string>
+    <string name="channel_profile_status_name">配置更新进度</string>
+    <string name="channel_profile_status_desc">配置下载和验证进度</string>
+    <string name="channel_profile_result_name">配置更新结果</string>
+    <string name="channel_profile_result_desc">配置更新成功或失败的通知</string>
+    <string name="channel_wifi_policy_service_name">Wi-Fi 自动切换服务</string>
+    <string name="channel_wifi_policy_service_desc">用于 Wi-Fi 自动切换的内部监控服务</string>
+    <string name="channel_wifi_policy_event_name">Wi-Fi 自动切换事件</string>
+    <string name="channel_wifi_policy_event_desc">Wi-Fi 自动切换改变代理状态时通知</string>
+
+    <!-- VPN Notifications -->
+    <string name="notification_loading">正在启动…</string>
+    <string name="notification_running_title">Stelliberty 运行中</string>
+    <string name="notification_running_content">模式: %1$s</string>
+    <string name="notification_wifi_policy_title">Wi-Fi 自动切换</string>
+    <string name="notification_wifi_policy_service_content">等待 Wi-Fi 变化</string>
+    <string name="notification_wifi_policy_stop_enter">已匹配 Wi-Fi，代理服务已关闭</string>
+    <string name="notification_wifi_policy_stop_leave">已离开匹配 Wi-Fi，代理服务已重新启动</string>
+    <string name="notification_wifi_policy_direct_enter">已匹配 Wi-Fi，已切换到 Direct 模式</string>
+    <string name="notification_wifi_policy_direct_leave">已离开匹配 Wi-Fi，已恢复原模式</string>
+
+    <!-- Profile Update Notifications -->
+    <string name="notification_profile_update">配置更新</string>
+    <string name="notification_profile_running">正在运行…</string>
+    <string name="notification_profile_updating">正在更新配置</string>
+    <string name="notification_update_success">更新成功</string>
+    <string name="notification_update_success_content">%1$s 已更新</string>
+    <string name="notification_update_failed">更新失败</string>
+    <string name="notification_unknown_error">未知错误</string>
+
+    <!-- Tile -->
+    <string name="tile_connected">已连接</string>
+    <string name="tile_connecting">连接中…</string>
+    <string name="tile_error">错误</string>
+    <string name="tile_disconnected">未连接</string>
+
+    <!-- QR Scanner -->
+    <string name="qr_scanner_overlay">将二维码对准扫描框</string>
+    <string name="qr_permission_denied">未授予相机权限</string>
+    <string name="qr_scan_failed">扫码失败</string>
+    <string name="qr_invalid_subscription">不是有效的订阅链接</string>
+    <string name="qr_unsupported">不支持的二维码</string>
+
+    <!-- Deep Link Import -->
+    <string name="deep_link_invalid">无效的订阅导入链接</string>
+
+    <!-- Service Errors -->
+    <string name="error_vpn_failed">VPN 建立失败: %1$s</string>
+    <string name="error_vpn_denied">VPN 权限被拒绝</string>
+    <string name="error_start_failed">启动失败</string>
+    <string name="error_root_failed">无法获取 Root 权限</string>
+    <string name="error_mihomo_not_found">mihomo 二进制文件未找到</string>
+    <string name="error_fork_failed">fork+exec 失败</string>
+    <string name="error_root_start_failed">root 启动失败</string>
+    <string name="error_mihomo_exited">mihomo 进程启动后立即退出</string>
+    <string name="error_api_not_ready">mihomo 进程运行中但 API 无响应</string>
+    <string name="error_mihomo_start_failed">mihomo 启动失败:\n%1$s</string>
+    <string name="error_generic_start_failed">启动失败: %1$s</string>
+    <string name="error_foreground_failed">前台服务启动失败: %1$s</string>
+    <string name="error_fd_setup_failed">TUN 文件描述符准备失败: %1$s</string>
+    <string name="error_tun_init_failed">TUN 初始化失败: %1$s</string>
+    <string name="error_tproxy_unsupported">ROOT TPROXY 模式需要内核 xt_TPROXY / xt_socket 模块，当前设备不支持</string>
+    <string name="error_no_active_profile">没有可用的订阅，请先导入订阅再启动代理</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">主页</string>
+    <string name="nav_proxy">代理</string>
+    <string name="nav_subscription">订阅</string>
+    <string name="nav_settings">设置</string>
+
+    <!-- Common -->
+    <string name="common_confirm">确定</string>
+    <string name="common_cancel">取消</string>
+    <string name="common_save">保存</string>
+    <string name="common_back">返回</string>
+    <string name="common_refresh">刷新</string>
+    <string name="common_more">更多</string>
+    <string name="common_close">关闭</string>
+    <string name="common_delete">删除</string>
+    <string name="common_edit">编辑</string>
+    <string name="common_update">更新</string>
+    <string name="common_clear">清除</string>
+    <string name="common_not_modified">不修改</string>
+    <string name="common_enabled">启用</string>
+    <string name="common_disabled">禁用</string>
+    <string name="common_cleared">已清除</string>
+    <plurals name="common_items_count">
+        <item quantity="one">%1$d 条</item>
+        <item quantity="other">%1$d 条</item>
+    </plurals>
+    <string name="common_processing">处理中...</string>
+
+    <!-- Home - Status -->
+    <string name="home_starting">启动中</string>
+    <string name="home_running">运行中</string>
+    <string name="home_stopping">停止中</string>
+    <string name="home_stopped">已停止</string>
+    <string name="home_uptime">运行时长</string>
+    <string name="home_active_profile">当前订阅</string>
+    <string name="home_port_mixed">混合 %1$d</string>
+    <string name="home_port_tproxy">TPROXY %1$d</string>
+
+    <!-- Home - Action Buttons -->
+    <string name="home_restart">重启</string>
+    <string name="home_stop">停止</string>
+    <string name="home_reload">热重载</string>
+    <string name="home_start">启动</string>
+    <string name="home_starting_btn">启动中...</string>
+    <string name="home_stopping_btn">停止中...</string>
+
+    <!-- Home - Quick Entries -->
+    <string name="home_providers">外部资源</string>
+    <string name="home_providers_subtitle">Provider</string>
+    <string name="home_connections">连接</string>
+    <string name="home_connections_subtitle">Connection</string>
+    <string name="home_logs">日志</string>
+    <string name="home_logs_subtitle">查看</string>
+    <string name="home_dns">DNS</string>
+    <string name="home_dns_subtitle">查询</string>
+
+    <!-- Home - Latency -->
+    <string name="home_latency">延迟</string>
+    <string name="home_latency_untested">未测试</string>
+    <string name="home_latency_normal">正常</string>
+    <string name="home_latency_partial">部分</string>
+    <string name="home_latency_abnormal">异常</string>
+    <string name="home_latency_not_via_rules">未走规则</string>
+
+    <!-- Home - Overview -->
+    <string name="home_overview">概览</string>
+    <string name="home_speed_detail">实时连接速率</string>
+    <string name="home_speed_no_active_connection">暂无活跃连接</string>
+    <string name="home_tools">工具</string>
+    <string name="home_address">地址</string>
+    <string name="home_interface">接口</string>
+    <string name="home_speed">网速</string>
+    <string name="home_upload">上行</string>
+    <string name="home_download">下行</string>
+
+    <!-- Home - Bottom Cards -->
+    <string name="home_subscription">订阅</string>
+    <string name="home_system">系统</string>
+    <string name="home_used">已用</string>
+    <string name="home_total">总量</string>
+    <string name="home_subscription_provider_traffic">代理集合</string>
+    <string name="home_subscription_no_provider_traffic">此订阅没有代理集合</string>
+    <string name="home_subscription_provider_traffic_load_failed">无法加载代理集合信息</string>
+    <string name="home_provider_update_all">更新全部</string>
+    <string name="home_remaining">剩余</string>
+    <string name="home_expire">到期</string>
+    <string name="home_no_expire">无到期时间</string>
+    <string name="home_expire_unknown">未知</string>
+
+    <!-- Proxy -->
+    <string name="proxy_title">代理组</string>
+    <string name="proxy_mode">代理模式</string>
+    <string name="proxy_tun_stack">TUN Stack</string>
+    <string name="proxy_inbound">入站</string>
+    <string name="proxy_inbound_tproxy">TPROXY:%1$d</string>
+    <string name="proxy_switch_mode">切换代理模式</string>
+    <string name="proxy_switch_tun_stack">切换 TUN Stack</string>
+    <string name="proxy_no_groups">暂无代理组</string>
+    <string name="proxy_search_groups">搜索代理组或节点</string>
+    <string name="proxy_no_matching_groups">没有匹配的代理组</string>
+    <string name="proxy_hide_unavailable">仅显示可用节点</string>
+    <string name="proxy_start_first">请先启动代理服务</string>
+    <string name="proxy_mode_direct_hint">当前为直连模式，所有流量不经代理。此处的选择会被保存，切回规则模式后生效。</string>
+    <string name="proxy_mode_global_hint">当前为全局模式，仅 GLOBAL 组决定出口。其他代理组的选择切回规则模式后生效。</string>
+    <string name="proxy_refresh_icon">刷新图标</string>
+    <string name="proxy_single_column">单列显示</string>
+    <string name="proxy_group_tabs">横向切换代理组</string>
+    <string name="proxy_node_count">%1$d/%2$d</string>
+    <string name="proxy_expand_group">展开代理组</string>
+    <string name="proxy_collapse_group">收起代理组</string>
+    <string name="proxy_no_matching_nodes">没有符合条件的节点</string>
+    <string name="proxy_show_global_group">GLOBAL 组</string>
+    <string name="proxy_timeout">超时</string>
+    <string name="proxy_sort_title">排序</string>
+    <string name="proxy_sort_default">默认</string>
+    <string name="proxy_sort_name">名称</string>
+    <string name="proxy_sort_delay">延迟</string>
+    <string name="proxy_sort_reverse">倒序</string>
+    <string name="proxy_test_group_delay">测试延迟</string>
+    <string name="proxy_test_node_delay">测试节点延迟</string>
+    <string name="proxy_fixed">已固定到此节点</string>
+    <string name="proxy_unfix">解除固定，恢复自动选择</string>
+
+    <!-- Subscription -->
+    <string name="subscription_title">订阅管理</string>
+    <string name="subscription_update_all">全部更新</string>
+    <string name="subscription_add">添加</string>
+    <string name="subscription_no_config">暂无配置</string>
+    <string name="subscription_tap_add">点击右上角 + 添加配置</string>
+    <string name="subscription_in_use">使用中</string>
+    <string name="subscription_config">配置</string>
+    <string name="subscription_used_traffic">已用 %1$s / %2$s</string>
+    <string name="subscription_no_traffic">未获取到流量信息</string>
+    <string name="subscription_updated_at">更新于 %1$s</string>
+    <string name="subscription_last_error">上次更新失败：%1$s</string>
+    <string name="subscription_delete_title">删除订阅</string>
+    <string name="subscription_delete_summary">确定要删除「%1$s」吗？将会移除配置文件以及节点选择记录。</string>
+
+    <!-- Subscription Create/Edit -->
+    <string name="subscription_create">创建配置</string>
+    <string name="subscription_edit">编辑配置</string>
+    <string name="subscription_file">文件</string>
+    <string name="subscription_file_summary">选本地配置文件，不会自动更新</string>
+    <string name="subscription_url">URL</string>
+    <string name="subscription_url_summary">从链接拉取，可定时自动更新</string>
+    <string name="subscription_qr">二维码</string>
+    <string name="subscription_qr_summary">扫出链接，之后与 URL 相同</string>
+    <string name="subscription_url_hint">仅接受 mihomo 配置文件(包含代理/规则)</string>
+    <string name="subscription_name">名称</string>
+    <string name="subscription_name_auto_placeholder">留空时自动从订阅获取</string>
+    <string name="subscription_default_name">订阅</string>
+    <string name="subscription_url_label">URL</string>
+    <string name="subscription_url_placeholder">仅接受 http(s) 和 content 类型</string>
+    <string name="subscription_user_agent">User-Agent</string>
+    <string name="subscription_user_agent_placeholder">留空则使用默认 UA</string>
+    <string name="subscription_config_name">配置名称</string>
+    <string name="subscription_sub_url">订阅 URL</string>
+    <string name="subscription_auto_update">自动更新</string>
+    <string name="subscription_auto_update_disabled">关闭</string>
+    <string name="subscription_auto_update_startup">启动应用时</string>
+    <string name="subscription_auto_update_interval">定时更新</string>
+    <string name="subscription_auto_update_interval_minutes">更新间隔</string>
+    <string name="subscription_auto_update_placeholder">分钟，最小 15</string>
+    <string name="subscription_auto_delay_interval">自动测试延迟</string>
+    <string name="subscription_auto_delay_placeholder">分钟，留空表示关闭</string>
+    <string name="subscription_import_config">导入配置</string>
+    <string name="subscription_updating_title">正在更新订阅</string>
+    <string name="subscription_updating_progress">%1$s (%2$d / %3$d)</string>
+    <string name="subscription_downloading">下载配置...</string>
+    <string name="subscription_validating">验证配置...</string>
+    <string name="subscription_prefetching">预下载 providers...</string>
+    <string name="subscription_update_config">更新配置</string>
+    <string name="subscription_file_only_no_update">该配置为文件导入，无法在线更新</string>
+
+    <!-- 订阅导入错误 -->
+    <string name="error_import_failed">导入失败: %1$s</string>
+    <string name="error_update_failed">更新失败: %1$s</string>
+    <string name="error_save_failed">保存失败: %1$s</string>
+    <string name="error_validation_failed">配置校验失败: %1$s</string>
+    <string name="error_import_http_status">订阅服务器返回 HTTP %1$d</string>
+    <string name="error_import_empty_body">订阅返回内容为空</string>
+    <string name="error_import_invalid_scheme">URL 必须以 http:// 或 https:// 开头：%1$s</string>
+    <string name="error_import_invalid_name">订阅名称不能为空</string>
+    <string name="error_import_interval_too_small">更新间隔最小 15 分钟</string>
+
+    <!-- Connection -->
+    <string name="connection_title">连接</string>
+    <string name="connection_search">搜索连接</string>
+    <string name="connection_no_active">暂无活跃连接</string>
+    <string name="connection_start_first">请先启动代理服务</string>
+    <string name="connection_list">连接列表</string>
+    <string name="connection_close_all_title">关闭所有连接</string>
+    <string name="connection_close_all_summary">确定要关闭所有活跃连接吗？</string>
+    <string name="connection_close_all">关闭全部</string>
+    <string name="connection_no_match">无匹配结果</string>
+    <string name="connection_active">活跃连接</string>
+    <string name="connection_upload_total">上行总量</string>
+    <string name="connection_download_total">下行总量</string>
+
+    <!-- Log -->
+    <string name="log_title">日志</string>
+    <string name="log_clear">清除</string>
+    <string name="log_waiting">等待日志...</string>
+    <string name="log_not_connected">未连接</string>
+
+    <!-- DNS -->
+    <string name="dns_title">DNS 查询</string>
+    <string name="dns_domain">域名</string>
+    <string name="dns_results">查询结果</string>
+    <string name="dns_no_record">无记录</string>
+    <string name="dns_clear_cache">清除缓存</string>
+    <string name="dns_clear_dns">清除 DNS 缓存</string>
+    <string name="dns_clear_fakeip">清除 FakeIP 缓存</string>
+    <string name="dns_querying">查询中...</string>
+    <string name="dns_query">查询</string>
+    <string name="dns_query_failed">查询失败：%1$s</string>
+
+    <!-- Provider -->
+    <string name="provider_title">外部资源</string>
+    <string name="provider_rule_providers">规则提供者</string>
+    <string name="provider_proxy_providers">代理提供者</string>
+    <string name="provider_no_providers">暂无外部资源</string>
+    <string name="provider_kind_proxy">代理（%1$s）</string>
+    <string name="provider_kind_rule">规则（%1$s）</string>
+    <string name="provider_start_first">请先启动代理服务</string>
+    <string name="provider_updating_title">正在更新资源</string>
+    <string name="provider_updating_single">正在更新 %1$s…</string>
+    <string name="provider_updating_progress">%1$d / %2$d</string>
+    <string name="provider_update_failed">更新 %1$s 失败: %2$s</string>
+
+    <!-- Settings -->
+    <string name="settings_title">设置</string>
+    <string name="settings_group_proxy">代理</string>
+    <string name="settings_group_core">内核</string>
+    <string name="settings_group_subscription">订阅</string>
+    <string name="settings_group_automation">自动化</string>
+    <string name="settings_general">通用</string>
+    <string name="settings_tun_mode">隧道模式</string>
+    <string name="settings_tun_vpn_summary">通过 VpnService</string>
+    <string name="settings_tun_root_tun_summary">自建 TUN 设备</string>
+    <string name="settings_tun_root_tproxy_summary">iptables TPROXY</string>
+    <string name="settings_tun_mode_vpn">VPN</string>
+    <string name="settings_tun_mode_root_tun">ROOT TUN</string>
+    <string name="settings_tun_mode_root_tproxy">ROOT TPROXY</string>
+    <string name="settings_vpn_settings">VPN 设置</string>
+    <string name="settings_vpn_summary">绕过私有网络、DNS 劫持、IPv6</string>
+    <string name="settings_tun_device">TUN 设备名称</string>
+    <string name="settings_override_settings">覆写设置</string>
+    <string name="settings_override_summary">端口、DNS、网络选项覆写</string>
+    <string name="settings_meta_settings">Meta 设置</string>
+    <string name="settings_meta_summary">统一延迟、嗅探器等</string>
+    <string name="settings_app_proxy">分应用代理</string>
+    <string name="settings_app_proxy_summary">选择需要代理的应用</string>
+    <string name="settings_wifi_policy">Wi-Fi 自动切换</string>
+    <string name="settings_wifi_policy_summary">在指定 Wi-Fi 下关闭服务或改为直连</string>
+    <string name="settings_dynamic_notification">动态通知</string>
+    <string name="settings_dynamic_notification_summary">在通知栏显示实时网速和流量</string>
+    <string name="settings_dynamic_notification_summary_root_unsupported">VPN 模式专用</string>
+    <string name="subscription_update_via_proxy">通过代理更新</string>
+    <string name="subscription_update_via_proxy_summary">经由正在运行的代理下载此订阅</string>
+    <string name="settings_restart_after_update">更新后重启代理</string>
+    <string name="settings_restart_after_update_summary">更新当前订阅后重启代理使新配置生效（会短暂中断连接）</string>
+    <string name="settings_auto_connect">启动时自动连接</string>
+    <string name="settings_auto_connect_summary">打开应用时若存在可用订阅则启动代理</string>
+    <string name="settings_auto_restart">开机后自动重启</string>
+    <string name="settings_auto_restart_summary">开机或应用升级后恢复上次运行的代理</string>
+    <string name="settings_theme_title">外观与主题</string>
+    <string name="settings_theme_group_color">颜色与主题</string>
+    <string name="settings_theme_group_interface">界面与效果</string>
+    <string name="settings_theme_group_navigation">底部导航栏</string>
+    <string name="settings_theme_summary">颜色、模糊效果与界面缩放，底栏和返回手势</string>
+    <string name="settings_theme_mode">主题模式</string>
+    <string name="settings_theme_system">跟随系统</string>
+    <string name="settings_theme_light">浅色</string>
+    <string name="settings_theme_dark">深色</string>
+    <string name="settings_theme_monet">Monet 取色</string>
+    <string name="settings_theme_monet_summary">可用时使用系统动态取色</string>
+    <string name="settings_theme_blur">模糊效果</string>
+    <string name="settings_theme_blur_summary">启用顶栏、底栏等表面的模糊效果</string>
+    <string name="settings_theme_blur_style">顶栏模糊样式</string>
+    <string name="settings_theme_blur_style_gaussian">高斯</string>
+    <string name="settings_theme_blur_style_progressive">渐进</string>
+    <string name="settings_theme_blur_style_gaussian_summary">顶栏整体均匀模糊</string>
+    <string name="settings_theme_blur_style_progressive_summary">顶部渐强模糊</string>
+    <string name="settings_theme_density_scale">界面缩放</string>
+    <string name="settings_theme_density_scale_summary">调整全局显示比例（80% - 110%）</string>
+    <string name="settings_theme_floating_bottom_bar">悬浮底栏</string>
+    <string name="settings_theme_floating_bottom_bar_summary">在手机布局中使用悬浮底部导航栏</string>
+    <string name="settings_theme_floating_bottom_bar_style">悬浮底栏样式</string>
+    <string name="settings_theme_floating_bottom_bar_style_miuix">Miuix</string>
+    <string name="settings_theme_floating_bottom_bar_style_ios_like">iOS 风格（液态玻璃）</string>
+    <string name="settings_theme_bottom_bar_mode">底栏选项</string>
+    <string name="settings_theme_bottom_bar_icon_and_text">图标与文字</string>
+    <string name="settings_theme_bottom_bar_icon_only">仅图标</string>
+    <string name="settings_theme_palette_style">色彩风格</string>
+    <string name="settings_theme_palette_tonal_spot">色调点（TonalSpot）</string>
+    <string name="settings_theme_palette_neutral">中性（Neutral）</string>
+    <string name="settings_theme_palette_vibrant">鲜明（Vibrant）</string>
+    <string name="settings_theme_palette_expressive">表现力（Expressive）</string>
+    <string name="settings_theme_palette_rainbow">彩虹（Rainbow）</string>
+    <string name="settings_theme_palette_fruit_salad">水果沙拉（FruitSalad）</string>
+    <string name="settings_theme_palette_monochrome">单色（Monochrome）</string>
+    <string name="settings_theme_palette_fidelity">保真（Fidelity）</string>
+    <string name="settings_theme_palette_content">内容（Content）</string>
+    <string name="settings_theme_pure_black">纯黑背景</string>
+    <string name="settings_theme_pure_black_summary">深色模式下使用纯黑背景</string>
+    <string name="settings_theme_accent_title">强调色</string>
+    <string name="settings_theme_accent_default">系统取色</string>
+    <string name="settings_theme_accent_blue">蓝色</string>
+    <string name="settings_theme_accent_purple">紫色</string>
+    <string name="settings_theme_accent_pink">粉色</string>
+    <string name="settings_theme_accent_red">红色</string>
+    <string name="settings_theme_accent_orange">橙色</string>
+    <string name="settings_theme_accent_yellow">黄色</string>
+    <string name="settings_theme_accent_green">绿色</string>
+    <string name="settings_theme_accent_teal">青色</string>
+    <string name="settings_predictive_back">预测性返回手势</string>
+    <string name="settings_predictive_back_summary">启用预测性返回动画效果</string>
+    <string name="settings_swipe_dismiss">横移返回手势</string>
+    <string name="settings_swipe_dismiss_summary">在页面任意位置横移即可返回上一页</string>
+    <string name="settings_hide_task_card">后台卡片隐藏</string>
+    <string name="settings_hide_task_card_summary">在最近任务中隐藏任务卡片</string>
+    <string name="settings_about">关于</string>
+
+    <!-- VPN Settings -->
+    <string name="vpn_settings_title">VPN 设置</string>
+    <string name="vpn_tunnel">VPN 隧道</string>
+    <string name="vpn_bypass_private">绕过私有网络</string>
+    <string name="vpn_bypass_private_summary">排除局域网地址，不通过 VPN 路由</string>
+    <string name="vpn_allow_bypass">允许应用绕过</string>
+    <string name="vpn_allow_bypass_summary">允许应用请求绕过 VPN 连接</string>
+    <string name="vpn_dns_hijacking">DNS 劫持</string>
+    <string name="vpn_dns_hijacking_summary">接管所有 DNS 请求</string>
+    <string name="vpn_system_proxy">系统代理</string>
+    <string name="vpn_system_proxy_summary">配置系统级 HTTP 代理</string>
+    <string name="vpn_allow_ipv6">允许 IPv6</string>
+    <string name="vpn_allow_ipv6_summary">通过代理路由 IPv6 流量</string>
+
+    <!-- ROOT 模式 -->
+    <string name="root_settings_title">ROOT 设置</string>
+    <string name="root_settings_summary">TUN 设备名、热点客户端流量</string>
+    <string name="root_section_device">TUN 设备</string>
+    <string name="root_section_tether">热点</string>
+    <string name="root_tether_mode_title">热点客户端流量</string>
+    <string name="root_tether_mode_bypass">绕过代理</string>
+    <string name="root_tether_mode_proxy">走代理</string>
+    <string name="root_tether_ifaces_title">热点接口名</string>
+    <string name="root_tether_ifaces_hint">每行一条，例如 wlan2</string>
+    <string name="root_tether_scan">检测当前接口</string>
+    <string name="root_tether_scan_scanning">扫描中...</string>
+    <string name="root_tether_scan_empty">未检测到活跃热点接口</string>
+    <string name="root_tether_scan_result_title">检测到以下接口</string>
+    <string name="root_tether_tproxy_unavailable_warning">当前内核缺少 xt_TPROXY 模块，已降级为兼容路径（吞吐略差，连接仍可用）。如需原生 TPROXY 性能，请更换支持该模块的内核。</string>
+    <string name="root_tproxy_tether_note">TPROXY 模式下所有热点流量由内核规则自动代理，无需切换「绕过 / 走代理」。</string>
+    <string name="root_tun_jumbo_mtu_title">大 MTU 与 GSO</string>
+    <string name="root_tun_jumbo_mtu_summary">大包聚合（mtu=9000、开启 gso）减少每包 syscall，提升吞吐。上游链路丢弃分片时可关闭。</string>
+    <string name="root_attach_force_reapply_title">重连时强制重建规则</string>
+    <string name="root_attach_force_reapply_summary">诊断开关：每次应用重新连接到正在运行的 mihomo 时强制重建 iptables 规则。仅当重连后热点规则丢失时开启。</string>
+
+    <!-- Network Settings -->
+    <string name="network_settings_title">覆写设置</string>
+    <string name="network_proxy_ports">代理端口</string>
+    <string name="network_http_port">HTTP 端口</string>
+    <string name="network_socks_port">SOCKS 端口</string>
+    <string name="network_redir_port">Redir 端口</string>
+    <string name="network_tproxy_port">TProxy 端口</string>
+    <string name="network_mixed_port">Mixed 端口</string>
+    <string name="network_options">网络选项</string>
+    <string name="network_allow_lan">允许局域网</string>
+    <string name="network_external_controller">外部控制器</string>
+    <string name="network_bind_address">绑定地址</string>
+    <string name="network_log_level">日志等级</string>
+    <string name="network_dns">DNS</string>
+    <string name="network_dns_enable">启用 DNS</string>
+    <string name="network_dns_listen">监听地址</string>
+    <string name="network_dns_listen_title">DNS 监听地址</string>
+    <string name="network_dns_use_hosts">使用 Hosts</string>
+    <string name="network_dns_prefer_h3">优先 H3</string>
+    <string name="network_dns_enhanced_mode">增强模式</string>
+    <string name="network_ipv6">IPv6</string>
+    <string name="network_dns_ipv6">DNS IPv6</string>
+    <string name="network_dns_nameserver">Nameserver</string>
+    <string name="network_dns_fallback">回退 Nameserver</string>
+    <string name="network_dns_default_nameserver">默认 Nameserver</string>
+    <string name="network_dns_fakeip_filter">FakeIP 过滤</string>
+    <string name="network_port_label">端口号 (0-65535)</string>
+    <string name="network_port_zero_hint">填写 0 表示禁用该端口</string>
+    <string name="network_input_value">输入值</string>
+    <string name="network_one_per_line">每行一条</string>
+    <string name="settings_override_restart_hint">此页设置修改后需重启代理服务生效</string>
+
+    <!-- Wi-Fi 策略 -->
+    <string name="wifi_policy_title">Wi-Fi 自动切换</string>
+    <string name="wifi_policy_basic">基本</string>
+    <string name="wifi_policy_enable">启用</string>
+    <string name="wifi_policy_enable_summary">当前 Wi-Fi 匹配列表时自动应用策略</string>
+    <string name="wifi_policy_notify_switch">切换通知</string>
+    <string name="wifi_policy_notify_switch_summary">仅在 Wi-Fi 策略改变代理状态时通知</string>
+    <string name="wifi_policy_hide_monitor_notification">隐藏等待通知</string>
+    <string name="wifi_policy_hide_monitor_notification_summary">可选。隐藏监控通知可能降低后台自动恢复可靠性。</string>
+    <string name="wifi_policy_action">匹配后执行</string>
+    <string name="wifi_policy_action_stop">关闭服务</string>
+    <string name="wifi_policy_action_stop_summary">匹配 Wi-Fi 时停止代理，断开后自动启动</string>
+    <string name="wifi_policy_action_direct">Direct 模式</string>
+    <string name="wifi_policy_action_direct_summary">无需重启，直接把运行中的代理切到 Direct 模式</string>
+    <string name="wifi_policy_ssids_title">Wi-Fi 名称</string>
+    <string name="wifi_policy_ssid_add_placeholder">Wi-Fi 名称</string>
+    <string name="wifi_policy_ssid_add">添加 SSID</string>
+    <string name="wifi_policy_ssid_scan">填入当前 Wi-Fi</string>
+    <string name="wifi_policy_ssid_scan_empty">未获取到当前 Wi-Fi，请确认已连接 Wi-Fi 并开启系统定位</string>
+    <string name="wifi_policy_ssid_empty">请先输入 Wi-Fi 名称</string>
+    <string name="wifi_policy_ssid_duplicate">SSID 已存在</string>
+    <string name="wifi_policy_current">当前 Wi-Fi</string>
+    <string name="wifi_policy_unknown_ssid">未知或未连接</string>
+    <string name="wifi_policy_permission">Wi-Fi 权限</string>
+    <string name="wifi_policy_permission_granted">已授权</string>
+    <string name="wifi_policy_permission_missing">读取当前 SSID 需要附近设备和定位权限</string>
+    <string name="wifi_policy_permission_required">需要附近设备和定位权限才能读取当前 SSID</string>
+
+    <!-- Meta Settings -->
+    <string name="meta_settings_title">Meta 设置</string>
+    <string name="meta_basic">基本</string>
+    <string name="meta_unified_delay">统一延迟</string>
+    <string name="meta_geodata_mode">Geodata 模式</string>
+    <string name="meta_tcp_concurrent">TCP 并发</string>
+    <string name="meta_find_process_mode">进程匹配模式</string>
+    <string name="meta_sniffer">嗅探器</string>
+    <string name="meta_sniffer_enable">启用嗅探器</string>
+    <string name="meta_sniffer_force_dns_mapping">强制 DNS 映射</string>
+    <string name="meta_sniffer_parse_pure_ip">解析纯 IP</string>
+    <string name="meta_sniffer_override_dest">覆写目标地址</string>
+    <string name="meta_sniffer_force_domain">强制嗅探域名</string>
+    <string name="meta_sniffer_skip_domain">跳过嗅探域名</string>
+
+    <!-- App Proxy -->
+    <string name="app_proxy_title">分应用代理</string>
+    <string name="app_proxy_search">搜索应用</string>
+    <string name="app_proxy_select_all">全选</string>
+    <string name="app_proxy_deselect_all">全不选</string>
+    <string name="app_proxy_invert">反选</string>
+    <string name="app_proxy_show_system">显示系统应用</string>
+    <string name="app_proxy_hide_system">隐藏系统应用</string>
+    <string name="app_proxy_import">导入</string>
+    <string name="app_proxy_export">导出</string>
+    <string name="app_proxy_no_match">无匹配应用</string>
+    <string name="app_proxy_allow_all">允许所有应用</string>
+    <string name="app_proxy_allow_all_summary">所有应用的流量都经过代理</string>
+    <string name="app_proxy_allow_selected">仅允许选中应用</string>
+    <string name="app_proxy_allow_selected_summary">只有选中的应用经过代理</string>
+    <string name="app_proxy_deny_selected">排除选中应用</string>
+    <string name="app_proxy_deny_selected_summary">选中的应用不经过代理</string>
+    <string name="app_proxy_app_list">应用列表 (%1$d/%2$d)</string>
+    <string name="app_proxy_applied">已应用分应用代理</string>
+    <string name="dialog_reset_done">已恢复默认值</string>
+
+    <!-- External Control -->
+    <string name="external_control_title">外部控制器</string>
+    <string name="external_control_ip">API 地址</string>
+    <string name="external_control_controller_hint">HTTP API 的监听地址（例如 127.0.0.1:9090）。0.0.0.0 将被自动覆写为 127.0.0.1。</string>
+    <string name="external_control_secret">API 密钥</string>
+    <string name="external_control_secret_hint">HTTP API 的 Bearer 鉴权令牌。留空时优先使用订阅配置中的 secret；若订阅未设置则随机生成。</string>
+    <string name="settings_external_control_summary">覆写外部控制器配置</string>
+
+    <!-- File Manager -->
+    <string name="file_manager_title">文件管理</string>
+    <string name="file_manager_empty">暂无已导入的订阅</string>
+    <string name="file_manager_save">保存</string>
+    <string name="file_manager_save_failed">保存失败：%1$s</string>
+    <string name="file_manager_saved">已保存</string>
+    <string name="file_manager_edit_warning">手动编辑将绕过订阅管道。非法 YAML 会阻止保存。</string>
+    <string name="settings_file_manager">文件管理</string>
+    <string name="settings_file_manager_summary">浏览并编辑已导入订阅的文件</string>
+
+    <!-- WebDAV Backup & Restore -->
+    <string name="settings_backup">备份与恢复</string>
+    <string name="settings_backup_summary">本地文件或 WebDAV 备份与恢复</string>
+    <string name="backup_title">备份与恢复</string>
+    <string name="backup_hint">将订阅、覆写与偏好设置打包备份到文件或 WebDAV 服务器；恢复时可以选择合并或覆盖本地数据。</string>
+    <string name="backup_server_url">服务器地址</string>
+    <string name="backup_username">用户名</string>
+    <string name="backup_password">密码</string>
+    <string name="backup_test_connection">测试连接</string>
+    <string name="backup_now">备份到 WebDAV</string>
+    <string name="backup_restore_now">从 WebDAV 恢复</string>
+    <string name="backup_missing_credentials">请先填写服务器地址、用户名和密码</string>
+    <string name="backup_connection_ok">连接成功</string>
+    <string name="backup_done">备份完成</string>
+    <string name="backup_not_found">服务器上没有找到备份</string>
+    <string name="backup_stop_proxy_first">请先停止代理再执行恢复</string>
+    <string name="backup_failed">操作失败: %1$s</string>
+    <string name="backup_restore_confirm_title">恢复备份</string>
+    <string name="backup_restore_merge">合并恢复</string>
+    <string name="backup_restore_merge_summary">保留本机数据，只添加本机没有的订阅</string>
+    <string name="backup_restore_overwrite">覆盖恢复</string>
+    <string name="backup_restore_overwrite_summary">用备份替换本机的订阅与设置，无法撤销</string>
+    <string name="backup_restore_done_title">恢复完成</string>
+    <string name="backup_restore_done_summary">需要重启应用以加载恢复后的数据。</string>
+    <string name="backup_restart_now">立即重启</string>
+    <string name="backup_section_local">本地备份</string>
+    <string name="backup_export_local">备份到文件</string>
+    <string name="backup_restore_local">从文件恢复</string>
+    <string name="backup_export_done">备份文件已保存</string>
+    <string name="backup_section_webdav">WebDAV</string>
+    <string name="backup_local_row_summary">备份到文件或从文件恢复</string>
+    <string name="backup_webdav_row_summary">备份到 WebDAV 服务器或从中恢复</string>
+
+    <!-- About -->
+    <string name="about_title">关于</string>
+    <string name="about_open_source">开放源代码许可</string>
+
+    <!-- FormatUtils -->
+
+    <!-- Provider -->
+    <string name="provider_update">更新</string>
+
+    <!-- Subscription errors -->
+
+    <!-- Age 加密 -->
+    <string name="common_copied">已复制</string>
+    <string name="subscription_age_secret_key">Age 解密密钥</string>
+    <string name="subscription_age_secret_key_placeholder">用于 age 加密订阅，未使用则留空</string>
+    <string name="meta_age">Age 加密</string>
+    <string name="meta_age_generate">生成密钥对</string>
+    <string name="meta_age_generate_summary">为加密订阅生成 age x25519 密钥对</string>
+    <string name="meta_age_generate_hybrid">生成抗量子密钥对</string>
+    <string name="meta_age_generate_hybrid_summary">mlkem768-x25519 抗量子密钥对</string>
+    <string name="meta_age_keypair_title">Age 密钥对</string>
+    <string name="meta_age_secret_key">私钥</string>
+    <string name="meta_age_public_key">公钥</string>
+    <string name="meta_age_copy_secret">复制私钥</string>
+    <string name="meta_age_copy_public">复制公钥</string>
+    <string name="meta_age_keygen_failed">生成密钥对失败</string>
+
+    <!-- Overrides -->
+    <string name="override_title">覆写</string>
+    <string name="settings_overrides_summary">管理订阅使用的 YAML 与 JavaScript 覆写</string>
+    <string name="override_add">添加覆写</string>
+    <string name="override_edit">编辑覆写</string>
+    <string name="override_empty">暂无覆写，请添加远程或本地覆写。</string>
+    <string name="override_source_remote">远程</string>
+    <string name="override_source_local">本地</string>
+    <string name="override_add_method">添加方式</string>
+    <string name="override_method_remote_summary">从地址下载</string>
+    <string name="override_method_blank">新建</string>
+    <string name="override_method_blank_summary">创建空白文件</string>
+    <string name="override_method_local">导入</string>
+    <string name="override_method_local_summary">选择本地文件</string>
+    <string name="override_name">覆写名称</string>
+    <string name="override_name_placeholder">输入一个覆写名称</string>
+    <string name="override_url">覆写地址</string>
+    <string name="override_url_placeholder">输入覆写地址</string>
+    <string name="override_local_file">本地文件</string>
+    <string name="override_format">文件格式</string>
+    <string name="override_update_via_proxy_summary">经由正在运行的代理下载此覆写</string>
+    <string name="override_delete_title">删除覆写</string>
+    <string name="override_delete_summary">确定要删除「%1$s」吗？使用它的订阅会同时移除这个覆写。</string>
+    <string name="override_update_all_result">更新完成，成功 %1$d 个，失败 %2$d 个</string>
+    <string name="override_error_name_required">请输入覆写名称。</string>
+    <string name="override_error_invalid_url">覆写地址必须以 http:// 或 https:// 开头。</string>
+    <string name="override_error_file_required">请选择本地覆写文件。</string>
+    <string name="override_error_http_status">服务器返回 HTTP %1$d</string>
+    <string name="override_select_title">覆写选择</string>
+    <string name="override_move_up">上移</string>
+    <string name="override_move_down">下移</string>
+    <string name="subscription_overrides">覆写</string>
+    <string name="subscription_override_none">无覆写</string>
+    <plurals name="subscription_override_count">
+        <item quantity="one">%1$d 个覆写</item>
+        <item quantity="other">%1$d 个覆写</item>
+    </plurals>
+    <string name="chain_proxy_title">链式代理</string>
+    <string name="chain_proxy_add">添加链式代理</string>
+    <string name="chain_proxy_edit">编辑链式代理</string>
+    <string name="chain_proxy_builtin">内置链式代理</string>
+    <string name="chain_proxy_custom">自定义链式代理</string>
+    <string name="chain_proxy_custom_empty">还没有自定义链式代理</string>
+    <string name="chain_proxy_loading">覆写应用与节点解析中…</string>
+    <string name="chain_proxy_load_failed">配置解析失败: %1$s</string>
+    <string name="chain_proxy_name">自定义链名称</string>
+    <string name="chain_proxy_name_placeholder">给这条链起个名字</string>
+    <string name="chain_proxy_group">所属代理组</string>
+    <string name="chain_proxy_group_summary">所属代理组: %1$s</string>
+    <string name="chain_proxy_group_type">代理组</string>
+    <string name="chain_proxy_path">链路顺序</string>
+    <string name="chain_proxy_path_empty">点击下方节点，按顺序组成链路</string>
+    <string name="chain_proxy_min_hops">至少选择两个跳点</string>
+    <string name="chain_proxy_candidates">可选节点与代理组</string>
+    <string name="chain_proxy_no_candidates">覆写后没有可用节点或代理组</string>
+    <string name="chain_proxy_missing">所属代理组或跳点已缺失: %1$s</string>
+    <string name="chain_proxy_remove_hop">移除</string>
+    <string name="chain_proxy_error_name">请先填写链名称</string>
+    <string name="chain_proxy_error_group">请选择所属代理组</string>
+    <string name="chain_proxy_error_group_position">代理组只能作为第一个跳点</string>
+    <string name="chain_proxy_error_duplicate">名称与现有节点、代理组或自定义链重复</string>
+    <string name="chain_proxy_cycle_warning">检测到链式代理循环引用，内核可能无法正常运行</string>
+    <string name="subscription_chain_proxy_none">无链式代理</string>
+    <plurals name="subscription_chain_proxy_count">
+        <item quantity="one">%1$d 条链式代理</item>
+        <item quantity="other">%1$d 条链式代理</item>
+    </plurals>
+    <string name="rule_override_title">规则覆写</string>
+    <string name="rule_override_add">添加规则</string>
+    <string name="rule_override_edit">编辑规则</string>
+    <string name="rule_override_search">搜索规则类型、内容或出站目标</string>
+    <string name="rule_override_loading">正在套用覆写并解析规则…</string>
+    <string name="rule_override_load_failed">配置解析失败：%1$s</string>
+    <string name="rule_override_empty">该订阅没有规则</string>
+    <string name="rule_override_hint">订阅规则保持原顺序，新的自定义规则插在第一条 MATCH 前；点自定义规则可以修改内容和位置。</string>
+    <string name="rule_override_custom_tag">自定义</string>
+    <string name="rule_override_missing_target">出站目标已不存在，运行时跳过</string>
+    <string name="rule_override_apply_template">应用模板</string>
+    <string name="rule_override_save_template">保存为模板</string>
+    <string name="rule_override_save_template_summary">保存当前的自定义规则，同名模板会被替换</string>
+    <string name="rule_override_template_name">模板名称</string>
+    <string name="rule_override_template_saved">模板已保存</string>
+    <plurals name="rule_override_template_count">
+        <item quantity="one">%1$d 条规则</item>
+        <item quantity="other">%1$d 条规则</item>
+    </plurals>
+    <string name="rule_override_reset_order">重置排序</string>
+    <string name="rule_override_type">规则类型</string>
+    <string name="rule_override_target">出站目标</string>
+    <string name="rule_override_payload">匹配内容</string>
+    <string name="rule_override_position">位置</string>
+    <string name="rule_override_position_range">1 – %1$d</string>
+    <string name="rule_override_delete">删除规则</string>
+    <string name="rule_override_none">未设置</string>
+    <string name="rule_override_summary">自定义 %1$d 条，禁用 %2$d 条</string>
+    <string name="rule_override_error_invalid">请填写完整且有效的规则内容</string>
+    <string name="rule_override_error_payload_required">请输入匹配内容</string>
+    <string name="rule_override_error_payload_delimiter">匹配内容不能包含逗号</string>
+    <string name="rule_override_error_cidr">请输入有效的 IP 网段，例如 2001:db8::/32</string>
+    <string name="rule_override_error_duplicate_custom">已有相同匹配条件的自定义规则</string>
+    <string name="rule_override_error_duplicate_builtin">该匹配条件已存在于启用的订阅规则中，请先禁用对应的订阅规则</string>
+    <string name="rule_override_error_position">请输入 1 到 %1$d 之间的位置</string>
+</resources>

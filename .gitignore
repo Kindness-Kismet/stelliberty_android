@@ -1,0 +1,81 @@
+# 默认忽略文件，只在指定目录放行源码后缀；目录可遍历不代表其中的文件可提交。
+*
+!*/
+
+# 项目入口与维护资料。
+!/.gitignore
+!/.gitattributes
+!/.gitmodules
+!/AGENTS.md
+!/CLAUDE.md
+!/README.md
+!/LICENSE
+!/.github/CHANGELOG.md
+!/.github/docs/*.md
+!/.github/workflows/*.yml
+
+# 只保留技能正文、指引和可执行脚本，排除会话、备份与私人配置。
+!/.claude/skills/*/SKILL.md
+!/.claude/skills/*/guides/**/*.md
+!/.claude/skills/*/references/**/*.md
+!/.claude/skills/*/scripts/**/*.sh
+!/.claude/skills/*/scripts/**/*.py
+!/.codex/skills/*/SKILL.md
+!/.codex/skills/*/guides/**/*.md
+!/.codex/skills/*/references/**/*.md
+!/.codex/skills/*/scripts/**/*.sh
+!/.codex/skills/*/scripts/**/*.py
+!/.pi/settings.json
+
+!/scripts/**/*.py
+!/scripts/patches/*.patch
+
+# Gradle 配置保留，启动脚本与启动器由 prebuild.py 按锁定版本下载。
+!/android/build.gradle.kts
+!/android/settings.gradle.kts
+!/android/gradle.properties
+!/android/gradle/libs.versions.toml
+!/android/gradle/gradle-daemon-jvm.properties
+!/android/gradle/wrapper/gradle-wrapper.properties
+!/android/buildSrc/*.gradle.kts
+!/android/buildSrc/src/**/*.kt
+!/android/app/build.gradle.kts
+!/android/app/compose_compiler_config.conf
+!/android/baselineprofile/build.gradle.kts
+
+# 编译输入按目录和后缀放行，避免把配置导出与临时素材混进源码。
+!/android/app/src/**/*.kt
+!/android/app/src/**/AndroidManifest.xml
+!/android/app/src/main/res/**/*.xml
+!/android/app/src/main/cpp/*.c
+!/android/app/src/main/cpp/*.h
+!/android/app/src/main/cpp/CMakeLists.txt
+!/android/app/src/main/keepRules/*.keep
+!/android/app/src/main/native/stelliberty_core/.gitignore
+!/android/app/src/main/native/stelliberty_core/*.go
+!/android/app/src/main/native/stelliberty_core/overrides/*.go
+!/android/app/src/main/native/stelliberty_core/go.mod
+!/android/app/src/main/native/stelliberty_core/go.sum
+!/android/baselineprofile/src/**/*.kt
+
+# 真机采集结果无法靠下载恢复，必须跟踪。
+!/android/app/src/release/generated/baselineProfiles/baseline-prof.txt
+!/android/app/src/release/generated/baselineProfiles/startup-prof.txt
+
+# 子模块只跟踪提交指针，内部文件遵循各自仓库规则。
+!/third_party/mihomo
+!/third_party/scripta
+
+# 生成目录优先于源码后缀规则。
+**/build/
+**/.gradle/
+**/.cxx/
+**/.kotlin/
+**/__pycache__/
+**/local.properties
+**/google-services.json
+**/*.jks
+**/*.keystore
+/android/app/src/main/jniLibs/
+/android/app/src/main/assets/
+/android/app/release/

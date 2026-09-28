@@ -1,0 +1,87 @@
+name: Verify Pull Request
+
+on:
+  pull_request:
+    branches: [beta, main]
+
+concurrency:
+  group: verify-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7.0.1
+        with:
+          submodules: recursive
+
+      - name: Set up Python
+        uses: actions/setup-python@v7.0.0
+        with:
+          python-version: "3.x"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4.0.4
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6.3.0
+        with:
+          cache-disabled: true
+
+      - name: Check whitespace
+        run: git show --format= --check HEAD
+
+      - name: Check tracked file allowlist
+        run: |
+          set -euo pipefail
+          unexpected="$(git ls-files --cached --ignored --exclude-standard)"
+          if [ -n "$unexpected" ]; then
+            printf '::error::Tracked files are outside the allowlist:\n%s\n' "$unexpected"
+            exit 1
+          fi
+
+      - name: Compute resource cache epoch
+        id: resource-cache
+        run: |
+          echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
+          echo "day=$(date -u +%F)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore Gradle dependencies and compilation
+        uses: actions/cache/restore@v6.1.0
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ runner.arch }}-arm64-v8a-${{ steps.resource-cache.outputs.week }}-${{ github.sha }}
+          restore-keys: |
+            gradle-${{ runner.os }}-${{ runner.arch }}-arm64-v8a-${{ steps.resource-cache.outputs.week }}-
+            gradle-${{ runner.os }}-${{ runner.arch }}-arm64-v8a-
+
+      - name: Restore toolchains and Gradle launcher
+        uses: actions/cache/restore@v6.1.0
+        with:
+          path: |
+            build/jdk
+            build/go
+            android/gradlew
+            android/gradlew.bat
+            android/gradle/wrapper/gradle-wrapper.jar
+          key: toolchains-${{ runner.os }}-${{ runner.arch }}-${{ steps.resource-cache.outputs.week }}-${{ hashFiles('scripts/prebuild.py', 'android/gradle/wrapper/gradle-wrapper.properties') }}
+
+      - name: Restore daily GeoIP data
+        uses: actions/cache/restore@v6.1.0
+        with:
+          path: android/app/src/main/assets
+          key: geodata-${{ steps.resource-cache.outputs.day }}-${{ hashFiles('android/app/build.gradle.kts') }}
+
+      - name: Prepare build resources
+        run: python scripts/prebuild.py
+
+      - name: Compile debug Kotlin
+        run: python scripts/build.py compile --dev

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- debug 专用命令入口；exported 是 adb shell 调用的前提，调用方 UID 在 Provider 内校验 -->
+        <provider
+            android:name=".debug.DebugCommandProvider"
+            android:authorities="${applicationId}.commands"
+            android:enabled="true"
+            android:exported="true" />
+    </application>
+</manifest>

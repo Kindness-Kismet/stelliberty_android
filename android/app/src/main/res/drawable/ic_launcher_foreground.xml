@@ -1,0 +1,27 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="696"
+    android:viewportHeight="696">
+
+    <!-- 原图的 464 单位底板对应 72dp 可视区，前景保持原比例并完整位于 66dp 安全区内。 -->
+    <group
+        android:translateX="92"
+        android:translateY="106">
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M207.26,266.03A90,90 0,1 1,238.96,320.61A67,67 0,0 0,207.26,266.03Z" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M118,323a54,54 0,1 1,108,0a54,54 0,1 1,-108,0Z" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M385,136a13,13 0,1 1,26,0a13,13 0,1 1,-26,0Z" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M98,231a10,10 0,1 1,20,0a10,10 0,1 1,-20,0Z" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M157,99C165,115 177,127 193,135C177,143 165,155 157,171C149,155 137,143 121,135C137,127 149,115 157,99Z" />
+    </group>
+</vector>

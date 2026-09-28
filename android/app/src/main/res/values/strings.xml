@@ -1,0 +1,705 @@
+<resources>
+    <string name="app_name" translatable="false">Stelliberty</string>
+
+    <!-- Notification Channels -->
+    <string name="channel_vpn_name">VPN Service Status</string>
+    <string name="channel_vpn_desc">Stelliberty proxy service status</string>
+    <string name="channel_profile_status_name">Config Update Progress</string>
+    <string name="channel_profile_status_desc">Config download and validation progress</string>
+    <string name="channel_profile_result_name">Config Update Result</string>
+    <string name="channel_profile_result_desc">Config update success or failure notifications</string>
+    <string name="channel_wifi_policy_service_name">Wi-Fi Auto Switch Service</string>
+    <string name="channel_wifi_policy_service_desc">Internal monitor service for Wi-Fi auto switching</string>
+    <string name="channel_wifi_policy_event_name">Wi-Fi Auto Switch Events</string>
+    <string name="channel_wifi_policy_event_desc">Notifications when Wi-Fi auto switch changes proxy state</string>
+
+    <!-- VPN Notifications -->
+    <string name="notification_loading">Starting…</string>
+    <string name="notification_running_title">Stelliberty Running</string>
+    <string name="notification_running_content">Mode: %1$s</string>
+    <string name="notification_wifi_policy_title">Wi-Fi Auto Switch</string>
+    <string name="notification_wifi_policy_service_content">Waiting for Wi-Fi changes</string>
+    <string name="notification_wifi_policy_stop_enter">Matched Wi-Fi, proxy service stopped</string>
+    <string name="notification_wifi_policy_stop_leave">Left matched Wi-Fi, proxy service restarted</string>
+    <string name="notification_wifi_policy_direct_enter">Matched Wi-Fi, switched to Direct mode</string>
+    <string name="notification_wifi_policy_direct_leave">Left matched Wi-Fi, restored previous mode</string>
+
+    <!-- Profile Update Notifications -->
+    <string name="notification_profile_update">Config Update</string>
+    <string name="notification_profile_running">Running…</string>
+    <string name="notification_profile_updating">Updating config</string>
+    <string name="notification_update_success">Update Successful</string>
+    <string name="notification_update_success_content">%1$s updated</string>
+    <string name="notification_update_failed">Update Failed</string>
+    <string name="notification_unknown_error">Unknown error</string>
+
+    <!-- Tile -->
+    <string name="tile_connected">Connected</string>
+    <string name="tile_connecting">Connecting…</string>
+    <string name="tile_error">Error</string>
+    <string name="tile_disconnected">Disconnected</string>
+
+    <!-- QR Scanner -->
+    <string name="qr_scanner_overlay">Align the QR code within the frame</string>
+    <string name="qr_permission_denied">Camera permission not granted</string>
+    <string name="qr_scan_failed">QR code scan failed</string>
+    <string name="qr_invalid_subscription">Not a valid subscription link</string>
+    <string name="qr_unsupported">Unsupported QR code</string>
+
+    <!-- Deep Link Import -->
+    <string name="deep_link_invalid">Invalid subscription import link</string>
+
+    <!-- Service Errors -->
+    <string name="error_vpn_failed">VPN establishment failed: %1$s</string>
+    <string name="error_vpn_denied">VPN permission denied</string>
+    <string name="error_start_failed">Start failed</string>
+    <string name="error_root_failed">Cannot obtain Root permission</string>
+    <string name="error_mihomo_not_found">mihomo binary not found</string>
+    <string name="error_fork_failed">fork+exec failed</string>
+    <string name="error_root_start_failed">root start failed</string>
+    <string name="error_mihomo_exited">mihomo process exited immediately</string>
+    <string name="error_api_not_ready">mihomo process is running but API is not responding</string>
+    <string name="error_mihomo_start_failed">mihomo start failed:\n%1$s</string>
+    <string name="error_generic_start_failed">Start failed: %1$s</string>
+    <string name="error_foreground_failed">Failed to start foreground service: %1$s</string>
+    <string name="error_fd_setup_failed">Failed to prepare TUN file descriptor: %1$s</string>
+    <string name="error_tun_init_failed">TUN init failed: %1$s</string>
+    <string name="error_tproxy_unsupported">ROOT TPROXY requires kernel xt_TPROXY/xt_socket modules which are not available on this device</string>
+    <string name="error_no_active_profile">No active subscription. Please import a subscription before starting the proxy.</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_proxy">Proxy</string>
+    <string name="nav_subscription">Subscriptions</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Common -->
+    <string name="common_confirm">OK</string>
+    <string name="common_cancel">Cancel</string>
+    <string name="common_save">Save</string>
+    <string name="common_back">Back</string>
+    <string name="common_refresh">Refresh</string>
+    <string name="common_more">More</string>
+    <string name="common_close">Close</string>
+    <string name="common_delete">Delete</string>
+    <string name="common_edit">Edit</string>
+    <string name="common_update">Update</string>
+    <string name="common_clear">Clear</string>
+    <string name="common_not_modified">Not modified</string>
+    <string name="common_enabled">Enabled</string>
+    <string name="common_disabled">Disabled</string>
+    <string name="common_cleared">Cleared</string>
+    <plurals name="common_items_count">
+        <item quantity="one">%1$d item</item>
+        <item quantity="other">%1$d items</item>
+    </plurals>
+    <string name="common_processing">Processing...</string>
+
+    <!-- Home - Status -->
+    <string name="home_starting">Starting</string>
+    <string name="home_running">Running</string>
+    <string name="home_stopping">Stopping</string>
+    <string name="home_stopped">Stopped</string>
+    <string name="home_uptime">Uptime</string>
+    <string name="home_active_profile">Active Profile</string>
+    <string name="home_port_mixed">Mixed %1$d</string>
+    <string name="home_port_tproxy">TPROXY %1$d</string>
+
+    <!-- Home - Action Buttons -->
+    <string name="home_restart">Restart</string>
+    <string name="home_stop">Stop</string>
+    <string name="home_reload">Hot Reload</string>
+    <string name="home_start">Start</string>
+    <string name="home_starting_btn">Starting...</string>
+    <string name="home_stopping_btn">Stopping...</string>
+
+    <!-- Home - Quick Entries -->
+    <string name="home_providers">Providers</string>
+    <string name="home_providers_subtitle">Provider</string>
+    <string name="home_connections">Connections</string>
+    <string name="home_connections_subtitle">Connection</string>
+    <string name="home_logs">Logs</string>
+    <string name="home_logs_subtitle">View</string>
+    <string name="home_dns">DNS</string>
+    <string name="home_dns_subtitle">Query</string>
+
+    <!-- Home - Latency -->
+    <string name="home_latency">Latency</string>
+    <string name="home_latency_untested">Untested</string>
+    <string name="home_latency_normal">Normal</string>
+    <string name="home_latency_partial">Partial</string>
+    <string name="home_latency_abnormal">Abnormal</string>
+    <string name="home_latency_not_via_rules">Not via rules</string>
+
+    <!-- Home - Overview -->
+    <string name="home_overview">Overview</string>
+    <string name="home_speed_detail">Live Connection Rates</string>
+    <string name="home_speed_no_active_connection">No active connections</string>
+    <string name="home_tools">Tools</string>
+    <string name="home_address">Address</string>
+    <string name="home_interface">Interface</string>
+    <string name="home_speed">Speed</string>
+    <string name="home_upload">Upload</string>
+    <string name="home_download">Download</string>
+
+    <!-- Home - Bottom Cards -->
+    <string name="home_subscription">Subscription</string>
+    <string name="home_system">System</string>
+    <string name="home_used">Used</string>
+    <string name="home_total">Total</string>
+    <string name="home_subscription_provider_traffic">Proxy Providers</string>
+    <string name="home_subscription_no_provider_traffic">No proxy providers in this subscription</string>
+    <string name="home_subscription_provider_traffic_load_failed">Unable to load provider info</string>
+    <string name="home_provider_update_all">Update all</string>
+    <string name="home_remaining">Remaining</string>
+    <string name="home_expire">Expires</string>
+    <string name="home_no_expire">No expiry</string>
+    <string name="home_expire_unknown">Unknown</string>
+
+    <!-- Proxy -->
+    <string name="proxy_title">Proxy Groups</string>
+    <string name="proxy_mode">Proxy Mode</string>
+    <string name="proxy_tun_stack">TUN Stack</string>
+    <string name="proxy_inbound">Inbound</string>
+    <string name="proxy_inbound_tproxy">TPROXY:%1$d</string>
+    <string name="proxy_switch_mode">Switch Proxy Mode</string>
+    <string name="proxy_switch_tun_stack">Switch TUN Stack</string>
+    <string name="proxy_no_groups">No proxy groups</string>
+    <string name="proxy_search_groups">Search groups or nodes</string>
+    <string name="proxy_no_matching_groups">No matching groups</string>
+    <string name="proxy_hide_unavailable">Only available nodes</string>
+    <string name="proxy_start_first">Please start the proxy service first</string>
+    <string name="proxy_mode_direct_hint">Direct mode is active: all traffic bypasses the proxy. Group selections are saved but only take effect after switching back to rule mode.</string>
+    <string name="proxy_mode_global_hint">Global mode is active: only the GLOBAL group routes traffic. Selections in other groups take effect after switching back to rule mode.</string>
+    <string name="proxy_refresh_icon">Refresh Icons</string>
+    <string name="proxy_single_column">Single Column</string>
+    <string name="proxy_group_tabs">Horizontal group tabs</string>
+    <string name="proxy_node_count">%1$d/%2$d</string>
+    <string name="proxy_expand_group">Expand group</string>
+    <string name="proxy_collapse_group">Collapse group</string>
+    <string name="proxy_no_matching_nodes">No matching nodes</string>
+    <string name="proxy_show_global_group">GLOBAL Group</string>
+    <string name="proxy_timeout">Timeout</string>
+    <string name="proxy_sort_title">Sort</string>
+    <string name="proxy_sort_default">Default</string>
+    <string name="proxy_sort_name">Name</string>
+    <string name="proxy_sort_delay">Latency</string>
+    <string name="proxy_sort_reverse">Reverse</string>
+    <string name="proxy_test_group_delay">Test latency</string>
+    <string name="proxy_test_node_delay">Test node delay</string>
+    <string name="proxy_fixed">Fixed to this node</string>
+    <string name="proxy_unfix">Unfix, restore automatic selection</string>
+
+    <!-- Subscription -->
+    <string name="subscription_title">Subscriptions</string>
+    <string name="subscription_update_all">Update All</string>
+    <string name="subscription_add">Add</string>
+    <string name="subscription_no_config">No configs</string>
+    <string name="subscription_tap_add">Tap + to add a config</string>
+    <string name="subscription_in_use">Active</string>
+    <string name="subscription_config">Config</string>
+    <string name="subscription_used_traffic">Used %1$s / %2$s</string>
+    <string name="subscription_no_traffic">No traffic info</string>
+    <string name="subscription_updated_at">Updated at %1$s</string>
+    <string name="subscription_last_error">Last update failed: %1$s</string>
+    <string name="subscription_delete_title">Delete subscription</string>
+    <string name="subscription_delete_summary">Delete \"%1$s\"? This will remove the config files and selection history.</string>
+
+    <!-- Subscription Create/Edit -->
+    <string name="subscription_create">Create Config</string>
+    <string name="subscription_edit">Edit Config</string>
+    <string name="subscription_file">File</string>
+    <string name="subscription_file_summary">Pick a local config; no auto-update</string>
+    <string name="subscription_url">URL</string>
+    <string name="subscription_url_summary">Fetch from a link, refreshed on a schedule</string>
+    <string name="subscription_qr">QR Code</string>
+    <string name="subscription_qr_summary">Scan a link, then same as URL</string>
+    <string name="subscription_url_hint">Only accepts mihomo config files (with proxies/rules)</string>
+    <string name="subscription_name">Name</string>
+    <string name="subscription_name_auto_placeholder">Leave blank to auto-name from subscription</string>
+    <string name="subscription_default_name">Subscription</string>
+    <string name="subscription_url_label">URL</string>
+    <string name="subscription_url_placeholder">Only accepts http(s) and content types</string>
+    <string name="subscription_user_agent">User-Agent</string>
+    <string name="subscription_user_agent_placeholder">Leave blank to use default</string>
+    <string name="subscription_config_name">Config Name</string>
+    <string name="subscription_sub_url">Subscription URL</string>
+    <string name="subscription_auto_update">Auto update</string>
+    <string name="subscription_auto_update_disabled">Off</string>
+    <string name="subscription_auto_update_startup">On app launch</string>
+    <string name="subscription_auto_update_interval">Interval</string>
+    <string name="subscription_auto_update_interval_minutes">Update interval</string>
+    <string name="subscription_auto_update_placeholder">minutes, min 15</string>
+    <string name="subscription_auto_delay_interval">Auto latency test</string>
+    <string name="subscription_auto_delay_placeholder">minutes, leave empty to turn off</string>
+    <string name="subscription_import_config">Import Config</string>
+    <string name="subscription_updating_title">Updating subscriptions</string>
+    <string name="subscription_updating_progress">%1$s (%2$d / %3$d)</string>
+    <string name="subscription_downloading">Downloading config...</string>
+    <string name="subscription_validating">Validating config...</string>
+    <string name="subscription_prefetching">Prefetching providers...</string>
+    <string name="subscription_update_config">Update Config</string>
+    <string name="subscription_file_only_no_update">File-imported config cannot be updated online</string>
+
+    <!-- Subscription import errors -->
+    <string name="error_import_failed">Import failed: %1$s</string>
+    <string name="error_update_failed">Update failed: %1$s</string>
+    <string name="error_save_failed">Save failed: %1$s</string>
+    <string name="error_validation_failed">Validation failed: %1$s</string>
+    <string name="error_import_http_status">The subscription server returned HTTP %1$d</string>
+    <string name="error_import_empty_body">The subscription returned an empty response</string>
+    <string name="error_import_invalid_scheme">URL must start with http:// or https://: %1$s</string>
+    <string name="error_import_invalid_name">Subscription name cannot be empty</string>
+    <string name="error_import_interval_too_small">Update interval must be at least 15 minutes</string>
+
+    <!-- Connection -->
+    <string name="connection_title">Connections</string>
+    <string name="connection_search">Search connections</string>
+    <string name="connection_no_active">No active connections</string>
+    <string name="connection_start_first">Please start the proxy service first</string>
+    <string name="connection_list">Connection List</string>
+    <string name="connection_close_all_title">Close All Connections</string>
+    <string name="connection_close_all_summary">Are you sure to close all active connections?</string>
+    <string name="connection_close_all">Close All</string>
+    <string name="connection_no_match">No matching results</string>
+    <string name="connection_active">Active Connections</string>
+    <string name="connection_upload_total">Upload Total</string>
+    <string name="connection_download_total">Download Total</string>
+
+    <!-- Log -->
+    <string name="log_title">Logs</string>
+    <string name="log_clear">Clear</string>
+    <string name="log_waiting">Waiting for logs...</string>
+    <string name="log_not_connected">Not connected</string>
+
+    <!-- DNS -->
+    <string name="dns_title">DNS Query</string>
+    <string name="dns_domain">Domain</string>
+    <string name="dns_results">Results</string>
+    <string name="dns_no_record">No records</string>
+    <string name="dns_clear_cache">Clear Cache</string>
+    <string name="dns_clear_dns">Clear DNS Cache</string>
+    <string name="dns_clear_fakeip">Clear FakeIP Cache</string>
+    <string name="dns_querying">Querying...</string>
+    <string name="dns_query">Query</string>
+    <string name="dns_query_failed">Query failed: %1$s</string>
+
+    <!-- Provider -->
+    <string name="provider_title">Providers</string>
+    <string name="provider_rule_providers">Rule Providers</string>
+    <string name="provider_proxy_providers">Proxy Providers</string>
+    <string name="provider_no_providers">No providers</string>
+    <string name="provider_kind_proxy">Proxy (%1$s)</string>
+    <string name="provider_kind_rule">Rule (%1$s)</string>
+    <string name="provider_start_first">Please start the proxy service first</string>
+    <string name="provider_updating_title">Updating provider</string>
+    <string name="provider_updating_single">Updating %1$s…</string>
+    <string name="provider_updating_progress">%1$d / %2$d</string>
+    <string name="provider_update_failed">Failed to update %1$s: %2$s</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_group_proxy">Proxy</string>
+    <string name="settings_group_core">Core</string>
+    <string name="settings_group_subscription">Subscriptions</string>
+    <string name="settings_group_automation">Automation</string>
+    <string name="settings_general">General</string>
+    <string name="settings_tun_mode">Tunnel Mode</string>
+    <string name="settings_tun_vpn_summary">via VpnService</string>
+    <string name="settings_tun_root_tun_summary">owns TUN device</string>
+    <string name="settings_tun_root_tproxy_summary">iptables TPROXY</string>
+    <string name="settings_tun_mode_vpn">VPN</string>
+    <string name="settings_tun_mode_root_tun">ROOT TUN</string>
+    <string name="settings_tun_mode_root_tproxy">ROOT TPROXY</string>
+    <string name="settings_vpn_settings">VPN Settings</string>
+    <string name="settings_vpn_summary">Bypass private network, DNS hijacking, IPv6</string>
+    <string name="settings_tun_device">TUN Device Name</string>
+    <string name="settings_override_settings">Override Settings</string>
+    <string name="settings_override_summary">Ports, DNS, network overrides</string>
+    <string name="settings_meta_settings">Meta Settings</string>
+    <string name="settings_meta_summary">Unified delay, sniffer, etc.</string>
+    <string name="settings_app_proxy">Per-App Proxy</string>
+    <string name="settings_app_proxy_summary">Select apps to proxy</string>
+    <string name="settings_wifi_policy">Wi-Fi Auto Switch</string>
+    <string name="settings_wifi_policy_summary">Stop service or use DIRECT on selected Wi-Fi</string>
+    <string name="settings_dynamic_notification">Dynamic Notification</string>
+    <string name="settings_dynamic_notification_summary">Show real-time speed and traffic in notification</string>
+    <string name="settings_dynamic_notification_summary_root_unsupported">VPN mode only</string>
+    <string name="subscription_update_via_proxy">Update via proxy</string>
+    <string name="subscription_update_via_proxy_summary">Download this subscription through the running proxy</string>
+    <string name="settings_restart_after_update">Restart after update</string>
+    <string name="settings_restart_after_update_summary">Restart the proxy when the active profile is updated, so the new config takes effect (briefly interrupts connections)</string>
+    <string name="settings_auto_connect">Connect on Launch</string>
+    <string name="settings_auto_connect_summary">Start the proxy when the app opens, if a usable profile is available</string>
+    <string name="settings_auto_restart">Restart on Boot</string>
+    <string name="settings_auto_restart_summary">Restore the proxy that was running before a reboot or app update</string>
+    <string name="settings_theme_title">Appearance &amp; Theme</string>
+    <string name="settings_theme_group_color">Color &amp; Theme</string>
+    <string name="settings_theme_group_interface">Interface &amp; Effects</string>
+    <string name="settings_theme_group_navigation">Bottom Navigation</string>
+    <string name="settings_theme_summary">Color, blur effects and interface scale; bottom bar and back gestures</string>
+    <string name="settings_theme_mode">Theme Mode</string>
+    <string name="settings_theme_system">Follow System</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_theme_monet">Monet Colors</string>
+    <string name="settings_theme_monet_summary">Use the system dynamic color palette when available</string>
+    <string name="settings_theme_blur">Blur Effects</string>
+    <string name="settings_theme_blur_summary">Enable blur effects for bars and layered surfaces</string>
+    <string name="settings_theme_blur_style">Top bar blur style</string>
+    <string name="settings_theme_blur_style_gaussian">Gaussian</string>
+    <string name="settings_theme_blur_style_progressive">Progressive</string>
+    <string name="settings_theme_blur_style_gaussian_summary">Uniform frosted blur across the top bar</string>
+    <string name="settings_theme_blur_style_progressive_summary">Gradient blur, strongest at the top edge</string>
+    <string name="settings_theme_density_scale">Interface Scale</string>
+    <string name="settings_theme_density_scale_summary">Adjust the global display scale (80% - 110%)</string>
+    <string name="settings_theme_floating_bottom_bar">Floating Bottom Bar</string>
+    <string name="settings_theme_floating_bottom_bar_summary">Use a floating bottom navigation bar on phones</string>
+    <string name="settings_theme_floating_bottom_bar_style">Floating Bottom Bar Style</string>
+    <string name="settings_theme_floating_bottom_bar_style_miuix">Miuix</string>
+    <string name="settings_theme_floating_bottom_bar_style_ios_like">iOS-like (Liquid Glass)</string>
+    <string name="settings_theme_bottom_bar_mode">Bottom Bar Options</string>
+    <string name="settings_theme_bottom_bar_icon_and_text">Icon and Text</string>
+    <string name="settings_theme_bottom_bar_icon_only">Icon Only</string>
+    <string name="settings_theme_palette_style">Color Style</string>
+    <string name="settings_theme_palette_tonal_spot">Tonal Spot (TonalSpot)</string>
+    <string name="settings_theme_palette_neutral">Neutral (Neutral)</string>
+    <string name="settings_theme_palette_vibrant">Vibrant (Vibrant)</string>
+    <string name="settings_theme_palette_expressive">Expressive (Expressive)</string>
+    <string name="settings_theme_palette_rainbow">Rainbow (Rainbow)</string>
+    <string name="settings_theme_palette_fruit_salad">Fruit Salad (FruitSalad)</string>
+    <string name="settings_theme_palette_monochrome">Monochrome (Monochrome)</string>
+    <string name="settings_theme_palette_fidelity">Fidelity (Fidelity)</string>
+    <string name="settings_theme_palette_content">Content (Content)</string>
+    <string name="settings_theme_pure_black">Pure Black Background</string>
+    <string name="settings_theme_pure_black_summary">Use a pure black background in dark mode</string>
+    <string name="settings_theme_accent_title">Accent Color</string>
+    <string name="settings_theme_accent_default">System color</string>
+    <string name="settings_theme_accent_blue">Blue</string>
+    <string name="settings_theme_accent_purple">Purple</string>
+    <string name="settings_theme_accent_pink">Pink</string>
+    <string name="settings_theme_accent_red">Red</string>
+    <string name="settings_theme_accent_orange">Orange</string>
+    <string name="settings_theme_accent_yellow">Yellow</string>
+    <string name="settings_theme_accent_green">Green</string>
+    <string name="settings_theme_accent_teal">Teal</string>
+    <string name="settings_predictive_back">Predictive Back Gesture</string>
+    <string name="settings_predictive_back_summary">Enable predictive back animation</string>
+    <string name="settings_swipe_dismiss">Swipe Back Gesture</string>
+    <string name="settings_swipe_dismiss_summary">Swipe sideways anywhere on the page to go back</string>
+    <string name="settings_hide_task_card">Hide from recents</string>
+    <string name="settings_hide_task_card_summary">Hide task card in recent tasks</string>
+    <string name="settings_about">About</string>
+
+    <!-- VPN Settings -->
+    <string name="vpn_settings_title">VPN Settings</string>
+    <string name="vpn_tunnel">VPN Tunnel</string>
+    <string name="vpn_bypass_private">Bypass Private Network</string>
+    <string name="vpn_bypass_private_summary">Exclude LAN addresses from VPN routing</string>
+    <string name="vpn_allow_bypass">Allow App Bypass</string>
+    <string name="vpn_allow_bypass_summary">Allow apps to request bypassing VPN</string>
+    <string name="vpn_dns_hijacking">DNS Hijacking</string>
+    <string name="vpn_dns_hijacking_summary">Intercept all DNS requests</string>
+    <string name="vpn_system_proxy">System Proxy</string>
+    <string name="vpn_system_proxy_summary">Configure system-level HTTP proxy</string>
+    <string name="vpn_allow_ipv6">Allow IPv6</string>
+    <string name="vpn_allow_ipv6_summary">Route IPv6 traffic through the proxy</string>
+
+    <!-- ROOT Mode -->
+    <string name="root_settings_title">ROOT Settings</string>
+    <string name="root_settings_summary">TUN device name, hotspot client traffic</string>
+    <string name="root_section_device">TUN Device</string>
+    <string name="root_section_tether">Hotspot</string>
+    <string name="root_tether_mode_title">Hotspot client traffic</string>
+    <string name="root_tether_mode_bypass">Bypass proxy</string>
+    <string name="root_tether_mode_proxy">Through proxy</string>
+    <string name="root_tether_ifaces_title">Hotspot interfaces</string>
+    <string name="root_tether_ifaces_hint">One per line, e.g. wlan2</string>
+    <string name="root_tether_scan">Detect current interfaces</string>
+    <string name="root_tether_scan_scanning">Scanning...</string>
+    <string name="root_tether_scan_empty">No active hotspot interface detected</string>
+    <string name="root_tether_scan_result_title">Detected interfaces</string>
+    <string name="root_tether_tproxy_unavailable_warning">Kernel lacks xt_TPROXY module. Running in fallback path (slower, connections still work). Use a kernel with xt_TPROXY for native TPROXY performance.</string>
+    <string name="root_tproxy_tether_note">TPROXY mode proxies all hotspot traffic via kernel rules; no Bypass/Through toggle needed.</string>
+    <string name="root_tun_jumbo_mtu_title">Jumbo MTU &amp; GSO</string>
+    <string name="root_tun_jumbo_mtu_summary">Large-packet aggregation (mtu=9000, gso=on) reduces per-packet syscalls for throughput. Disable if the upstream link drops fragmented traffic.</string>
+    <string name="root_attach_force_reapply_title">Force re-apply on reconnect</string>
+    <string name="root_attach_force_reapply_summary">Diagnostic: re-apply iptables rules every time the app reattaches to a running mihomo. Leave off unless tether rules disappear after reconnect.</string>
+
+    <!-- Network Settings -->
+    <string name="network_settings_title">Override Settings</string>
+    <string name="network_proxy_ports">Proxy Ports</string>
+    <string name="network_http_port">HTTP Port</string>
+    <string name="network_socks_port">SOCKS Port</string>
+    <string name="network_redir_port">Redir Port</string>
+    <string name="network_tproxy_port">TProxy Port</string>
+    <string name="network_mixed_port">Mixed Port</string>
+    <string name="network_options">Network Options</string>
+    <string name="network_allow_lan">Allow LAN</string>
+    <string name="network_external_controller">External Controller</string>
+    <string name="network_bind_address">Bind Address</string>
+    <string name="network_log_level">Log Level</string>
+    <string name="network_dns">DNS</string>
+    <string name="network_dns_enable">Enable DNS</string>
+    <string name="network_dns_listen">Listen Address</string>
+    <string name="network_dns_listen_title">DNS Listen Address</string>
+    <string name="network_dns_use_hosts">Use Hosts</string>
+    <string name="network_dns_prefer_h3">Prefer H3</string>
+    <string name="network_dns_enhanced_mode">Enhanced Mode</string>
+    <string name="network_ipv6">IPv6</string>
+    <string name="network_dns_ipv6">DNS IPv6</string>
+    <string name="network_dns_nameserver">Nameserver</string>
+    <string name="network_dns_fallback">Fallback</string>
+    <string name="network_dns_default_nameserver">Default Nameserver</string>
+    <string name="network_dns_fakeip_filter">FakeIP Filter</string>
+    <string name="network_port_label">Port (0-65535)</string>
+    <string name="network_port_zero_hint">0 disables this listener</string>
+    <string name="network_input_value">Input value</string>
+    <string name="network_one_per_line">One per line</string>
+    <string name="settings_override_restart_hint">Changes to these settings take effect after restarting the proxy service.</string>
+
+    <!-- Wi-Fi Policy -->
+    <string name="wifi_policy_title">Wi-Fi Auto Switch</string>
+    <string name="wifi_policy_basic">Basic</string>
+    <string name="wifi_policy_enable">Enable</string>
+    <string name="wifi_policy_enable_summary">Apply policy when current Wi-Fi matches the list</string>
+    <string name="wifi_policy_notify_switch">Switch notifications</string>
+    <string name="wifi_policy_notify_switch_summary">Notify only when Wi-Fi policy changes proxy state</string>
+    <string name="wifi_policy_hide_monitor_notification">Hide waiting notification</string>
+    <string name="wifi_policy_hide_monitor_notification_summary">Optional. Hiding the monitor notification may reduce background auto-restore reliability.</string>
+    <string name="wifi_policy_action">When matched</string>
+    <string name="wifi_policy_action_stop">Stop service</string>
+    <string name="wifi_policy_action_stop_summary">Stop proxy on matched Wi-Fi, restart after disconnecting</string>
+    <string name="wifi_policy_action_direct">Direct mode</string>
+    <string name="wifi_policy_action_direct_summary">Switch the running proxy to Direct mode without restarting</string>
+    <string name="wifi_policy_ssids_title">Wi-Fi Names</string>
+    <string name="wifi_policy_ssid_add_placeholder">Wi-Fi name</string>
+    <string name="wifi_policy_ssid_add">Add SSID</string>
+    <string name="wifi_policy_ssid_scan">Fill current Wi-Fi</string>
+    <string name="wifi_policy_ssid_scan_empty">No current Wi-Fi found. Make sure Wi-Fi is connected and system location is enabled.</string>
+    <string name="wifi_policy_ssid_empty">Enter a Wi-Fi name first</string>
+    <string name="wifi_policy_ssid_duplicate">SSID already exists</string>
+    <string name="wifi_policy_current">Current Wi-Fi</string>
+    <string name="wifi_policy_unknown_ssid">Unknown or not connected</string>
+    <string name="wifi_policy_permission">Wi-Fi permission</string>
+    <string name="wifi_policy_permission_granted">Granted</string>
+    <string name="wifi_policy_permission_missing">Nearby devices and location are required to read current SSID</string>
+    <string name="wifi_policy_permission_required">Nearby devices and location permissions are required to read the current SSID</string>
+
+    <!-- Meta Settings -->
+    <string name="meta_settings_title">Meta Settings</string>
+    <string name="meta_basic">Basic</string>
+    <string name="meta_unified_delay">Unified Delay</string>
+    <string name="meta_geodata_mode">Geodata Mode</string>
+    <string name="meta_tcp_concurrent">TCP Concurrent</string>
+    <string name="meta_find_process_mode">Process Match Mode</string>
+    <string name="meta_sniffer">Sniffer</string>
+    <string name="meta_sniffer_enable">Enable Sniffer</string>
+    <string name="meta_sniffer_force_dns_mapping">Force DNS Mapping</string>
+    <string name="meta_sniffer_parse_pure_ip">Parse Pure IP</string>
+    <string name="meta_sniffer_override_dest">Override Destination</string>
+    <string name="meta_sniffer_force_domain">Force Sniff Domain</string>
+    <string name="meta_sniffer_skip_domain">Skip Sniff Domain</string>
+
+    <!-- App Proxy -->
+    <string name="app_proxy_title">Per-App Proxy</string>
+    <string name="app_proxy_search">Search apps</string>
+    <string name="app_proxy_select_all">Select All</string>
+    <string name="app_proxy_deselect_all">Deselect All</string>
+    <string name="app_proxy_invert">Invert</string>
+    <string name="app_proxy_show_system">Show System Apps</string>
+    <string name="app_proxy_hide_system">Hide System Apps</string>
+    <string name="app_proxy_import">Import</string>
+    <string name="app_proxy_export">Export</string>
+    <string name="app_proxy_no_match">No matching apps</string>
+    <string name="app_proxy_allow_all">Allow All Apps</string>
+    <string name="app_proxy_allow_all_summary">All app traffic goes through proxy</string>
+    <string name="app_proxy_allow_selected">Allow Selected Only</string>
+    <string name="app_proxy_allow_selected_summary">Only selected apps go through proxy</string>
+    <string name="app_proxy_deny_selected">Exclude Selected</string>
+    <string name="app_proxy_deny_selected_summary">Selected apps bypass proxy</string>
+    <string name="app_proxy_app_list">App List (%1$d/%2$d)</string>
+    <string name="app_proxy_applied">Per-app proxy applied</string>
+    <string name="dialog_reset_done">Reset to default</string>
+
+    <!-- External Control -->
+    <string name="external_control_title">External Controller</string>
+    <string name="external_control_ip">API Address</string>
+    <string name="external_control_controller_hint">Bind address for the HTTP API (e.g. 127.0.0.1:9090). 0.0.0.0 will be automatically overwritten with 127.0.0.1.</string>
+    <string name="external_control_secret">API Secret</string>
+    <string name="external_control_secret_hint">Bearer token for the HTTP API. When empty, falls back to the secret defined in the subscription config, or a random one if the subscription does not set it.</string>
+    <string name="settings_external_control_summary">Overwrite external controller configuration</string>
+
+    <!-- File Manager -->
+    <string name="file_manager_title">File Manager</string>
+    <string name="file_manager_empty">No subscriptions imported yet</string>
+    <string name="file_manager_save">Save</string>
+    <string name="file_manager_save_failed">Save failed: %1$s</string>
+    <string name="file_manager_saved">Saved</string>
+    <string name="file_manager_edit_warning">Manual edits bypass the subscription pipeline. Invalid YAML will block the save.</string>
+    <string name="settings_file_manager">File Manager</string>
+    <string name="settings_file_manager_summary">Browse and edit imported subscription files</string>
+
+    <!-- WebDAV Backup & Restore -->
+    <string name="settings_backup">Backup &amp; Restore</string>
+    <string name="settings_backup_summary">Back up and restore via local file or WebDAV</string>
+    <string name="backup_title">Backup &amp; Restore</string>
+    <string name="backup_hint">Back up subscriptions, overrides and preferences as a single archive, to a file or a WebDAV server. Restoring can merge into or overwrite local data.</string>
+    <string name="backup_server_url">Server URL</string>
+    <string name="backup_username">Username</string>
+    <string name="backup_password">Password</string>
+    <string name="backup_test_connection">Test connection</string>
+    <string name="backup_now">Back up to WebDAV</string>
+    <string name="backup_restore_now">Restore from WebDAV</string>
+    <string name="backup_missing_credentials">Server URL, username and password are required</string>
+    <string name="backup_connection_ok">Connection successful</string>
+    <string name="backup_done">Backup completed</string>
+    <string name="backup_not_found">No backup found on the server</string>
+    <string name="backup_stop_proxy_first">Stop the proxy before restoring</string>
+    <string name="backup_failed">Operation failed: %1$s</string>
+    <string name="backup_restore_confirm_title">Restore backup</string>
+    <string name="backup_restore_merge">Merge</string>
+    <string name="backup_restore_merge_summary">Keep local data and add only subscriptions missing on this device</string>
+    <string name="backup_restore_overwrite">Overwrite</string>
+    <string name="backup_restore_overwrite_summary">Replace local subscriptions and settings with the backup. This cannot be undone</string>
+    <string name="backup_restore_done_title">Restore completed</string>
+    <string name="backup_restore_done_summary">The app needs to restart to load the restored data.</string>
+    <string name="backup_restart_now">Restart now</string>
+    <string name="backup_section_local">Local backup</string>
+    <string name="backup_export_local">Back up to file</string>
+    <string name="backup_restore_local">Restore from file</string>
+    <string name="backup_export_done">Backup file saved</string>
+    <string name="backup_section_webdav">WebDAV</string>
+    <string name="backup_local_row_summary">Back up to or restore from a file</string>
+    <string name="backup_webdav_row_summary">Back up to or restore from a WebDAV server</string>
+
+    <!-- About -->
+    <string name="about_title">About</string>
+    <string name="about_open_source">Open Source Licenses</string>
+
+    <!-- FormatUtils -->
+
+    <!-- Provider -->
+    <string name="provider_update">Update</string>
+
+    <!-- Subscription errors -->
+
+    <!-- Age encryption -->
+    <string name="common_copied">Copied</string>
+    <string name="subscription_age_secret_key">Age Secret Key</string>
+    <string name="subscription_age_secret_key_placeholder">For age-encrypted profiles, leave blank if unused</string>
+    <string name="meta_age">Age Encryption</string>
+    <string name="meta_age_generate">Generate Key Pair</string>
+    <string name="meta_age_generate_summary">Create an age x25519 key pair for encrypted subscriptions</string>
+    <string name="meta_age_generate_hybrid">Generate Hybrid Key Pair</string>
+    <string name="meta_age_generate_hybrid_summary">Post-quantum mlkem768-x25519 key pair</string>
+    <string name="meta_age_keypair_title">Age Key Pair</string>
+    <string name="meta_age_secret_key">Secret Key</string>
+    <string name="meta_age_public_key">Public Key</string>
+    <string name="meta_age_copy_secret">Copy Secret Key</string>
+    <string name="meta_age_copy_public">Copy Public Key</string>
+    <string name="meta_age_keygen_failed">Failed to generate key pair</string>
+
+    <!-- Overrides -->
+    <string name="override_title">Overrides</string>
+    <string name="settings_overrides_summary">Manage YAML and JavaScript overrides used by subscriptions</string>
+    <string name="override_add">Add Override</string>
+    <string name="override_edit">Edit Override</string>
+    <string name="override_empty">No overrides yet. Add a remote or local override.</string>
+    <string name="override_source_remote">Remote</string>
+    <string name="override_source_local">Local</string>
+    <string name="override_add_method">Add Method</string>
+    <string name="override_method_remote_summary">From address</string>
+    <string name="override_method_blank">New</string>
+    <string name="override_method_blank_summary">Create blank file</string>
+    <string name="override_method_local">Import</string>
+    <string name="override_method_local_summary">Choose local file</string>
+    <string name="override_name">Override Name</string>
+    <string name="override_name_placeholder">Enter an override name</string>
+    <string name="override_url">Override Address</string>
+    <string name="override_url_placeholder">Enter override address</string>
+    <string name="override_local_file">Local File</string>
+    <string name="override_format">File Format</string>
+    <string name="override_update_via_proxy_summary">Download this override through the running proxy</string>
+    <string name="override_delete_title">Delete Override</string>
+    <string name="override_delete_summary">Delete \"%1$s\"? Subscriptions using it will drop this override.</string>
+    <string name="override_update_all_result">Update completed: %1$d succeeded, %2$d failed</string>
+    <string name="override_error_name_required">Enter an override name.</string>
+    <string name="override_error_invalid_url">Override address must start with http:// or https://.</string>
+    <string name="override_error_file_required">Select a local override file.</string>
+    <string name="override_error_http_status">The server returned HTTP %1$d</string>
+    <string name="override_select_title">Overrides</string>
+    <string name="override_move_up">Move up</string>
+    <string name="override_move_down">Move down</string>
+    <string name="subscription_overrides">Overrides</string>
+    <string name="subscription_override_none">No Overrides</string>
+    <plurals name="subscription_override_count">
+        <item quantity="one">%1$d override</item>
+        <item quantity="other">%1$d overrides</item>
+    </plurals>
+    <string name="chain_proxy_title">Chain Proxy</string>
+    <string name="chain_proxy_add">Add Chain</string>
+    <string name="chain_proxy_edit">Edit Chain</string>
+    <string name="chain_proxy_builtin">Built-in Chain Proxies</string>
+    <string name="chain_proxy_custom">Custom Chain Proxies</string>
+    <string name="chain_proxy_custom_empty">No custom chains yet</string>
+    <string name="chain_proxy_loading">Applying overrides and parsing nodes…</string>
+    <string name="chain_proxy_load_failed">Failed to parse the configuration: %1$s</string>
+    <string name="chain_proxy_name">Custom Chain Name</string>
+    <string name="chain_proxy_name_placeholder">Name this chain</string>
+    <string name="chain_proxy_group">Owning Proxy Group</string>
+    <string name="chain_proxy_group_summary">Proxy group: %1$s</string>
+    <string name="chain_proxy_group_type">Proxy Group</string>
+    <string name="chain_proxy_path">Chain Order</string>
+    <string name="chain_proxy_path_empty">Tap nodes below to build the chain in order</string>
+    <string name="chain_proxy_min_hops">Select at least two hops</string>
+    <string name="chain_proxy_candidates">Available Nodes and Proxy Groups</string>
+    <string name="chain_proxy_no_candidates">No available nodes or proxy groups after overrides</string>
+    <string name="chain_proxy_missing">Missing owning group or hops: %1$s</string>
+    <string name="chain_proxy_remove_hop">Remove</string>
+    <string name="chain_proxy_error_name">Enter a chain name first</string>
+    <string name="chain_proxy_error_group">Select an owning proxy group</string>
+    <string name="chain_proxy_error_group_position">A proxy group can only be the first hop</string>
+    <string name="chain_proxy_error_duplicate">The name conflicts with an existing proxy, group, or custom chain</string>
+    <string name="chain_proxy_cycle_warning">Chain proxy cycles detected; the core may not run correctly</string>
+    <string name="subscription_chain_proxy_none">No Chain Proxy</string>
+    <plurals name="subscription_chain_proxy_count">
+        <item quantity="one">%1$d chain proxy</item>
+        <item quantity="other">%1$d chain proxies</item>
+    </plurals>
+    <string name="rule_override_title">Rule Overrides</string>
+    <string name="rule_override_add">Add Rule</string>
+    <string name="rule_override_edit">Edit Rule</string>
+    <string name="rule_override_search">Search type, content, or target</string>
+    <string name="rule_override_loading">Applying overrides and parsing rules…</string>
+    <string name="rule_override_load_failed">Failed to parse the configuration: %1$s</string>
+    <string name="rule_override_empty">This subscription has no rules</string>
+    <string name="rule_override_hint">Subscription rules keep their order, and new custom rules go before the first MATCH. Tap a custom rule to edit it or change its position.</string>
+    <string name="rule_override_custom_tag">Custom</string>
+    <string name="rule_override_missing_target">The outbound target no longer exists; skipped at runtime</string>
+    <string name="rule_override_apply_template">Apply Template</string>
+    <string name="rule_override_save_template">Save as Template</string>
+    <string name="rule_override_save_template_summary">Saves the current custom rules; a template with the same name is replaced</string>
+    <string name="rule_override_template_name">Template name</string>
+    <string name="rule_override_template_saved">Template saved</string>
+    <plurals name="rule_override_template_count">
+        <item quantity="one">%1$d rule</item>
+        <item quantity="other">%1$d rules</item>
+    </plurals>
+    <string name="rule_override_reset_order">Reset Order</string>
+    <string name="rule_override_type">Rule Type</string>
+    <string name="rule_override_target">Outbound Target</string>
+    <string name="rule_override_payload">Match Content</string>
+    <string name="rule_override_position">Position</string>
+    <string name="rule_override_position_range">1 – %1$d</string>
+    <string name="rule_override_delete">Delete Rule</string>
+    <string name="rule_override_none">Not Set</string>
+    <string name="rule_override_summary">%1$d custom, %2$d disabled</string>
+    <string name="rule_override_error_invalid">Fill in complete and valid rules</string>
+    <string name="rule_override_error_payload_required">Enter the match content</string>
+    <string name="rule_override_error_payload_delimiter">Match content cannot contain commas</string>
+    <string name="rule_override_error_cidr">Enter a valid IP range, e.g. 2001:db8::/32</string>
+    <string name="rule_override_error_duplicate_custom">A custom rule with the same match condition already exists</string>
+    <string name="rule_override_error_duplicate_builtin">This match condition is in an enabled subscription rule; disable that rule first</string>
+    <string name="rule_override_error_position">Enter a position from 1 to %1$d</string>
+</resources>

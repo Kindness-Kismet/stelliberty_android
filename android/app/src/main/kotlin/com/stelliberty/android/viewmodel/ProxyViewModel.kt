@@ -1,0 +1,412 @@
+package com.stelliberty.android.viewmodel
+
+import androidx.compose.runtime.Immutable
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.stelliberty.android.data.store.ProxySelectionStore
+import com.stelliberty.android.domain.repository.MihomoRepository
+import com.stelliberty.android.platform.PlatformStorage
+import com.stelliberty.android.platform.StorageKeys
+import com.stelliberty.android.util.AppLogger
+import com.stelliberty.android.util.describe
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.ImmutableMap
+import kotlinx.collections.immutable.ImmutableSet
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentMapOf
+import kotlinx.collections.immutable.persistentSetOf
+import kotlinx.collections.immutable.toPersistentList
+import kotlinx.collections.immutable.toPersistentMap
+import kotlinx.collections.immutable.toPersistentSet
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+@Immutable
+data class ProxyGroupUi(
+    val name: String = "",
+    val type: String = "",
+    val now: String = "",
+    val all: ImmutableList<String> = persistentListOf(),
+    val delays: ImmutableMap<String, Int> = persistentMapOf(),
+    val nodeTypes: ImmutableMap<String, String> = persistentMapOf(),
+    val icon: String = "",
+    val fixed: String = "",
+) {
+    val isSelectable: Boolean
+        get() = isSelector ||
+            type.equals("URLTest", ignoreCase = true) ||
+            type.equals("Fallback", ignoreCase = true)
+
+    val isSelector: Boolean get() = type.equals("Selector", ignoreCase = true)
+
+    val isFixed: Boolean get() = fixed.isNotEmpty()
+}
+
+@Immutable
+data class ProxyUiState(
+    val groups: ImmutableList<ProxyGroupUi> = persistentListOf(),
+    val testingGroups: ImmutableSet<String> = persistentSetOf(),
+    val testingNodes: ImmutableSet<String> = persistentSetOf(),
+    val error: String = "",
+    val mode: String = "",
+    val isProxyRunning: Boolean = false,
+)
+
+class ProxyViewModel(
+    private val proxySelections: ProxySelectionStore? = null,
+    private val getActiveUuid: () -> String? = { null },
+    private val storage: PlatformStorage? = null,
+    autoDelayRuns: Flow<MihomoRepository> = emptyFlow(),
+) : ViewModel() {
+
+    private val _uiState = MutableStateFlow(ProxyUiState())
+    val uiState: StateFlow<ProxyUiState> = _uiState.asStateFlow()
+
+    private val _sortOption = MutableStateFlow(loadInitialSortOption())
+    val sortOption: StateFlow<Int> = _sortOption.asStateFlow()
+
+    private val _singleColumn = MutableStateFlow(loadInitialSingleColumn())
+    val singleColumn: StateFlow<Boolean> = _singleColumn.asStateFlow()
+
+    private val _groupTabs = MutableStateFlow(
+        storage?.getString(StorageKeys.PROXY_GROUP_TABS, "true") != "false",
+    )
+    val groupTabs: StateFlow<Boolean> = _groupTabs.asStateFlow()
+
+    private val _selectedGroupName = MutableStateFlow(
+        storage?.getString(StorageKeys.PROXY_SELECTED_GROUP, "").orEmpty(),
+    )
+    val selectedGroupName: StateFlow<String> = _selectedGroupName.asStateFlow()
+
+    private val _expandedGroups = MutableStateFlow(persistentSetOf<String>())
+    val expandedGroups: StateFlow<ImmutableSet<String>> = _expandedGroups.asStateFlow()
+
+    fun toggleExpandedGroup(name: String) {
+        val current = _expandedGroups.value
+        _expandedGroups.value = if (name in current) current.removing(name) else current.adding(name)
+    }
+
+    // 宽屏外壳切换会重新创建页面，滚动位置不能只依赖组合树内的保存键。
+    private val scrollPositions = mutableMapOf<String, Pair<Int, Int>>()
+
+    fun scrollPosition(key: String): Pair<Int, Int> = scrollPositions[key] ?: (0 to 0)
+
+    fun updateScrollPosition(key: String, index: Int, offset: Int) {
+        scrollPositions[key] = index to offset
+    }
+
+    fun updateSelectedGroupName(name: String) {
+        _selectedGroupName.value = name
+        storage?.putString(StorageKeys.PROXY_SELECTED_GROUP, name)
+    }
+
+    fun updateGroupTabs(enabled: Boolean) {
+        _groupTabs.value = enabled
+        storage?.putString(StorageKeys.PROXY_GROUP_TABS, enabled.toString())
+    }
+
+    private val _showGlobalGroup = MutableStateFlow(loadInitialShowGlobalGroup())
+    val showGlobalGroup: StateFlow<Boolean> = _showGlobalGroup.asStateFlow()
+
+    private val _hideUnavailableNodes = MutableStateFlow(loadInitialHideUnavailable())
+    val hideUnavailableNodes: StateFlow<Boolean> = _hideUnavailableNodes.asStateFlow()
+
+    private var repository: MihomoRepository? = null
+
+    private var loadJob: Job? = null
+
+    private var selectionsRestoredFor: MihomoRepository? = null
+
+    private var nodeProviderMap: Map<String, String> = emptyMap()
+
+    fun updateSortOption(option: Int) {
+        _sortOption.value = option
+        storage?.putString(StorageKeys.PROXY_NODE_SORT_OPTION, option.toString())
+    }
+
+    private fun loadInitialSortOption(): Int =
+        storage?.getString(StorageKeys.PROXY_NODE_SORT_OPTION, "0")?.toIntOrNull() ?: 0
+
+    fun updateSingleColumn(enabled: Boolean) {
+        _singleColumn.value = enabled
+        storage?.putString(StorageKeys.PROXY_NODE_SINGLE_COLUMN, if (enabled) "true" else "false")
+    }
+
+    private fun loadInitialSingleColumn(): Boolean =
+        storage?.getString(StorageKeys.PROXY_NODE_SINGLE_COLUMN, "false") == "true"
+
+    fun updateHideUnavailableNodes(enabled: Boolean) {
+        _hideUnavailableNodes.value = enabled
+        storage?.putString(StorageKeys.PROXY_HIDE_UNAVAILABLE_NODES, if (enabled) "true" else "false")
+    }
+
+    private fun loadInitialHideUnavailable(): Boolean =
+        storage?.getString(StorageKeys.PROXY_HIDE_UNAVAILABLE_NODES, "false") == "true"
+
+    fun updateShowGlobalGroup(enabled: Boolean) {
+        _showGlobalGroup.value = enabled
+        storage?.putString(StorageKeys.PROXY_SHOW_GLOBAL_GROUP, if (enabled) "true" else "false")
+    }
+
+    private fun loadInitialShowGlobalGroup(): Boolean =
+        storage?.getString(StorageKeys.PROXY_SHOW_GLOBAL_GROUP, "true") != "false"
+
+    init {
+        viewModelScope.launch {
+            autoDelayRuns.collect { repo -> if (repository === repo) loadProxies() }
+        }
+    }
+
+    // mihomo 重启或切订阅只让进行中的请求抛异常、不取消协程，旧响应仍会跑完把界面写成旧订阅的数据；
+    // 所以先取消上一轮，协程内部再比对一次实例作双保险。
+    fun setRepository(repo: MihomoRepository?) {
+        if (repository === repo) return
+        loadJob?.cancel()
+        repository = repo
+        if (repo != null) {
+            _uiState.value = _uiState.value.copy(
+                testingGroups = persistentSetOf(),
+                testingNodes = persistentSetOf(),
+                isProxyRunning = true,
+            )
+            loadProxies()
+        } else {
+            nodeProviderMap = emptyMap()
+            _uiState.value = ProxyUiState()
+        }
+    }
+
+    fun loadProxies() {
+        val repo = repository ?: return
+        _uiState.value = _uiState.value.copy(error = "")
+
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
+            val groupsDeferred = async { repo.getGroups() }
+            val proxiesDeferred = async { repo.getProxies() }
+            val providersDeferred = async { repo.getProviders() }
+            val configDeferred = async { repo.getConfig() }
+            val groupsResult = groupsDeferred.await()
+            val proxiesResult = proxiesDeferred.await()
+            val providersResult = providersDeferred.await()
+            val mode = configDeferred.await().getOrNull()?.mode?.lowercase().orEmpty()
+            if (repository !== repo) return@launch
+
+            groupsResult.onSuccess { groupsResponse ->
+                // 数千节点的延迟/类型映射在主线程要十余毫秒，正好落在切页动画期间；
+                // 入参与产物都是不可变结构，搬到 Default 后只有 nodeProviderMap 要回主线程赋值。
+                val mapped = withContext(Dispatchers.Default) {
+                    val runtimeProxies = proxiesResult.getOrNull()?.proxies ?: emptyMap()
+                    val allProxies = runtimeProxies.toMutableMap()
+                    val providerOf = mutableMapOf<String, String>()
+                    providersResult.getOrNull()?.providers?.forEach { (providerName, provider) ->
+                        provider.proxies.forEach { node ->
+                            if (node.name !in runtimeProxies) {
+                                allProxies.putIfAbsent(node.name, node)
+                                providerOf.putIfAbsent(node.name, providerName)
+                            }
+                        }
+                    }
+
+                    val globalGroup = groupsResponse.proxies.firstOrNull { it.name == GLOBAL_GROUP }
+                    val orderMap = globalGroup?.all
+                        ?.mapIndexed { index, name -> name to index }
+                        ?.toMap() ?: emptyMap()
+
+                    val orderedGroups = groupsResponse.proxies
+                        .filter { it.name != GLOBAL_GROUP }
+                        .sortedBy { orderMap[it.name] ?: Int.MAX_VALUE }
+                    val arrangedGroups = when {
+                        globalGroup == null -> orderedGroups
+                        mode == MODE_GLOBAL -> listOf(globalGroup) + orderedGroups
+                        else -> orderedGroups + globalGroup
+                    }
+
+                    arrangedGroups
+                        .map { node ->
+                            val delays = mutableMapOf<String, Int>()
+                            val nodeTypes = mutableMapOf<String, String>()
+                            node.all.forEach { proxyName ->
+                                val proxy = allProxies[proxyName]
+                                val lastDelay = proxy?.history?.lastOrNull()?.delay
+                                if (lastDelay != null && lastDelay > 0) {
+                                    delays[proxyName] = lastDelay
+                                } else if (lastDelay == 0) {
+                                    delays[proxyName] = -1
+                                } else if (proxy != null && proxy.now.isNotEmpty()) {
+                                    val nowProxy = allProxies[proxy.now]
+                                    val nowDelay = nowProxy?.history?.lastOrNull()?.delay
+                                    if (nowDelay != null && nowDelay > 0) {
+                                        delays[proxyName] = nowDelay
+                                    } else if (nowDelay == 0) {
+                                        delays[proxyName] = -1
+                                    }
+                                }
+                                if (proxy != null && proxy.type.isNotEmpty()) {
+                                    nodeTypes[proxyName] = proxy.type
+                                }
+                            }
+                            ProxyGroupUi(
+                                name = node.name,
+                                type = node.type,
+                                now = node.now,
+                                all = node.all.toPersistentList(),
+                                delays = delays.toPersistentMap(),
+                                nodeTypes = nodeTypes.toPersistentMap(),
+                                icon = node.icon,
+                                fixed = node.fixed,
+                            )
+                        }
+                        .toPersistentList() to providerOf
+                }
+                if (repository !== repo) return@onSuccess
+                val groups = mapped.first
+                nodeProviderMap = mapped.second
+                _uiState.value = _uiState.value.copy(groups = groups, mode = mode)
+                if (selectionsRestoredFor !== repo) {
+                    selectionsRestoredFor = repo
+                    restoreSelections(repo, groups)
+                }
+            }.onFailure {
+                AppLogger.warn(TAG, "loadProxies failed", it)
+                _uiState.value = _uiState.value.copy(error = it.describe())
+            }
+        }
+    }
+
+    fun selectProxy(group: String, proxy: String) {
+        val repo = repository ?: return
+        val target = groupOf(group) ?: return
+        if (!target.isSelectable) return
+        viewModelScope.launch {
+            repo.selectProxy(group, proxy).onSuccess {
+                if (repository !== repo) return@onSuccess
+                _uiState.value = _uiState.value.copy(
+                    groups = _uiState.value.groups
+                        .map {
+                            when {
+                                it.name != group -> it
+                                it.isSelector -> it.copy(now = proxy)
+                                else -> it.copy(now = proxy, fixed = proxy)
+                            }
+                        }
+                        .toPersistentList()
+                )
+                saveSelection(group, proxy)
+            }
+        }
+    }
+
+    // 记录的选择也要一并删掉，它是恢复选择的数据来源，留着下次连接时会把刚解除的固定又推回去。
+    fun unfixProxy(group: String) {
+        val repo = repository ?: return
+        viewModelScope.launch {
+            repo.unfixProxy(group).onSuccess {
+                if (repository !== repo) return@launch
+                clearSelection(group)
+                loadProxies()
+            }
+        }
+    }
+
+    fun testGroupDelay(group: String) {
+        val repo = repository ?: return
+        if (group in _uiState.value.testingGroups) return
+        val nodes = groupOf(group)?.all ?: return
+        if (nodes.isEmpty()) return
+        _uiState.value = _uiState.value.copy(
+            testingGroups = (_uiState.value.testingGroups + group).toPersistentSet(),
+        )
+
+        viewModelScope.launch {
+            try {
+                repo.testDelays(nodes, nodeProviderMap)
+                if (repository !== repo) return@launch
+                loadProxies()
+            } finally {
+                _uiState.value = _uiState.value.copy(
+                    testingGroups = (_uiState.value.testingGroups - group).toPersistentSet(),
+                )
+            }
+        }
+    }
+
+    fun testNodeDelay(nodeName: String) {
+        val repo = repository ?: return
+        if (nodeName in _uiState.value.testingNodes) return
+        _uiState.value = _uiState.value.copy(
+            testingNodes = (_uiState.value.testingNodes + nodeName).toPersistentSet(),
+        )
+
+        viewModelScope.launch {
+            try {
+                val provider = nodeProviderMap[nodeName]
+                if (provider != null) {
+                    repo.getProviderProxyDelay(provider, nodeName)
+                } else {
+                    repo.getProxyDelay(nodeName)
+                }
+                if (repository !== repo) return@launch
+                loadProxies()
+            } finally {
+                _uiState.value = _uiState.value.copy(
+                    testingNodes = (_uiState.value.testingNodes - nodeName).toPersistentSet(),
+                )
+            }
+        }
+    }
+
+    private suspend fun saveSelection(group: String, proxy: String) {
+        val uuid = getActiveUuid() ?: return
+        proxySelections?.select(uuid, group, proxy)
+    }
+
+    private fun groupOf(name: String): ProxyGroupUi? =
+        _uiState.value.groups.firstOrNull { it.name == name }
+
+    private suspend fun clearSelection(group: String) {
+        val uuid = getActiveUuid() ?: return
+        proxySelections?.clear(uuid, group)
+    }
+
+    private suspend fun restoreSelections(repo: MihomoRepository, groups: ImmutableList<ProxyGroupUi>) {
+        val uuid = getActiveUuid() ?: return
+        val selectionMap = proxySelections?.selections(uuid).orEmpty()
+        if (selectionMap.isEmpty()) return
+
+        val updatedGroups = groups.toMutableList()
+
+        for ((index, group) in groups.withIndex()) {
+            if (!group.isSelectable) continue
+            val saved = selectionMap[group.name] ?: continue
+            if (saved !in group.all) continue
+            if (saved == (if (group.isSelector) group.now else group.fixed)) continue
+
+            repo.selectProxy(group.name, saved).onSuccess {
+                updatedGroups[index] = if (group.isSelector) {
+                    group.copy(now = saved)
+                } else {
+                    group.copy(now = saved, fixed = saved)
+                }
+            }
+        }
+
+        if (repository !== repo) return
+        _uiState.value = _uiState.value.copy(groups = updatedGroups.toPersistentList())
+    }
+
+    companion object {
+        const val GLOBAL_GROUP = "GLOBAL"
+        const val MODE_GLOBAL = "global"
+        const val MODE_DIRECT = "direct"
+        private const val TAG = "ProxyViewModel"
+    }
+}
