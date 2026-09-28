@@ -4,7 +4,7 @@ import com.stelliberty.android.domain.model.ConnectionsResponse
 import com.stelliberty.android.domain.model.DelayResult
 import com.stelliberty.android.domain.model.DnsQueryResponse
 import com.stelliberty.android.domain.model.GroupsResponse
-import com.stelliberty.android.domain.model.LogMessage
+import com.stelliberty.android.domain.model.LogEvent
 import com.stelliberty.android.domain.model.MemoryData
 import com.stelliberty.android.domain.model.MihomoConfig
 import com.stelliberty.android.domain.model.MihomoVersion
@@ -21,7 +21,7 @@ interface MihomoRepository {
     val connectionState: StateFlow<Boolean>
 
     fun trafficFlow(): Flow<TrafficData>
-    fun logsFlow(level: String = "info"): Flow<LogMessage>
+    fun logsFlow(): Flow<LogEvent>
     fun memoryFlow(): Flow<MemoryData>
     fun connectionsFlow(): Flow<ConnectionsResponse>
 

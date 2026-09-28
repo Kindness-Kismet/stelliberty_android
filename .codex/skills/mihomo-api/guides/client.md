@@ -20,7 +20,9 @@ Ktor 的 `for (frame in incoming)` 在 graceful close 时静默退出，`MihomoW
 - 末尾保留 `flowOn(Dispatchers.Default)`：消费点都在 Main，反序列化移出主线程。它引入的缓冲要求消费方额外校验 `repository !== repo`。
 - `emit` 放在解析的 try 之外：两者包在一起时，下游异常会被当成坏帧吞掉，随后撞上 flow 异常透明性检查，表现为一次虚假的断线重连。
 - 消费侧的错误处理留在流内：取消以外的异常都转成重连。
-- `connectionState` 由四条流共享，语义是「任意一条连着」，按引用计数发布：计数与发布一起放在 `@Synchronized` 里；握手失败的那次未计数，`finally` 按实际计数递减。它反映整体状态，单条流的存活另行判断。
+- `connectionState` 由四条流共享，语义是「任意一条连着」，按引用计数发布：计数与发布一起放在 `@Synchronized` 里；握手失败的那次未计数，`finally` 按实际计数递减。
+- 日志通道用 `Flow<LogEvent>` 同时发布握手成功、断线与日志；页面连接状态只消费该通道的事件，避免被流量等通道的连接状态干扰。
+- 日志页通过 `LifecycleStartEffect` 调用 `startObserving` / `stopObserving`；页面可见且 repository 存在时才采集，repository 切换时取消旧任务并接续新任务。收集与定时发布共用一个父任务，停止时一起取消。
 
 ## Flow.catch 是终结操作
 

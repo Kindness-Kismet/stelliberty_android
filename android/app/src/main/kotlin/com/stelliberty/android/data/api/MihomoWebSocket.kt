@@ -1,6 +1,7 @@
 package com.stelliberty.android.data.api
 
 import com.stelliberty.android.domain.model.ConnectionsResponse
+import com.stelliberty.android.domain.model.LogEvent
 import com.stelliberty.android.domain.model.LogMessage
 import com.stelliberty.android.domain.model.MemoryData
 import com.stelliberty.android.domain.model.TrafficData
@@ -39,8 +40,7 @@ class MihomoWebSocket(
 
     private val _connectionState = MutableStateFlow(false)
 
-    // 含义是「四条流里有任意一条连着」。共用一个布尔值时，取消其中一条会在收尾时把它写成 false，
-    // 日志页据此谎报未连接。所以按引用计数发布，而且计数和发布必须一起做完，否则并发增减会留下相反的结果。
+    // 整体连接状态按存活通道计数；单条日志通道的状态随 LogEvent 发布。
     val connectionState: StateFlow<Boolean> = _connectionState.asStateFlow()
 
     private var liveConnections = 0
@@ -55,9 +55,11 @@ class MihomoWebSocket(
         apiClient.getWebSocketUrl("/traffic"),
     ) { text -> json.decodeFromString<TrafficData>(text) }
 
-    fun logsFlow(level: String = "info"): Flow<LogMessage> = webSocketFlow(
-        apiClient.getWebSocketUrl("/logs?level=$level"),
-    ) { text -> json.decodeFromString<LogMessage>(text) }
+    fun logsFlow(): Flow<LogEvent> = webSocketFlow(
+        apiClient.getWebSocketUrl("/logs?level=info"),
+        connectedEvent = LogEvent.Connected,
+        disconnectedEvent = LogEvent.Disconnected,
+    ) { text -> LogEvent.Message(json.decodeFromString<LogMessage>(text)) }
 
     fun memoryFlow(): Flow<MemoryData> = webSocketFlow(
         apiClient.getWebSocketUrl("/memory"),
@@ -69,7 +71,12 @@ class MihomoWebSocket(
 
     // 无限重连的数据流，除了被取消不会自己结束。调用 close() 也停不下来：连接被关掉后抛的异常同样
     // 被这里接住，只是进了重试等待。用的人必须显式取消收集协程，否则留下一条每 30 秒重试的僵尸流。
-    private fun <T> webSocketFlow(url: String, parser: (String) -> T): Flow<T> = flow {
+    private fun <T> webSocketFlow(
+        url: String,
+        connectedEvent: T? = null,
+        disconnectedEvent: T? = null,
+        parser: (String) -> T,
+    ): Flow<T> = flow {
         var backoffMs = INITIAL_BACKOFF_MS
         while (currentCoroutineContext().isActive) {
             var counted = false
@@ -78,6 +85,7 @@ class MihomoWebSocket(
                     counted = true
                     addLiveConnection(1)
                     backoffMs = INITIAL_BACKOFF_MS
+                    connectedEvent?.let { emit(it) }
                     for (frame in incoming) {
                         if (frame !is Frame.Text) continue
                         val parsed = runCatching { parser(frame.readText()) }.getOrNull() ?: continue
@@ -90,6 +98,7 @@ class MihomoWebSocket(
             } finally {
                 if (counted) addLiveConnection(-1)
             }
+            disconnectedEvent?.let { emit(it) }
             delay(backoffMs)
             backoffMs = (backoffMs * 2).coerceAtMost(MAX_BACKOFF_MS)
         }

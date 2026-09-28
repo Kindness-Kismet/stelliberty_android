@@ -119,6 +119,12 @@ object TestTags {
         fun app(packageName: String) = "AppProxy.App.$packageName"
     }
 
+    object Log {
+        const val CLEAR = "Log.ClearButton"
+        const val LIST = "Log.List"
+        const val STATUS = "Log.Status"
+    }
+
     object Connection {
         const val CLOSE_ALL = "Connection.CloseAllButton"
 

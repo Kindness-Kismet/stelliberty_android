@@ -27,6 +27,7 @@ dependencies {
     implementation(libs.quickie.bundled)
     implementation(libs.scripta.editor)
     testImplementation(libs.kotlin.test.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
 }
 
 val appVersionName = providers.gradleProperty("stelliberty.versionName").orElse(ProjectConfig.VERSION_NAME).get()

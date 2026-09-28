@@ -16,24 +16,29 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.ReadOnlyComposable
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.stelliberty.android.R
 import com.stelliberty.android.domain.model.LogMessage
@@ -42,6 +47,7 @@ import com.stelliberty.android.ui.component.blur.BlurredBar
 import com.stelliberty.android.ui.component.blur.rememberBlurBackdrop
 import com.stelliberty.android.ui.icon.AppIcons
 import com.stelliberty.android.ui.theme.StatusColors
+import com.stelliberty.android.ui.util.TestTags
 import com.stelliberty.android.ui.util.horizontalCutoutPadding
 import com.stelliberty.android.viewmodel.LogViewModel
 import top.yukonga.miuix.kmp.basic.Card
@@ -66,29 +72,30 @@ fun LogScreen(
     val scrollBehavior = MiuixScrollBehavior()
     val listState = rememberLazyListState()
 
-    DisposableEffect(Unit) {
-        viewModel.connect()
-        onDispose { viewModel.disconnect() }
+    LifecycleStartEffect(viewModel) {
+        viewModel.startObserving()
+        onStopOrDispose { viewModel.stopObserving() }
     }
 
-    val autoScrollEnabled by remember {
-        derivedStateOf {
-            val info = listState.layoutInfo
-            val visible = info.visibleItemsInfo
-            if (visible.isEmpty()) true
-            else {
-                val lastVisible = visible.last().index
-                lastVisible >= info.totalItemsCount - 2
+    var autoScrollEnabled by remember { mutableStateOf(true) }
+    val autoScrollConnection = remember(listState) {
+        object : NestedScrollConnection {
+            override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+                // 追加日志引起的布局变化不能关闭跟随，跟随状态只随滚动操作改变。
+                if (consumed.y != 0f) autoScrollEnabled = !listState.canScrollForward
+                return Offset.Zero
             }
         }
     }
 
-    // 触发条件必须用最后一条的编号（它只增不减），不能用列表长度：缓冲写满后长度就恒定不变了，
-    // 自动滚动会永久停摆。
+    // 缓冲写满后长度不变，用单调递增的编号驱动自动滚动。
     val lastLogId = logs.lastOrNull()?.id
-    LaunchedEffect(lastLogId) {
-        if (lastLogId != null && autoScrollEnabled) {
-            listState.animateScrollToItem(logs.lastIndex)
+    val isScrolling = listState.isScrollInProgress
+    LaunchedEffect(lastLogId, autoScrollEnabled, isScrolling) {
+        if (lastLogId == null) {
+            autoScrollEnabled = true
+        } else if (autoScrollEnabled && !isScrolling) {
+            listState.requestScrollToItem(logs.size + 1)
         }
     }
 
@@ -104,7 +111,10 @@ fun LogScreen(
                     color = barColor,
                     scrollBehavior = scrollBehavior,
                     navigationIcon = {
-                        IconButton(onClick = onBack) {
+                        IconButton(
+                            onClick = onBack,
+                            modifier = Modifier.testTag(TestTags.Nav.BACK),
+                        ) {
                             val layoutDirection = LocalLayoutDirection.current
                             Icon(
                                 imageVector = AppIcons.Back,
@@ -117,7 +127,13 @@ fun LogScreen(
                         }
                     },
                     actions = {
-                        IconButton(onClick = { viewModel.clearLogs() }) {
+                        IconButton(
+                            onClick = {
+                                autoScrollEnabled = true
+                                viewModel.clearLogs()
+                            },
+                            modifier = Modifier.testTag(TestTags.Log.CLEAR),
+                        ) {
                             Icon(
                                 imageVector = AppIcons.Delete,
                                 contentDescription = stringResource(R.string.log_clear),
@@ -132,11 +148,13 @@ fun LogScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
+                .testTag(TestTags.Log.LIST)
                 .horizontalCutoutPadding()
                 .then(if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier)
                 .scrollEndHaptic()
                 .overScrollVertical()
-                .nestedScroll(scrollBehavior.nestedScrollConnection),
+                .nestedScroll(scrollBehavior.nestedScrollConnection)
+                .nestedScroll(autoScrollConnection),
             state = listState,
             contentPadding = PaddingValues(
                 top = innerPadding.calculateTopPadding(),
@@ -151,6 +169,7 @@ fun LogScreen(
                         verticalArrangement = Arrangement.Center,
                     ) {
                         Text(
+                            modifier = Modifier.testTag(TestTags.Log.STATUS),
                             text = if (uiState.isConnected) {
                                 stringResource(R.string.log_waiting)
                             } else {
@@ -184,11 +203,9 @@ fun LogScreen(
 
 private data class ParsedLog(
     val protocol: String = "",
-    val source: String = "",
     val target: String = "",
     val rule: String = "",
     val proxy: String = "",
-    val raw: String = "",
 )
 
 private fun parsePayload(payload: String): ParsedLog {
@@ -199,14 +216,13 @@ private fun parsePayload(payload: String): ParsedLog {
     val rest = if (protocolMatch != null) raw.substring(protocolMatch.range.last + 1).trim() else raw
 
     val arrowIdx = rest.indexOf("-->")
-    if (arrowIdx < 0) return ParsedLog(raw = raw)
+    if (arrowIdx < 0) return ParsedLog()
 
-    val source = rest.substring(0, arrowIdx).trim()
     val afterArrow = rest.substring(arrowIdx + 3).trim()
 
     val matchIdx = afterArrow.indexOf(" match ")
     if (matchIdx < 0) {
-        return ParsedLog(protocol = protocol, source = source, target = afterArrow, raw = raw)
+        return ParsedLog(protocol = protocol, target = afterArrow)
     }
 
     val target = afterArrow.substring(0, matchIdx).trim()
@@ -223,7 +239,7 @@ private fun parsePayload(payload: String): ParsedLog {
         proxy = ""
     }
 
-    return ParsedLog(protocol = protocol, source = source, target = target, rule = rule, proxy = proxy, raw = raw)
+    return ParsedLog(protocol = protocol, target = target, rule = rule, proxy = proxy)
 }
 
 @Composable

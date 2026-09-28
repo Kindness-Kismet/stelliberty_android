@@ -14,4 +14,5 @@
 
 - **Koin single VM 的初始化挂在订阅上**：ViewModel 随冷启动构造、`onCleared` 不会触发，放在 `init { load() }` 等于每次启动都为可能不打开的页面提前干活。分应用代理的 PackageManager 全量枚举（加逐包 `loadLabel`，数百毫秒 CPU + 常驻全量列表）挂在 `filteredAppsFlow` 的 `onStart` 上，`stateIn` 用 `WhileSubscribed`。分应用列表用「持 INTERNET 权限的包名集合 + `getInstalledApplications`」两次窄查询（`getInstalledPackages(GET_PERMISSIONS)` 会把完整权限数组过 Binder，易触发 `TransactionTooLargeException`）。
 - **viewModelScope 的轮询按 UI 可见性门控**：`HomeViewModel` 的系统信息采样（`NetworkInterface` 枚举 + `/proc/<pid>/stat`，均阻塞，放在 IO）、`/configs` 轮询、uptime 计数都挂在 `viewModelScope` 上，统一收敛到 `pollWhileVisible(interval)`，由 `MainActivity.onStart/onStop` 经 `setUiVisible` 驱动。
-- **日志列表按显示帧率发射**：日志风暴可达每秒数百行。`appendLog` 只写 buffer 并置 `logsDirty`；独立的 `flushJob` 每 120ms 执行一次 `_logs.value = buffer.toPersistentList()`，把重组与 500 条 key diff 降到显示帧率。autoScroll 的 `LaunchedEffect` key 用单调递增的 `logs.lastOrNull()?.id`（缓冲写满后 `logs.size` 恒为 `MAX_LOGS`）。
+- **日志按页面生命周期采集并批量发布**：`LifecycleStartEffect` 控制订阅，后台或离开页面时停止，恢复前台或可见时切换 repository 自动接续。收集与刷新共用一个父任务，`appendLog` 只写 buffer 并置 `logsDirty`，每 120ms 发布一次、最多保留 500 条。autoScroll 的 `LaunchedEffect` key 用单调递增的 `logs.lastOrNull()?.id`，清空与切换 repository 都保留编号递增。
+- **日志跟随只由滚动操作切换**：通过嵌套滚动更新跟随状态，追加日志的布局变化保留跟随意图；用户停止滚动后用 `requestScrollToItem` 定位末尾占位项，避免日志批次打断滚动动画。清空后重新开启跟随。
