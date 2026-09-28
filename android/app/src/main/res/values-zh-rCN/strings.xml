@@ -269,6 +269,12 @@
     <string name="log_clear">清除</string>
     <string name="log_export">导出日志</string>
     <string name="log_export_done">日志已保存</string>
+    <string name="log_level_filter">最低日志等级：%1$s</string>
+    <string name="log_level_and_above">%1$s及以上</string>
+    <string name="log_level_debug">调试</string>
+    <string name="log_level_info">信息</string>
+    <string name="log_level_warning">警告</string>
+    <string name="log_level_error">错误</string>
     <string name="log_waiting">等待日志...</string>
     <string name="log_not_connected">未连接</string>
 

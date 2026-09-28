@@ -22,6 +22,7 @@ Ktor 的 `for (frame in incoming)` 在 graceful close 时静默退出，`MihomoW
 - 消费侧的错误处理留在流内：取消以外的异常都转成重连。
 - `connectionState` 由四条流共享，语义是「任意一条连着」，按引用计数发布：计数与发布一起放在 `@Synchronized` 里；握手失败的那次未计数，`finally` 按实际计数递减。
 - 日志通道用 `Flow<LogEvent>` 同时发布握手成功、断线与日志；页面连接状态只消费该通道的事件，避免被流量等通道的连接状态干扰。
+- 日志等级用 `LogLevel` 表示最低等级，切换时取消旧订阅并用新等级连接 `/logs`，保留已接收缓冲；显示与导出都按当前等级过滤，页面生命周期和 repository 切换保留等级。
 - 日志页通过 `LifecycleStartEffect` 调用 `startObserving` / `stopObserving`；页面可见且 repository 存在时才采集，repository 切换时取消旧任务并接续新任务。收集与定时发布共用一个父任务，停止时一起取消。
 
 ## Flow.catch 是终结操作

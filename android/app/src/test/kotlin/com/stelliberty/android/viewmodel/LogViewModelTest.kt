@@ -2,6 +2,7 @@ package com.stelliberty.android.viewmodel
 
 import androidx.lifecycle.ViewModelStore
 import com.stelliberty.android.domain.model.LogEvent
+import com.stelliberty.android.domain.model.LogLevel
 import com.stelliberty.android.domain.model.LogMessage
 import com.stelliberty.android.domain.repository.MihomoRepository
 import java.lang.reflect.Proxy
@@ -64,7 +65,7 @@ class LogViewModelTest {
         assertEquals(1, source.activeSubscriptions)
 
         source.emit(LogEvent.Connected)
-        source.emit(LogMessage("info", "started after opening logs"))
+        source.emit(LogMessage(LogLevel.Info, "started after opening logs"))
         runCurrent()
         advanceTimeBy(120)
         runCurrent()
@@ -98,13 +99,13 @@ class LogViewModelTest {
         viewModel.startObserving()
         runCurrent()
         previous.emit(LogEvent.Connected)
-        previous.emit(LogMessage("info", "previous proxy"))
+        previous.emit(LogMessage(LogLevel.Info, "previous proxy"))
         runCurrent()
         advanceTimeBy(120)
         runCurrent()
         val previousId = viewModel.logs.value.single().id
 
-        previous.emit(LogMessage("info", "queued before switching"))
+        previous.emit(LogMessage(LogLevel.Info, "queued before switching"))
         val current = LogSource()
         viewModel.setRepository(current.repository)
         runCurrent()
@@ -114,9 +115,9 @@ class LogViewModelTest {
         assertTrue(viewModel.logs.value.isEmpty())
 
         previous.emit(LogEvent.Connected)
-        previous.emit(LogMessage("info", "stale proxy"))
+        previous.emit(LogMessage(LogLevel.Info, "stale proxy"))
         current.emit(LogEvent.Connected)
-        current.emit(LogMessage("info", "current proxy"))
+        current.emit(LogMessage(LogLevel.Info, "current proxy"))
         runCurrent()
         advanceTimeBy(120)
         runCurrent()
@@ -133,7 +134,7 @@ class LogViewModelTest {
         viewModel.startObserving()
         runCurrent()
         source.emit(LogEvent.Connected)
-        source.emit(LogMessage("info", "before background"))
+        source.emit(LogMessage(LogLevel.Info, "before background"))
         runCurrent()
 
         viewModel.stopObserving()
@@ -142,11 +143,11 @@ class LogViewModelTest {
         assertFalse(viewModel.uiState.value.isConnected)
         assertEquals("before background", viewModel.logs.value.single().message.payload)
 
-        source.emit(LogMessage("info", "while in background"))
+        source.emit(LogMessage(LogLevel.Info, "while in background"))
         viewModel.startObserving()
         runCurrent()
         source.emit(LogEvent.Connected)
-        source.emit(LogMessage("info", "after foreground"))
+        source.emit(LogMessage(LogLevel.Info, "after foreground"))
         runCurrent()
         advanceTimeBy(120)
         runCurrent()
@@ -166,7 +167,7 @@ class LogViewModelTest {
         viewModel.startObserving()
         runCurrent()
         previous.emit(LogEvent.Connected)
-        previous.emit(LogMessage("info", "old session"))
+        previous.emit(LogMessage(LogLevel.Info, "old session"))
         runCurrent()
 
         viewModel.setRepository(null)
@@ -214,7 +215,7 @@ class LogViewModelTest {
         viewModel.startObserving()
         runCurrent()
 
-        repeat(650) { source.emit(LogMessage("info", "log $it")) }
+        repeat(650) { source.emit(LogMessage(LogLevel.Info, "log $it")) }
         runCurrent()
         assertTrue(viewModel.logs.value.isEmpty())
         advanceTimeBy(120)
@@ -224,11 +225,11 @@ class LogViewModelTest {
         assertEquals("log 649", viewModel.logs.value.last().message.payload)
         val previousId = viewModel.logs.value.last().id
 
-        source.emit(LogMessage("info", "discard with clear"))
+        source.emit(LogMessage(LogLevel.Info, "discard with clear"))
         runCurrent()
         viewModel.clearLogs()
         assertTrue(viewModel.logs.value.isEmpty())
-        source.emit(LogMessage("info", "after clear"))
+        source.emit(LogMessage(LogLevel.Info, "after clear"))
         runCurrent()
         advanceTimeBy(120)
         runCurrent()
@@ -243,7 +244,7 @@ class LogViewModelTest {
         viewModel.startObserving()
         runCurrent()
         val payload = "[TCP] Example --> example.com match Match using Example\n完整内容"
-        source.emit(LogMessage("warning", payload))
+        source.emit(LogMessage(LogLevel.Warning, payload))
         runCurrent()
         assertTrue(viewModel.logs.value.isEmpty())
 
@@ -261,13 +262,13 @@ class LogViewModelTest {
         viewModel.setRepository(source.repository)
         viewModel.startObserving()
         runCurrent()
-        source.emit(LogMessage("info", "before export"))
+        source.emit(LogMessage(LogLevel.Info, "before export"))
         runCurrent()
         val export = assertNotNull(viewModel.exportLogs())
 
         viewModel.clearLogs()
         assertNull(viewModel.exportLogs())
-        source.emit(LogMessage("error", "after export"))
+        source.emit(LogMessage(LogLevel.Error, "after export"))
         runCurrent()
 
         assertTrue(export.content.endsWith(" [INFO] before export\n"))
@@ -275,8 +276,99 @@ class LogViewModelTest {
         assertTrue(assertNotNull(viewModel.exportLogs()).content.endsWith(" [ERROR] after export\n"))
     }
 
+    @Test
+    fun filtersHistoryWithoutDiscardingLogsAndResubscribesAtSelectedLevel() = runLogTest {
+        val source = LogSource()
+        viewModel.setMinimumLevel(LogLevel.Debug)
+        viewModel.setRepository(source.repository)
+        viewModel.startObserving()
+        runCurrent()
+        LogLevel.entries.forEach { source.emit(LogMessage(it, it.name)) }
+        runCurrent()
+        advanceTimeBy(120)
+        runCurrent()
+        val history = viewModel.logs.value
+        assertEquals(LogLevel.entries, history.map { it.message.type })
+
+        viewModel.setMinimumLevel(LogLevel.Warning)
+        assertEquals(listOf(LogLevel.Warning, LogLevel.Error), viewModel.logs.value.map { it.message.type })
+        runCurrent()
+        assertEquals(listOf(LogLevel.Debug, LogLevel.Warning), source.subscribedLevels)
+        assertEquals(1, source.activeSubscriptions)
+
+        viewModel.setMinimumLevel(LogLevel.Warning)
+        runCurrent()
+        assertEquals(2, source.subscriptionStarts)
+
+        viewModel.setMinimumLevel(LogLevel.Info)
+        assertEquals(listOf(LogLevel.Info, LogLevel.Warning, LogLevel.Error), viewModel.logs.value.map { it.message.type })
+        viewModel.setMinimumLevel(LogLevel.Debug)
+        runCurrent()
+        assertEquals(history, viewModel.logs.value)
+        assertEquals(1, source.activeSubscriptions)
+        assertEquals(LogLevel.Debug, source.subscribedLevels.last())
+    }
+
+    @Test
+    fun keepsMinimumLevelAcrossConnectionEventsClearBackgroundAndProxyChanges() = runLogTest {
+        val previous = LogSource()
+        viewModel.setMinimumLevel(LogLevel.Warning)
+        viewModel.setRepository(previous.repository)
+        viewModel.startObserving()
+        runCurrent()
+        previous.emit(LogEvent.Connected)
+        previous.emit(LogEvent.Disconnected)
+        previous.emit(LogEvent.Connected)
+        runCurrent()
+        assertTrue(viewModel.uiState.value.isConnected)
+        assertEquals(LogLevel.Warning, viewModel.uiState.value.minimumLevel)
+
+        viewModel.clearLogs()
+        viewModel.stopObserving()
+        runCurrent()
+        assertEquals(LogLevel.Warning, viewModel.uiState.value.minimumLevel)
+        viewModel.setMinimumLevel(LogLevel.Error)
+        val current = LogSource()
+        viewModel.setRepository(null)
+        viewModel.setRepository(current.repository)
+        runCurrent()
+        assertEquals(0, current.subscriptionStarts)
+        assertFalse(viewModel.uiState.value.isConnected)
+
+        viewModel.startObserving()
+        runCurrent()
+        assertEquals(listOf(LogLevel.Error), current.subscribedLevels)
+        assertEquals(LogLevel.Error, viewModel.uiState.value.minimumLevel)
+    }
+
+    @Test
+    fun exportsOnlyMatchingHistoryAndUnpublishedMatches() = runLogTest {
+        val source = LogSource()
+        viewModel.setRepository(source.repository)
+        viewModel.startObserving()
+        runCurrent()
+        source.emit(LogMessage(LogLevel.Info, "hidden info"))
+        runCurrent()
+        viewModel.setMinimumLevel(LogLevel.Error)
+        assertNull(viewModel.exportLogs())
+        runCurrent()
+        source.emit(LogMessage(LogLevel.Error, "pending error"))
+        runCurrent()
+        assertTrue(viewModel.logs.value.isEmpty())
+
+        val export = assertNotNull(viewModel.exportLogs())
+        assertTrue(export.content.endsWith(" [ERROR] pending error\n"))
+        assertFalse(export.content.contains("hidden info"))
+
+        viewModel.setMinimumLevel(LogLevel.Info)
+        val complete = assertNotNull(viewModel.exportLogs())
+        assertTrue(complete.content.contains(" [INFO] hidden info\n"))
+        assertTrue(complete.content.contains(" [ERROR] pending error\n"))
+    }
+
     private class LogSource {
         private val events = MutableSharedFlow<LogEvent>(extraBufferCapacity = 1024)
+        val subscribedLevels = mutableListOf<LogLevel>()
         var subscriptionStarts = 0
             private set
         var activeSubscriptions = 0
@@ -285,10 +377,11 @@ class LogViewModelTest {
         val repository = Proxy.newProxyInstance(
             MihomoRepository::class.java.classLoader,
             arrayOf(MihomoRepository::class.java),
-        ) { _, method, _ ->
+        ) { _, method, args ->
             when (method.name) {
                 "getConnectionState" -> MutableStateFlow(true)
                 "logsFlow" -> flow {
+                    subscribedLevels += args!![0] as LogLevel
                     subscriptionStarts++
                     activeSubscriptions++
                     try {

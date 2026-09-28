@@ -7,6 +7,7 @@ import com.stelliberty.android.domain.model.DelayResult
 import com.stelliberty.android.domain.model.DnsQueryResponse
 import com.stelliberty.android.domain.model.GroupsResponse
 import com.stelliberty.android.domain.model.LogEvent
+import com.stelliberty.android.domain.model.LogLevel
 import com.stelliberty.android.domain.model.MemoryData
 import com.stelliberty.android.domain.model.MihomoConfig
 import com.stelliberty.android.domain.model.MihomoVersion
@@ -35,7 +36,7 @@ class MihomoRepositoryImpl(
     override val connectionState: StateFlow<Boolean> get() = webSocket.connectionState
 
     override fun trafficFlow(): Flow<TrafficData> = webSocket.trafficFlow()
-    override fun logsFlow(): Flow<LogEvent> = webSocket.logsFlow()
+    override fun logsFlow(level: LogLevel): Flow<LogEvent> = webSocket.logsFlow(level)
     override fun memoryFlow(): Flow<MemoryData> = webSocket.memoryFlow()
 
     override suspend fun getVersion(): Result<MihomoVersion> = io { apiClient.getVersion() }

@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.stelliberty.android.domain.model.LogEvent
+import com.stelliberty.android.domain.model.LogLevel
 import com.stelliberty.android.domain.model.LogMessage
 import com.stelliberty.android.domain.repository.MihomoRepository
 import java.time.Instant
@@ -24,6 +25,7 @@ import kotlinx.coroutines.launch
 @Immutable
 data class LogUiState(
     val isConnected: Boolean = false,
+    val minimumLevel: LogLevel = LogLevel.Info,
 )
 
 @Immutable
@@ -68,22 +70,32 @@ class LogViewModel : ViewModel() {
         flushLogs()
     }
 
+    fun setMinimumLevel(level: LogLevel) {
+        if (_uiState.value.minimumLevel == level) return
+        stopCollection()
+        _uiState.value = _uiState.value.copy(minimumLevel = level)
+        logsDirty = true
+        flushLogs()
+        if (observing) startCollection()
+    }
+
     private fun stopCollection() {
         collectionJob?.cancel()
         collectionJob = null
-        _uiState.value = LogUiState()
+        _uiState.value = _uiState.value.copy(isConnected = false)
     }
 
     private fun startCollection() {
         val repo = repository ?: return
+        val level = _uiState.value.minimumLevel
 
         collectionJob = viewModelScope.launch {
             launch {
-                repo.logsFlow().collect { event ->
-                    if (repository !== repo || !observing) return@collect
+                repo.logsFlow(level).collect { event ->
+                    if (repository !== repo || !observing || _uiState.value.minimumLevel != level) return@collect
                     when (event) {
-                        LogEvent.Connected -> _uiState.value = LogUiState(isConnected = true)
-                        LogEvent.Disconnected -> _uiState.value = LogUiState()
+                        LogEvent.Connected -> _uiState.value = _uiState.value.copy(isConnected = true)
+                        LogEvent.Disconnected -> _uiState.value = _uiState.value.copy(isConnected = false)
                         is LogEvent.Message -> appendLog(event.message)
                     }
                 }
@@ -107,8 +119,11 @@ class LogViewModel : ViewModel() {
     private fun flushLogs() {
         if (!logsDirty) return
         logsDirty = false
-        _logs.value = buffer.toPersistentList()
+        _logs.value = filteredLogs().toPersistentList()
     }
+
+    private fun filteredLogs(): List<IndexedLog> =
+        buffer.filter { it.message.type >= _uiState.value.minimumLevel }
 
     fun clearLogs() {
         buffer.clear()
@@ -117,11 +132,12 @@ class LogViewModel : ViewModel() {
     }
 
     fun exportLogs(): LogExport? {
-        if (buffer.isEmpty()) return null
+        val snapshot = filteredLogs()
+        if (snapshot.isEmpty()) return null
         val content = buildString {
-            buffer.forEach { log ->
+            snapshot.forEach { log ->
                 append(log.receivedAt)
-                append(" [").append(log.message.type.uppercase(Locale.ROOT)).append("] ")
+                append(" [").append(log.message.type.name.uppercase(Locale.ROOT)).append("] ")
                 appendLine(log.message.payload)
             }
         }

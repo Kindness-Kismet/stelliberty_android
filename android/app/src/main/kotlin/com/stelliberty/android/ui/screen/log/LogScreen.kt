@@ -35,6 +35,9 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
@@ -42,11 +45,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.stelliberty.android.BuildConfig
 import com.stelliberty.android.R
+import com.stelliberty.android.domain.model.LogLevel
 import com.stelliberty.android.domain.model.LogMessage
 import com.stelliberty.android.platform.FilePicker
 import com.stelliberty.android.platform.showToast
 import com.stelliberty.android.ui.component.AdaptiveTopAppBar
+import com.stelliberty.android.ui.component.ListPopupDefaults.MenuPositionProvider
 import com.stelliberty.android.ui.component.blur.BlurredBar
 import com.stelliberty.android.ui.component.blur.rememberBlurBackdrop
 import com.stelliberty.android.ui.icon.AppIcons
@@ -57,9 +63,12 @@ import com.stelliberty.android.util.describe
 import com.stelliberty.android.viewmodel.LogViewModel
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.DropdownImpl
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.ListPopupColumn
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
+import top.yukonga.miuix.kmp.basic.PopupPositionProvider
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.blur.layerBackdrop
@@ -67,6 +76,7 @@ import top.yukonga.miuix.kmp.squircle.squircleBackground
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
+import top.yukonga.miuix.kmp.window.WindowListPopup
 
 @Composable
 fun LogScreen(
@@ -80,6 +90,7 @@ fun LogScreen(
     val listState = rememberLazyListState()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    var showLevelPopup by remember { mutableStateOf(false) }
 
     LifecycleStartEffect(viewModel) {
         viewModel.startObserving()
@@ -100,7 +111,7 @@ fun LogScreen(
     // 缓冲写满后长度不变，用单调递增的编号驱动自动滚动。
     val lastLogId = logs.lastOrNull()?.id
     val isScrolling = listState.isScrollInProgress
-    LaunchedEffect(lastLogId, autoScrollEnabled, isScrolling) {
+    LaunchedEffect(lastLogId, uiState.minimumLevel, autoScrollEnabled, isScrolling) {
         if (lastLogId == null) {
             autoScrollEnabled = true
         } else if (autoScrollEnabled && !isScrolling) {
@@ -136,6 +147,62 @@ fun LogScreen(
                         }
                     },
                     actions = {
+                        Box {
+                            val selectedLevel = getLevelInfo(uiState.minimumLevel)
+                            val filterDescription = stringResource(R.string.log_level_filter, selectedLevel.name)
+                            IconButton(
+                                onClick = { showLevelPopup = true },
+                                holdDownState = showLevelPopup,
+                                modifier = Modifier
+                                    .testTag(TestTags.Log.LEVEL_FILTER)
+                                    .semantics { contentDescription = filterDescription },
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text(
+                                        text = selectedLevel.name,
+                                        fontSize = 14.sp,
+                                        color = MiuixTheme.colorScheme.onSurface,
+                                    )
+                                    Icon(
+                                        imageVector = AppIcons.MoveDown,
+                                        contentDescription = null,
+                                        tint = MiuixTheme.colorScheme.onSurface,
+                                        modifier = Modifier.size(18.dp),
+                                    )
+                                }
+                            }
+                            WindowListPopup(
+                                show = showLevelPopup,
+                                popupPositionProvider = MenuPositionProvider,
+                                alignment = PopupPositionProvider.Align.TopEnd,
+                                onDismissRequest = { showLevelPopup = false },
+                            ) {
+                                ListPopupColumn {
+                                    LogLevel.entries.forEach { level ->
+                                        Box(
+                                            modifier = Modifier
+                                                .semantics { testTagsAsResourceId = BuildConfig.DEBUG }
+                                                .testTag(TestTags.Log.level(level.name)),
+                                        ) {
+                                            DropdownImpl(
+                                                text = stringResource(R.string.log_level_and_above, getLevelInfo(level).name),
+                                                optionSize = LogLevel.entries.size,
+                                                isSelected = uiState.minimumLevel == level,
+                                                index = level.ordinal,
+                                                onSelectedIndexChange = {
+                                                    viewModel.setMinimumLevel(level)
+                                                    autoScrollEnabled = true
+                                                    showLevelPopup = false
+                                                },
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
                         IconButton(
                             enabled = filePicker != null && logs.isNotEmpty(),
                             onClick = {
@@ -391,10 +458,9 @@ private data class LevelInfo(val label: String, val name: String, val color: Col
 
 @Composable
 @ReadOnlyComposable
-private fun getLevelInfo(type: String): LevelInfo = when (type.lowercase()) {
-    "error" -> LevelInfo("E", "Error", StatusColors.danger)
-    "warning" -> LevelInfo("W", "Warning", StatusColors.warning)
-    "info" -> LevelInfo("I", "Info", StatusColors.info)
-    "debug" -> LevelInfo("D", "Debug", StatusColors.healthy)
-    else -> LevelInfo("V", "Verbose", StatusColors.neutral)
+private fun getLevelInfo(type: LogLevel): LevelInfo = when (type) {
+    LogLevel.Error -> LevelInfo("E", stringResource(R.string.log_level_error), StatusColors.danger)
+    LogLevel.Warning -> LevelInfo("W", stringResource(R.string.log_level_warning), StatusColors.warning)
+    LogLevel.Info -> LevelInfo("I", stringResource(R.string.log_level_info), StatusColors.info)
+    LogLevel.Debug -> LevelInfo("D", stringResource(R.string.log_level_debug), StatusColors.healthy)
 }

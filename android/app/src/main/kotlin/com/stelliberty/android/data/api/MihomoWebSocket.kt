@@ -2,6 +2,7 @@ package com.stelliberty.android.data.api
 
 import com.stelliberty.android.domain.model.ConnectionsResponse
 import com.stelliberty.android.domain.model.LogEvent
+import com.stelliberty.android.domain.model.LogLevel
 import com.stelliberty.android.domain.model.LogMessage
 import com.stelliberty.android.domain.model.MemoryData
 import com.stelliberty.android.domain.model.TrafficData
@@ -55,8 +56,8 @@ class MihomoWebSocket(
         apiClient.getWebSocketUrl("/traffic"),
     ) { text -> json.decodeFromString<TrafficData>(text) }
 
-    fun logsFlow(): Flow<LogEvent> = webSocketFlow(
-        apiClient.getWebSocketUrl("/logs?level=info"),
+    fun logsFlow(level: LogLevel): Flow<LogEvent> = webSocketFlow(
+        apiClient.getWebSocketUrl("/logs?level=${level.name.lowercase()}"),
         connectedEvent = LogEvent.Connected,
         disconnectedEvent = LogEvent.Disconnected,
     ) { text -> LogEvent.Message(json.decodeFromString<LogMessage>(text)) }

@@ -1,6 +1,7 @@
 package com.stelliberty.android.data.api
 
 import com.stelliberty.android.domain.model.LogEvent
+import com.stelliberty.android.domain.model.LogLevel
 import com.stelliberty.android.domain.model.LogMessage
 import java.net.InetAddress
 import java.net.ServerSocket
@@ -35,14 +36,14 @@ class MihomoLogStreamTest {
             val api = MihomoApiClient("http://127.0.0.1:${server.localPort}")
             val webSocket = MihomoWebSocket(api)
             try {
-                val events = withTimeout(10_000) { webSocket.logsFlow().take(5).toList() }
+                val events = withTimeout(10_000) { webSocket.logsFlow(LogLevel.Info).take(5).toList() }
                 assertEquals(
                     listOf(
                         LogEvent.Connected,
-                        LogEvent.Message(LogMessage("info", "session 0")),
+                        LogEvent.Message(LogMessage(LogLevel.Info, "session 0")),
                         LogEvent.Disconnected,
                         LogEvent.Connected,
-                        LogEvent.Message(LogMessage("info", "session 1")),
+                        LogEvent.Message(LogMessage(LogLevel.Info, "session 1")),
                     ),
                     events,
                 )
@@ -70,7 +71,35 @@ class MihomoLogStreamTest {
             val api = MihomoApiClient("http://127.0.0.1:${server.localPort}")
             val webSocket = MihomoWebSocket(api)
             try {
-                assertEquals(LogEvent.Disconnected, withTimeout(5_000) { webSocket.logsFlow().first() })
+                assertEquals(LogEvent.Disconnected, withTimeout(5_000) { webSocket.logsFlow(LogLevel.Info).first() })
+                peer.await()
+            } finally {
+                webSocket.close()
+                api.close()
+            }
+        }
+    }
+
+    @Test
+    fun requestsEachLevelAndDecodesMatchingMessages() = runBlocking<Unit> {
+        ServerSocket(0, 4, InetAddress.getByName("127.0.0.1")).use { server ->
+            server.soTimeout = 5_000
+            val peer = async(Dispatchers.IO) {
+                LogLevel.entries.forEach { level ->
+                    server.accept().use { socket ->
+                        val headers = socket.readHeaders()
+                        assertTrue(headers.first().startsWith("GET /logs?level=${level.name.lowercase()} "))
+                        socket.sendLogAndClose(headers, "filtered log", level)
+                    }
+                }
+            }
+            val api = MihomoApiClient("http://127.0.0.1:${server.localPort}")
+            val webSocket = MihomoWebSocket(api)
+            try {
+                LogLevel.entries.forEach { level ->
+                    val event = withTimeout(5_000) { webSocket.logsFlow(level).first { it is LogEvent.Message } }
+                    assertEquals(LogEvent.Message(LogMessage(level, "filtered log")), event)
+                }
                 peer.await()
             } finally {
                 webSocket.close()
@@ -85,14 +114,14 @@ class MihomoLogStreamTest {
         return generateSequence { reader.readLine()?.takeIf(String::isNotEmpty) }.toList()
     }
 
-    private fun Socket.sendLogAndClose(headers: List<String>, message: String) {
+    private fun Socket.sendLogAndClose(headers: List<String>, message: String, level: LogLevel = LogLevel.Info) {
         val key = headers.first { it.startsWith("Sec-WebSocket-Key:", ignoreCase = true) }
             .substringAfter(':').trim()
         val accept = Base64.getEncoder().encodeToString(
             MessageDigest.getInstance("SHA-1")
                 .digest((key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").toByteArray(Charsets.US_ASCII)),
         )
-        val payload = "{\"type\":\"info\",\"payload\":\"$message\"}".toByteArray()
+        val payload = "{\"type\":\"${level.name.lowercase()}\",\"payload\":\"$message\"}".toByteArray()
         getOutputStream().apply {
             write(
                 ("HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n" +
