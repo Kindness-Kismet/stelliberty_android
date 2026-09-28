@@ -21,6 +21,7 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,6 +32,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -42,6 +44,8 @@ import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.stelliberty.android.R
 import com.stelliberty.android.domain.model.LogMessage
+import com.stelliberty.android.platform.FilePicker
+import com.stelliberty.android.platform.showToast
 import com.stelliberty.android.ui.component.AdaptiveTopAppBar
 import com.stelliberty.android.ui.component.blur.BlurredBar
 import com.stelliberty.android.ui.component.blur.rememberBlurBackdrop
@@ -49,7 +53,9 @@ import com.stelliberty.android.ui.icon.AppIcons
 import com.stelliberty.android.ui.theme.StatusColors
 import com.stelliberty.android.ui.util.TestTags
 import com.stelliberty.android.ui.util.horizontalCutoutPadding
+import com.stelliberty.android.util.describe
 import com.stelliberty.android.viewmodel.LogViewModel
+import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
@@ -65,12 +71,15 @@ import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 @Composable
 fun LogScreen(
     viewModel: LogViewModel,
+    filePicker: FilePicker? = null,
     onBack: () -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val logs by viewModel.logs.collectAsStateWithLifecycle()
     val scrollBehavior = MiuixScrollBehavior()
     val listState = rememberLazyListState()
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     LifecycleStartEffect(viewModel) {
         viewModel.startObserving()
@@ -127,6 +136,30 @@ fun LogScreen(
                         }
                     },
                     actions = {
+                        IconButton(
+                            enabled = filePicker != null && logs.isNotEmpty(),
+                            onClick = {
+                                val export = viewModel.exportLogs()
+                                if (filePicker != null && export != null) {
+                                    filePicker.createDocument(export.fileName, "text/plain") { uri ->
+                                        if (uri != null) scope.launch {
+                                            filePicker.writeTextDocument(uri, export.content)
+                                                .onSuccess { showToast(context.getString(R.string.log_export_done)) }
+                                                .onFailure {
+                                                    showToast(context.getString(R.string.error_save_failed, it.describe()), long = true)
+                                                }
+                                        }
+                                    }
+                                }
+                            },
+                            modifier = Modifier.testTag(TestTags.Log.EXPORT),
+                        ) {
+                            Icon(
+                                imageVector = AppIcons.Backup,
+                                contentDescription = stringResource(R.string.log_export),
+                                tint = MiuixTheme.colorScheme.onSurface,
+                            )
+                        }
                         IconButton(
                             onClick = {
                                 autoScrollEnabled = true

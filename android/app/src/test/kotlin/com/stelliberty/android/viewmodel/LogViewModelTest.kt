@@ -5,11 +5,14 @@ import com.stelliberty.android.domain.model.LogEvent
 import com.stelliberty.android.domain.model.LogMessage
 import com.stelliberty.android.domain.repository.MihomoRepository
 import java.lang.reflect.Proxy
+import java.time.Instant
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -231,6 +234,45 @@ class LogViewModelTest {
         runCurrent()
         assertEquals("after clear", viewModel.logs.value.single().message.payload)
         assertTrue(viewModel.logs.value.single().id > previousId)
+    }
+
+    @Test
+    fun exportsUnpublishedLogsWithTimeLevelAndCompletePayload() = runLogTest {
+        val source = LogSource()
+        viewModel.setRepository(source.repository)
+        viewModel.startObserving()
+        runCurrent()
+        val payload = "[TCP] Example --> example.com match Match using Example\n完整内容"
+        source.emit(LogMessage("warning", payload))
+        runCurrent()
+        assertTrue(viewModel.logs.value.isEmpty())
+
+        val export = assertNotNull(viewModel.exportLogs())
+        val timestamp = export.content.substringBefore(' ')
+        Instant.parse(timestamp)
+        assertEquals("$timestamp [WARNING] $payload\n", export.content)
+        assertTrue(Regex("Stelliberty-logs-\\d{8}-\\d{6}\\.txt").matches(export.fileName))
+    }
+
+    @Test
+    fun exportSnapshotSurvivesClearAndLaterMessages() = runLogTest {
+        assertNull(viewModel.exportLogs())
+        val source = LogSource()
+        viewModel.setRepository(source.repository)
+        viewModel.startObserving()
+        runCurrent()
+        source.emit(LogMessage("info", "before export"))
+        runCurrent()
+        val export = assertNotNull(viewModel.exportLogs())
+
+        viewModel.clearLogs()
+        assertNull(viewModel.exportLogs())
+        source.emit(LogMessage("error", "after export"))
+        runCurrent()
+
+        assertTrue(export.content.endsWith(" [INFO] before export\n"))
+        assertFalse(export.content.contains("after export"))
+        assertTrue(assertNotNull(viewModel.exportLogs()).content.endsWith(" [ERROR] after export\n"))
     }
 
     private class LogSource {

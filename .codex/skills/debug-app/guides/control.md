@@ -50,7 +50,7 @@ testTag 挂在最外层节点，按钮文字在子节点，`get` 返回整棵子
 | `Settings.Entry.<key>` | 设置项，由 `groupedCardItems` 按 `CardItem.key` 自动生成，key 与 `settings.dump` 的键名一致 |
 | `AppProxy.Mode.<模式名>` | 分应用代理三种模式（`AllowAll` / `AllowSelected` / `DenySelected`） |
 | `AppProxy.App.<包名>` | 应用项，点一下切换勾选 |
-| `Log.*` | 清空按钮 `Log.ClearButton`、列表 `Log.List` 与空列表连接提示 `Log.Status` |
+| `Log.*` | 清空按钮 `Log.ClearButton`、导出按钮 `Log.ExportButton`、列表 `Log.List` 与空列表连接提示 `Log.Status` |
 | `Connection.CloseAllButton` | 关闭全部连接；`Connection.Close.<连接 id>` 是单条 |
 | `Nav.Tab.<0-3>` | 底栏四个 Tab；`Nav.BackButton` 是返回 |
 

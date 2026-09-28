@@ -121,6 +121,7 @@ object TestTags {
 
     object Log {
         const val CLEAR = "Log.ClearButton"
+        const val EXPORT = "Log.ExportButton"
         const val LIST = "Log.List"
         const val STATUS = "Log.Status"
     }

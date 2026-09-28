@@ -6,6 +6,10 @@ import androidx.lifecycle.viewModelScope
 import com.stelliberty.android.domain.model.LogEvent
 import com.stelliberty.android.domain.model.LogMessage
 import com.stelliberty.android.domain.repository.MihomoRepository
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toPersistentList
@@ -23,7 +27,10 @@ data class LogUiState(
 )
 
 @Immutable
-data class IndexedLog(val id: Long, val message: LogMessage)
+data class IndexedLog(val id: Long, val message: LogMessage, val receivedAt: Instant)
+
+@Immutable
+data class LogExport(val fileName: String, val content: String)
 
 class LogViewModel : ViewModel() {
 
@@ -90,7 +97,7 @@ class LogViewModel : ViewModel() {
 
     // 高频日志先缓冲，按固定间隔发布，避免每一行都触发列表重组。
     private fun appendLog(log: LogMessage) {
-        buffer.addLast(IndexedLog(nextLogId++, log))
+        buffer.addLast(IndexedLog(nextLogId++, log, Instant.now()))
         while (buffer.size > MAX_LOGS) {
             buffer.removeFirst()
         }
@@ -109,8 +116,24 @@ class LogViewModel : ViewModel() {
         _logs.value = persistentListOf()
     }
 
+    fun exportLogs(): LogExport? {
+        if (buffer.isEmpty()) return null
+        val content = buildString {
+            buffer.forEach { log ->
+                append(log.receivedAt)
+                append(" [").append(log.message.type.uppercase(Locale.ROOT)).append("] ")
+                appendLine(log.message.payload)
+            }
+        }
+        return LogExport(
+            fileName = "Stelliberty-logs-${LocalDateTime.now().format(EXPORT_TIME_FORMAT)}.txt",
+            content = content,
+        )
+    }
+
     companion object {
         private const val MAX_LOGS = 500
         private const val FLUSH_INTERVAL_MS = 120L
+        private val EXPORT_TIME_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss", Locale.ROOT)
     }
 }

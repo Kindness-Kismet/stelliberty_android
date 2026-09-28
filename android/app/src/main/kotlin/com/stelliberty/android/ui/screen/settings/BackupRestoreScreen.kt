@@ -185,7 +185,8 @@ fun BackupRestoreScreen(
             onExport = {
                 showLocalDialog = false
                 viewModel.exportBackup { onResult ->
-                    filePicker.createZipDocument(BackupManager.newBackupFileName(), onResult)
+                    // 按 zip 类型保存会让文档提供方给 .stelliberty 文件名补上 .zip。
+                    filePicker.createDocument(BackupManager.newBackupFileName(), "application/octet-stream", onResult)
                 }
             },
             onRestore = {

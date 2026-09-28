@@ -7,6 +7,8 @@ import android.provider.OpenableColumns
 import androidx.activity.ComponentActivity
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 data class FilePickResult(
     val fileName: String,
@@ -31,13 +33,12 @@ class FilePicker(private val activity: ComponentActivity) {
     }
 
     private var saveCallback: ((Uri?) -> Unit)? = null
-    // 用 octet-stream：按 zip 类型保存时文档提供方会给 .stelliberty 文件名再补一个 .zip 后缀。
     private val saveLauncher = activity.registerForActivityResult(
-        ActivityResultContracts.CreateDocument("application/octet-stream")
-    ) { uri ->
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
         val cb = saveCallback
         saveCallback = null
-        cb?.invoke(uri)
+        cb?.invoke(if (result.resultCode == Activity.RESULT_OK) result.data?.data else null)
     }
 
     private var pickCallback: ((Uri?) -> Unit)? = null
@@ -49,9 +50,22 @@ class FilePicker(private val activity: ComponentActivity) {
         cb?.invoke(uri)
     }
 
-    fun createZipDocument(suggestedName: String, onResult: (Uri?) -> Unit) {
+    fun createDocument(suggestedName: String, mimeType: String, onResult: (Uri?) -> Unit) {
         saveCallback = onResult
-        saveLauncher.launch(suggestedName)
+        saveLauncher.launch(Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = mimeType
+            putExtra(Intent.EXTRA_TITLE, suggestedName)
+        })
+    }
+
+    suspend fun writeTextDocument(uri: Uri, content: String): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            val output = checkNotNull(activity.contentResolver.openOutputStream(uri, "wt")) {
+                "Unable to open document for writing"
+            }
+            output.bufferedWriter(Charsets.UTF_8).use { it.write(content) }
+        }
     }
 
     fun pickZipDocument(onResult: (Uri?) -> Unit) {

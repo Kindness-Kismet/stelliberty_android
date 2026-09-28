@@ -267,6 +267,8 @@
     <!-- Log -->
     <string name="log_title">日誌</string>
     <string name="log_clear">清除</string>
+    <string name="log_export">匯出日誌</string>
+    <string name="log_export_done">日誌已儲存</string>
     <string name="log_waiting">等待日誌...</string>
     <string name="log_not_connected">未連線</string>
 

@@ -269,6 +269,8 @@
     <!-- Log -->
     <string name="log_title">Logs</string>
     <string name="log_clear">Clear</string>
+    <string name="log_export">Export logs</string>
+    <string name="log_export_done">Log file saved</string>
     <string name="log_waiting">Waiting for logs...</string>
     <string name="log_not_connected">Not connected</string>
 
