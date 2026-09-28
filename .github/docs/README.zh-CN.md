@@ -16,7 +16,7 @@
 
 <br>
 
-Stelliberty 是基于 [mihomo](https://github.com/MetaCubeX/mihomo) 的原生安卓代理客户端，界面使用 Jetpack Compose 和 [miuix](https://github.com/miuix-kotlin-multiplatform/miuix) 构建。
+Stelliberty 是基于 [Mishka](https://github.com/YuKongA/Mishka) 的安卓代理客户端，采用 [mihomo](https://github.com/MetaCubeX/mihomo) 内核，界面用 Jetpack Compose 和 [miuix](https://github.com/miuix-kotlin-multiplatform/miuix) 构建。
 
 无需 Root 即可使用系统 VPN，也可以选择 ROOT TUN 或 ROOT TPROXY 接管流量。订阅、代理组、连接和分流设置都能在应用内管理。
 
@@ -233,6 +233,7 @@ python scripts/build.py --dev
 
 本项目使用 [GPL-3.0](../../LICENSE) 许可证，第三方项目继续遵循各自的许可证。
 
+- [Mishka](https://github.com/YuKongA/Mishka) —— 直接上游
 - [mihomo](https://github.com/MetaCubeX/mihomo) —— 代理内核，通过 [mihomo 子模块](https://github.com/YuKongA/mihomo)集成
 - [miuix](https://github.com/miuix-kotlin-multiplatform/miuix) —— Compose 界面组件
 - [scripta](https://github.com/YuKongA/scripta) —— 配置编辑器子模块
