@@ -4,7 +4,9 @@ import android.content.Context
 import android.content.Intent
 import android.net.VpnService
 import android.os.Bundle
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import com.stelliberty.android.data.api.MihomoConnectionManager
 import com.stelliberty.android.data.repository.OverrideJsonStore
 import com.stelliberty.android.data.store.ProxySelectionStore
@@ -63,7 +65,8 @@ internal fun runProxyCommand(context: Context, action: String, arg: String?, ext
 }
 
 private fun runProxyRuntimeCommand(action: String, command: String, arg: String?, extras: Bundle?): Bundle {
-    val repository = koin<MihomoConnectionManager>().repository.value
+    val connectionManager = koin<MihomoConnectionManager>()
+    val repository = connectionManager.repository.value
         ?: return debugResult(false, "Proxy is not running", command)
     return runBlocking {
         when (action) {
@@ -71,17 +74,22 @@ private fun runProxyRuntimeCommand(action: String, command: String, arg: String?
                 val group = extras.string(EXTRA_GROUP) ?: return@runBlocking debugResult(false, "Missing group", command)
                 val node = extras.string(EXTRA_NODE) ?: extras.target(arg)
                     ?: return@runBlocking debugResult(false, "Missing node", command)
-                repository.selectProxy(group, node).fold(
-                    onSuccess = {
-                        // 与代理页一样记下选择，内核重启后按它恢复。
-                        koin<SubscriptionRepository>().getActive()?.let {
-                            koin<ProxySelectionStore>().select(it.id, group, node)
-                        }
-                        koin<ProxyViewModel>().loadProxies()
-                        debugResult(true, "selected $node in $group", command, node)
-                    },
-                    onFailure = { debugResult(false, it.describeForDebug(), command, node) },
-                )
+                val subscriptions = koin<SubscriptionRepository>()
+                val uuid = subscriptions.getActive()?.id
+                val result = repository.selectProxy(group, node)
+                withContext(Dispatchers.Main.immediate) {
+                    if (connectionManager.repository.value !== repository || subscriptions.getActive()?.id != uuid) {
+                        return@withContext debugResult(false, "Proxy changed during selection", command, node)
+                    }
+                    result.fold(
+                        onSuccess = {
+                            uuid?.let { koin<ProxySelectionStore>().select(it, group, node) }
+                            koin<ProxyViewModel>().loadProxies()
+                            debugResult(true, "selected $node in $group", command, node)
+                        },
+                        onFailure = { debugResult(false, it.describeForDebug(), command, node) },
+                    )
+                }
             }
 
             "test_group" -> {

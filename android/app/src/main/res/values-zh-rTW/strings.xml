@@ -163,6 +163,7 @@
     <string name="proxy_switch_mode">切換代理模式</string>
     <string name="proxy_switch_tun_stack">切換 TUN Stack</string>
     <string name="proxy_no_groups">尚無代理群組</string>
+    <string name="proxy_request_failed">代理請求失敗：%1$s</string>
     <string name="proxy_search_groups">搜尋代理群組或節點</string>
     <string name="proxy_no_matching_groups">沒有符合的代理群組</string>
     <string name="proxy_hide_unavailable">僅顯示可用節點</string>

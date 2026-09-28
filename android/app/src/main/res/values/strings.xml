@@ -165,6 +165,7 @@
     <string name="proxy_switch_mode">Switch Proxy Mode</string>
     <string name="proxy_switch_tun_stack">Switch TUN Stack</string>
     <string name="proxy_no_groups">No proxy groups</string>
+    <string name="proxy_request_failed">Proxy request failed: %1$s</string>
     <string name="proxy_search_groups">Search groups or nodes</string>
     <string name="proxy_no_matching_groups">No matching groups</string>
     <string name="proxy_hide_unavailable">Only available nodes</string>

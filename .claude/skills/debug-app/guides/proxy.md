@@ -47,4 +47,6 @@ debug-call.sh -s <dev> -m proxy.test_group -a PROXY
 
 `proxy.select` 对 URLTest / Fallback 组同样生效（固定选择），并与代理页一样按当前订阅记录选择，内核重启后恢复；恢复自动选择（`unfix`）用模拟点击，见 `guides/control.md`。
 
+选择指令在发请求前捕获订阅 id，完成后同时核对 repository 与活跃订阅，保存和页面刷新在主线程执行；切换过程中返回失败，避免把旧节点选择写入新订阅。
+
 provider 节点在代理页上测速：`test_node` 走 `/proxies/{name}/delay`，proxy-provider 的节点在这个命名空间之外，会返回 404。

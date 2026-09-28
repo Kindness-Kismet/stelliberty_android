@@ -36,6 +36,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
@@ -47,6 +48,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.stelliberty.android.BuildConfig
 import com.stelliberty.android.R
 import com.stelliberty.android.platform.TunMode
+import com.stelliberty.android.platform.showToast
 import com.stelliberty.android.ui.component.AdaptiveTopAppBar
 import com.stelliberty.android.ui.component.CardSegment
 import com.stelliberty.android.ui.component.ListPopupDefaults.MenuPositionProvider
@@ -94,6 +96,13 @@ fun ProxyScreen(
     onSwitchTunStack: (String) -> Unit = {},
 ) {
     val uiState = viewModel?.uiState?.collectAsStateWithLifecycle()?.value ?: ProxyUiState()
+    val context = LocalContext.current
+    LaunchedEffect(uiState.error) {
+        if (uiState.error.isNotEmpty()) {
+            showToast(context.getString(R.string.proxy_request_failed, uiState.error), long = true)
+            viewModel?.clearError()
+        }
+    }
     val sortOption = viewModel?.sortOption?.collectAsStateWithLifecycle()?.value ?: 0
     val singleColumn = viewModel?.singleColumn?.collectAsStateWithLifecycle()?.value == true
     val groupTabs = viewModel?.groupTabs?.collectAsStateWithLifecycle()?.value != false
