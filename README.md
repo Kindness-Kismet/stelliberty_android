@@ -16,7 +16,7 @@
 
 <br>
 
-Stelliberty is a native Android proxy client powered by [mihomo](https://github.com/MetaCubeX/mihomo), with a Jetpack Compose interface built on [miuix](https://github.com/miuix-kotlin-multiplatform/miuix).
+Stelliberty is a native Android proxy client based on [Mishka](https://github.com/YuKongA/Mishka), powered by [mihomo](https://github.com/MetaCubeX/mihomo), with a Jetpack Compose interface built on [miuix](https://github.com/miuix-kotlin-multiplatform/miuix).
 
 Use Android VPN without root, or choose ROOT TUN and ROOT TPROXY for privileged traffic capture. Manage subscriptions, proxy groups, connections, and routing from one app.
 
@@ -233,6 +233,7 @@ Submit changes to `beta`. Promote reviewed changes from `beta` to `main` for a s
 
 This project is licensed under [GPL-3.0](LICENSE). Third-party projects retain their own licenses.
 
+- [Mishka](https://github.com/YuKongA/Mishka) — direct upstream
 - [mihomo](https://github.com/MetaCubeX/mihomo) — proxy core; integrated through the [mihomo submodule](https://github.com/YuKongA/mihomo)
 - [miuix](https://github.com/miuix-kotlin-multiplatform/miuix) — Compose UI components
 - [scripta](https://github.com/YuKongA/scripta) — configuration editor submodule
