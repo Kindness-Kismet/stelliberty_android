@@ -1,7 +1,7 @@
 [submodule "mihomo"]
 	path = third_party/mihomo
-	url = https://github.com/YuKongA/mihomo.git
-	branch = Mishka
+	url = https://github.com/Kindness-Kismet/mihomo.git
+	branch = master
 [submodule "scripta"]
 	path = third_party/scripta
 	url = https://github.com/YuKongA/scripta.git
