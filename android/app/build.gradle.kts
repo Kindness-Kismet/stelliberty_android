@@ -88,6 +88,10 @@ android {
         versionName = appVersionName
         versionCode = appVersionCode
     }
+    androidResources {
+        // 应用只翻译了这三种，依赖库带来的其他语言只会让界面混杂。
+        localeFilters += listOf("en", "zh-rCN", "zh-rTW")
+    }
     dependenciesInfo {
         includeInApk = false
         includeInBundle = false
