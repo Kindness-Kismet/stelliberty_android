@@ -1,6 +1,6 @@
 # JNI 与 .so
 
-libmihomo.so（cgo c-shared，约 56MB）同时承担 JNI 导出与 `mihomoEntry(argc, argv)` 运行时入口；libmihomo_runner.so（C PIE，约 6KB）由 MihomoRunner fork+exec 后 dlopen 前者并调用 mihomoEntry。一份 mihomo 代码服务两条路径。
+libmihomo.so（cgo c-shared，arm64 约 71MB）同时承担 JNI 导出与 `mihomoEntry(argc, argv)` 运行时入口；libmihomo_runner.so（C PIE，约 6KB）由 MihomoRunner fork+exec 后 dlopen 前者并调用 mihomoEntry。一份 mihomo 代码服务两条路径。
 
 ## 五条硬约束
 

@@ -22,6 +22,8 @@
 - **`libmihomo.h` 与 .so 一起声明为任务输出**：它由 c-shared 一并生成，供 CMake 的 `target_include_directories` 使用；声明为输出才能免于 stale-output 清理（被删时 CMake 报 `No such file`）。
 - **`-buildvcs=false`**，与 `-trimpath` 同为可复现构建服务：VCS stamp 让产物随提交变化，并且在没有 git 或仓库属主不匹配的容器里会构建失败。
 
+`-extldflags` 带 `-z,pack-relative-relocs`，把约 8 MB 的 `.rela.dyn` 换成 RELR；AGP 默认的 NDK 不会自动开启。系统从 API 30 起支持，minSdk 降到 30 以下时必须去掉，否则库在旧系统上加载失败。
+
 ## CMake
 
 CMake `dependsOn(buildMihomo)`，产出两个链接 libmihomo.so 的轻量库（IMPORTED + IMPORTED_SONAME）：`libmihomo_runner.so`（PIE wrapper）与 `libstelliberty_jni.so`（JNI 桥）。

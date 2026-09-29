@@ -90,9 +90,8 @@ abstract class GoBuildTask : DefaultTask() {
         args += "-buildvcs=false"
         val ldflagsBuilder = StringBuilder("-s -w -X ${moduleVersionPath.get()}=${versionName.get()}")
         if (buildMode.get() == BuildMode.CShared) {
-            // 必须显式设库名：Go 生成共享库时默认不写，用它的一方会把构建机上的绝对路径记进依赖里，
-            // 到用户设备上就找不到库了。这里和 CMake 那边的设置必须对齐。
-            ldflagsBuilder.append(" -extldflags=-Wl,-soname,").append(outFile.name)
+            // 库名须与 CMake 一致，避免依赖记录构建机绝对路径；RELR 压缩相对重定位表，要求 minSdk >= 30。
+            ldflagsBuilder.append(" -extldflags=-Wl,-soname,").append(outFile.name).append(",-z,pack-relative-relocs")
         }
         args += "-ldflags"
         args += ldflagsBuilder.toString()
