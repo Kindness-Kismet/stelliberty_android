@@ -1,6 +1,6 @@
 # JNI 与 .so
 
-libmihomo.so（cgo c-shared，约 56MB）同时承担 JNI 导出与 `mihomoEntry(argc, argv)` 运行时入口；libmihomo_runner.so（C PIE，约 6KB）由 MihomoRunner fork+exec 后 dlopen 前者并调用 mihomoEntry。一份 mihomo 代码服务两条路径。
+libmihomo.so（cgo c-shared，arm64 约 71MB）同时承担 JNI 导出与 `mihomoEntry(argc, argv)` 运行时入口；libmihomo_runner.so（C PIE，约 6KB）由 MihomoRunner fork+exec 后 dlopen 前者并调用 mihomoEntry。一份 mihomo 代码服务两条路径。
 
 ## 五条硬约束
 
@@ -15,6 +15,10 @@ libmihomo.so（cgo c-shared，约 56MB）同时承担 JNI 导出与 `mihomoEntry
 `stellibertyValidateTransform`、`stellibertyChainProxyContext`、`stellibertyRuleContext` 与运行时 `--transform` 共用 `overrides.Transform`：先按顺序套覆写，再处理链式代理，最后合并规则覆写。JNI 传变换文件路径，文件内容由 Go 读取，避免 `GetStringUTFChars` 的改进 UTF-8 改坏补充平面字符；provider 校验期间设置 age 全局密钥并在返回时清空，调用方持 processLock。校验返回 `{"hasCycle":bool}`，失败仍走 `"error: "` 前缀。
 
 引擎位于 `stelliberty_core/overrides/`：链式代理在 `chains.go`、规则覆写在 `rules.go`，规则与 PC 一致，改动时同步核对 PC 实现；YAML 展开别名时检查循环及节点上限；JavaScript 走 goja，执行限时 2 秒、输出上限 1 MiB。Go 模块的 `godebug default=go1.20` 保持 mihomo 运行时默认行为，实际工具链仍由构建脚本选定。
+
+## 地理数据解压
+
+`stellibertyExtractXzAsset` 按 zip entry 直接从 APK（`applicationInfo.sourceDir`）读取 `assets/<文件名>.xz` 解到目标路径，原子替换与并发由 `ProfileFileOps.extractGeodata` 负责。解码用随 mihomo 链接的 `ulikunitz/xz`，不增加 .so 体积；实测比 ART 上的 Java 解码器快约 3 倍。
 
 ## fork+exec
 

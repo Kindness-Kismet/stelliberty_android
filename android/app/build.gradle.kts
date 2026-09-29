@@ -3,6 +3,8 @@ import java.net.URI
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.util.Properties
+import org.tukaani.xz.LZMA2Options
+import org.tukaani.xz.XZOutputStream
 
 plugins {
     alias(libs.plugins.androidApplication)
@@ -88,6 +90,12 @@ android {
         versionName = appVersionName
         versionCode = appVersionCode
     }
+    androidResources {
+        // 应用只翻译了这三种，依赖库带来的其他语言只会让界面混杂。
+        localeFilters += listOf("en", "zh-rCN", "zh-rTW")
+        // xz 已是压缩数据，再 deflate 省不了体积，还会让读取多一层解压。
+        noCompress += "xz"
+    }
     dependenciesInfo {
         includeInApk = false
         includeInBundle = false
@@ -155,8 +163,7 @@ abstract class DownloadGeoFilesTask : DefaultTask() {
         val dir = outputDir.get().asFile
         dir.mkdirs()
         sources.get().forEach { (downloadUrl, fileName) ->
-            val target = File(dir, fileName)
-            val partial = File(dir, "$fileName.part")
+            val raw = File(temporaryDir, fileName)
             val connection = (URI(downloadUrl).toURL().openConnection() as HttpURLConnection).apply {
                 connectTimeout = HTTP_TIMEOUT_MS
                 readTimeout = HTTP_TIMEOUT_MS
@@ -165,24 +172,40 @@ abstract class DownloadGeoFilesTask : DefaultTask() {
                 val status = connection.responseCode
                 check(status == HttpURLConnection.HTTP_OK) { "$downloadUrl responded HTTP $status" }
                 connection.inputStream.use {
-                    Files.copy(it, partial.toPath(), StandardCopyOption.REPLACE_EXISTING)
+                    Files.copy(it, raw.toPath(), StandardCopyOption.REPLACE_EXISTING)
                 }
             } finally {
                 connection.disconnect()
             }
-            val size = partial.length()
+            val size = raw.length()
             if (size < MIN_FILE_BYTES) {
-                partial.delete()
+                raw.delete()
                 error("$fileName is only $size bytes, expected a data file (bad URL or rate limited?)")
             }
+            val target = File(dir, "$fileName.xz")
+            val partial = File(dir, "$fileName.xz.part")
+            partial.outputStream().buffered().use { out ->
+                XZOutputStream(out, xzOptions(size)).use { xz -> raw.inputStream().use { it.copyTo(xz) } }
+            }
+            raw.delete()
             Files.move(partial.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
-            logger.lifecycle("$fileName downloaded to $target ($size bytes)")
+            // assets 里的文件都会进包，同名的未压缩文件不能留着。
+            File(dir, fileName).delete()
+            logger.lifecycle("$fileName downloaded to $target ($size bytes, xz ${target.length()} bytes)")
         }
+    }
+
+    // 相当于 xz -9e；字典取文件大小即可覆盖全文，更大只会抬高运行时解压的内存。
+    private fun xzOptions(size: Long) = LZMA2Options(LZMA2Options.PRESET_MAX).apply {
+        dictSize = size.coerceIn(LZMA2Options.DICT_SIZE_MIN.toLong(), LZMA2Options.DICT_SIZE_MAX.toLong()).toInt()
+        niceLen = LZMA2Options.NICE_LEN_MAX
+        depthLimit = EXTREME_DEPTH_LIMIT
     }
 
     private companion object {
         const val HTTP_TIMEOUT_MS = 30_000
         const val MIN_FILE_BYTES = 512 * 1024L
+        const val EXTREME_DEPTH_LIMIT = 512
     }
 }
 
@@ -191,6 +214,7 @@ val downloadGeoFiles = tasks.register<DownloadGeoFilesTask>("downloadGeoFiles") 
     sources.set(
         mapOf(
             "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb" to "geoip.metadb",
+            "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat" to "GeoIP.dat",
             "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat" to "geosite.dat",
             "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb" to "ASN.mmdb",
         )

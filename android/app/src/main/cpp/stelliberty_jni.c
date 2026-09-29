@@ -78,6 +78,19 @@ Java_com_stelliberty_android_data_bridge_StellibertyCoreBridge_nativeSetAgeSecre
 }
 
 JNIEXPORT jstring JNICALL
+Java_com_stelliberty_android_data_bridge_StellibertyCoreBridge_nativeExtractXzAsset(
+        JNIEnv *env, jclass clazz, jstring jApk, jstring jEntry, jstring jTarget) {
+    char *apk = jstring_to_cstr(env, jApk);
+    char *entry = jstring_to_cstr(env, jEntry);
+    char *target = jstring_to_cstr(env, jTarget);
+    char *result = stellibertyExtractXzAsset(apk ? apk : "", entry ? entry : "", target ? target : "");
+    free(apk);
+    free(entry);
+    free(target);
+    return go_cstr_to_jstring(env, result);
+}
+
+JNIEXPORT jstring JNICALL
 Java_com_stelliberty_android_data_bridge_StellibertyCoreBridge_nativeDecryptFile(
         JNIEnv *env, jclass clazz, jstring jSource, jstring jTarget, jstring jKey) {
     char *source = jstring_to_cstr(env, jSource);

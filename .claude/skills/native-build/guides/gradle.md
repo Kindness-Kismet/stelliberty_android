@@ -2,7 +2,7 @@
 
 ## downloadGeoFiles
 
-`downloadGeoFiles` 设为 `outputs.upToDateWhen { false }`，每次被点名都拉取最新版：上游 `latest` tag 原地重发布，URL 与本地文件都保持不变，Gradle 无从判断更新。它没有下游依赖，只在被点名时运行。任务要求：URL 表是 `@Input`；连接与读取都设超时；响应须为 200 且体积超过下限（挡住被写成 `geoip.metadb` 的 404 / 限流页面）；先写 `.part` 再 rename。它的 `@OutputDirectory` 是 `src/main/assets`，同时也是 `mergeAssets` 的输入，因此对 `merge*Assets` 声明 `mustRunAfter`，两者才能出现在同一次调用里。
+`downloadGeoFiles` 设为 `outputs.upToDateWhen { false }`，每次被点名都拉取最新版：上游 `latest` tag 原地重发布，URL 与本地文件都保持不变，Gradle 无从判断更新。它没有下游依赖，只在被点名时运行。任务要求：URL 表是 `@Input`；连接与读取都设超时；响应须为 200 且体积超过下限（挡住被写成 `geoip.metadb` 的 404 / 限流页面）；下载后压成 `<文件名>.xz`（等同 `xz -9e`，字典取文件大小以压低运行时解压内存），先写 `.part` 再 rename，并删除 assets 里同名的未压缩文件。app 声明 `noCompress += "xz"`，避免已压缩的数据再被 deflate 一遍。它的 `@OutputDirectory` 是 `src/main/assets`，同时也是 `mergeAssets` 的输入，因此对 `merge*Assets` 声明 `mustRunAfter`，两者才能出现在同一次调用里。
 
 ## GoBuildTask
 
@@ -21,6 +21,8 @@
 - **mihomo submodule 整棵声明进 `replacedModuleSources`**：它经 go.mod `replace` 引入，被编译的代码大多在那里而非 `goSourceDir`。声明完整，rebase 或改 patch 后任务才会重跑 `go build`，否则继续产出陈旧的 .so，与「patch 没生效」难以区分。`mihomo.version` 是 gradle.properties 里的手写字面量，不能充当变更信号。过滤用反向排除：`component/ca` 用 `go:embed` 嵌入 `.crt`，扩展名白名单容易漏掉后缀，多收只多一次重建。
 - **`libmihomo.h` 与 .so 一起声明为任务输出**：它由 c-shared 一并生成，供 CMake 的 `target_include_directories` 使用；声明为输出才能免于 stale-output 清理（被删时 CMake 报 `No such file`）。
 - **`-buildvcs=false`**，与 `-trimpath` 同为可复现构建服务：VCS stamp 让产物随提交变化，并且在没有 git 或仓库属主不匹配的容器里会构建失败。
+
+`-extldflags` 带 `-z,pack-relative-relocs`，把约 8 MB 的 `.rela.dyn` 换成 RELR；AGP 默认的 NDK 不会自动开启。系统从 API 30 起支持，minSdk 降到 30 以下时必须去掉，否则库在旧系统上加载失败。
 
 ## CMake
 
