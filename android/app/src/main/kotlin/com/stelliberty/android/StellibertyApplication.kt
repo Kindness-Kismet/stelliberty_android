@@ -19,8 +19,7 @@ import com.stelliberty.android.service.NotificationHelper
 import com.stelliberty.android.service.ProfileFileOps
 import com.stelliberty.android.service.ProfileUpdateScheduler
 import com.stelliberty.android.util.AppLogger
-import java.io.File
-import java.io.FileOutputStream
+import kotlin.concurrent.thread
 import org.koin.android.ext.android.inject
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
@@ -52,12 +51,12 @@ class StellibertyApplication : Application() {
         )
         initToastPlatform(this)
         NotificationHelper.createChannels(this)
-        // 顺序不能换：下面的初始化会把地理数据目录记为全局主目录，必须先把文件解压到位。
-        extractGeoFiles()
         StellibertyCoreBridge.init(
             homeDir = ProfileFileOps.getGeodataDir(this).absolutePath,
             userAgent = "ClashMetaForAndroid/${BuildConfig.VERSION_NAME}",
         )
+        // 解压不能堵住启动；读地理数据的地方各自等 awaitGeodata()。
+        thread(name = "geodata-extract") { ProfileFileOps.extractGeodata(this) }
         updateScheduler.start()
         autoDelayTester.start()
 
@@ -65,24 +64,6 @@ class StellibertyApplication : Application() {
             val enable = storage.getString(StorageKeys.PREDICTIVE_BACK, "false") == "true"
             HiddenApiBypass.addHiddenApiExemptions("Landroid/content/pm/ApplicationInfo;->setEnableOnBackInvokedCallback")
             setEnableOnBackInvokedCallback(applicationInfo, enable)
-        }
-    }
-
-    private fun extractGeoFiles() {
-        val geodataDir = ProfileFileOps.getGeodataDir(this)
-        val updateDate = packageManager.getPackageInfo(packageName, 0).lastUpdateTime
-
-        val geoFiles = listOf("geoip.metadb", "geosite.dat", "ASN.mmdb")
-        for (fileName in geoFiles) {
-            val target = File(geodataDir, fileName)
-            if (target.exists() && target.lastModified() < updateDate) {
-                target.delete()
-            }
-            if (!target.exists()) {
-                runCatching {
-                    FileOutputStream(target).use { assets.open(fileName).copyTo(it) }
-                }
-            }
         }
     }
 

@@ -8,6 +8,7 @@ godebug default=go1.20
 require (
 	github.com/dop251/goja v0.0.0-20260925200140-d00dd0475abd
 	github.com/metacubex/mihomo v0.0.0
+	github.com/ulikunitz/xz v0.5.15
 	go.yaml.in/yaml/v3 v3.0.5
 )
 
@@ -125,7 +126,6 @@ require (
 	github.com/tailscale/hujson v0.0.0-20221223112325-20486734a56a // indirect
 	github.com/tailscale/peercred v0.0.0-20250107143737-35a0c7bd7edc // indirect
 	github.com/u-root/uio v0.0.0-20230220225925-ffce2a382923 // indirect
-	github.com/ulikunitz/xz v0.5.15 // indirect
 	github.com/vishvananda/netns v0.0.5 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect

@@ -16,6 +16,10 @@ libmihomo.so（cgo c-shared，arm64 约 71MB）同时承担 JNI 导出与 `mihom
 
 引擎位于 `stelliberty_core/overrides/`：链式代理在 `chains.go`、规则覆写在 `rules.go`，规则与 PC 一致，改动时同步核对 PC 实现；YAML 展开别名时检查循环及节点上限；JavaScript 走 goja，执行限时 2 秒、输出上限 1 MiB。Go 模块的 `godebug default=go1.20` 保持 mihomo 运行时默认行为，实际工具链仍由构建脚本选定。
 
+## 地理数据解压
+
+`stellibertyExtractXzAsset` 按 zip entry 直接从 APK（`applicationInfo.sourceDir`）读取 `assets/<文件名>.xz` 解到目标路径，原子替换与并发由 `ProfileFileOps.extractGeodata` 负责。解码用随 mihomo 链接的 `ulikunitz/xz`，不增加 .so 体积；实测比 ART 上的 Java 解码器快约 3 倍。
+
 ## fork+exec
 
 Android `ProcessBuilder` fork 后会关闭全部非标准 fd，VPN 模式因此用 JNI `fork()+exec()`（`process_helper.c`）继承 TUN fd。fork 与 exec 之间只调用 async-signal-safe 函数，子进程分支里打日志会死锁。

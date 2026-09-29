@@ -25,7 +25,7 @@ JDK_DIR = Path("build/jdk")
 GO_DIR = Path("build/go")
 TMP_DIR = Path("build/tmp")
 PREBUILD_MARKER = Path("build/prebuild.ready")
-GEO_ASSETS = ("geoip.metadb", "geosite.dat", "ASN.mmdb")
+GEO_ASSETS = ("geoip.metadb.xz", "GeoIP.dat.xz", "geosite.dat.xz", "ASN.mmdb.xz")
 GRADLE_WRAPPER_FILES = ("gradlew", "gradlew.bat", "gradle/wrapper/gradle-wrapper.jar")
 ADOPTIUM_URL = "https://api.adoptium.net/v3/binary/latest/{major}/ga/{os_name}/{arch}/jdk/hotspot/normal/eclipse"
 GO_RELEASES_URL = "https://go.dev/dl/?mode=json"

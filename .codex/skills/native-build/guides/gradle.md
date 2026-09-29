@@ -2,7 +2,7 @@
 
 ## downloadGeoFiles
 
-`downloadGeoFiles` 设为 `outputs.upToDateWhen { false }`，每次被点名都拉取最新版：上游 `latest` tag 原地重发布，URL 与本地文件都保持不变，Gradle 无从判断更新。它没有下游依赖，只在被点名时运行。任务要求：URL 表是 `@Input`；连接与读取都设超时；响应须为 200 且体积超过下限（挡住被写成 `geoip.metadb` 的 404 / 限流页面）；先写 `.part` 再 rename。它的 `@OutputDirectory` 是 `src/main/assets`，同时也是 `mergeAssets` 的输入，因此对 `merge*Assets` 声明 `mustRunAfter`，两者才能出现在同一次调用里。
+`downloadGeoFiles` 设为 `outputs.upToDateWhen { false }`，每次被点名都拉取最新版：上游 `latest` tag 原地重发布，URL 与本地文件都保持不变，Gradle 无从判断更新。它没有下游依赖，只在被点名时运行。任务要求：URL 表是 `@Input`；连接与读取都设超时；响应须为 200 且体积超过下限（挡住被写成 `geoip.metadb` 的 404 / 限流页面）；下载后压成 `<文件名>.xz`（等同 `xz -9e`，字典取文件大小以压低运行时解压内存），先写 `.part` 再 rename，并删除 assets 里同名的未压缩文件。app 声明 `noCompress += "xz"`，避免已压缩的数据再被 deflate 一遍。它的 `@OutputDirectory` 是 `src/main/assets`，同时也是 `mergeAssets` 的输入，因此对 `merge*Assets` 声明 `mustRunAfter`，两者才能出现在同一次调用里。
 
 ## GoBuildTask
 

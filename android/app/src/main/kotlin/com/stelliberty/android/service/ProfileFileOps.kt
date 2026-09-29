@@ -1,13 +1,19 @@
 package com.stelliberty.android.service
 
 import android.content.Context
+import com.stelliberty.android.data.bridge.StellibertyCoreBridge
+import com.stelliberty.android.util.AppLogger
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.nio.file.Files
+import java.nio.file.StandardCopyOption
+import java.util.concurrent.CountDownLatch
+import kotlin.concurrent.thread
 
 object ProfileFileOps {
 
+    private const val TAG = "ProfileFileOps"
     private const val COMMIT_STAGING = "commit.new"
     private const val COMMIT_OLD_PREFIX = "commit.old."
 
@@ -184,8 +190,9 @@ object ProfileFileOps {
             }
         }
         runtime.mkdirs()
-        if (imported.exists()) {
-            imported.copyRecursively(runtime, overwrite = true)
+        // 地理数据随后重新链接，复制会顺着链接白拷几十 MB。
+        imported.listFiles()?.filter { it.name !in GEODATA_FILES }?.forEach {
+            it.copyRecursively(File(runtime, it.name), overwrite = true)
         }
         ensureGeodataLinks(context, runtime)
         return runtime
@@ -256,17 +263,58 @@ object ProfileFileOps {
         return dir
     }
 
+    // 与 assets 里的「文件名.xz」一一对应。
+    private val BUNDLED_GEODATA = listOf("geoip.metadb", "GeoIP.dat", "geosite.dat", "ASN.mmdb")
+    private val geodataReady = CountDownLatch(1)
+
+    // 安装或升级后的首次启动才真正解压，要一两秒，只能在后台线程调用。
+    fun extractGeodata(context: Context) {
+        try {
+            val dir = getGeodataDir(context)
+            val apkPath = context.applicationInfo.sourceDir
+            val installedAt = context.packageManager.getPackageInfo(context.packageName, 0).lastUpdateTime
+            val stale = BUNDLED_GEODATA.filter { name ->
+                val target = File(dir, name)
+                !target.exists() || target.lastModified() < installedAt
+            }
+            if (stale.isEmpty()) return
+            val startedAt = System.currentTimeMillis()
+            // 解压是单线程 CPU 密集，逐个做要多等几倍；峰值内存约为各文件体积之和。
+            stale.map { name -> thread(name = "geodata-$name") { extractBundledGeodata(dir, apkPath, name) } }
+                .forEach { it.join() }
+            AppLogger.info(TAG, "Extracted $stale in ${System.currentTimeMillis() - startedAt}ms")
+        } finally {
+            geodataReady.countDown()
+        }
+    }
+
+    private fun extractBundledGeodata(dir: File, apkPath: String, name: String) {
+        // 先写 .part 再改名：中途被杀不会留下半截文件，下次启动会重新解压。
+        val partial = File(dir, "$name.part")
+        runCatching {
+            StellibertyCoreBridge.extractXzAsset(apkPath, "assets/$name.xz", partial)
+            Files.move(partial.toPath(), File(dir, name).toPath(), StandardCopyOption.REPLACE_EXISTING)
+        }.onFailure { e ->
+            partial.delete()
+            AppLogger.error(TAG, "Failed to extract $name", e)
+        }
+    }
+
+    // 读地理数据之前调用，解压未完成时阻塞，调用方须在后台线程。
+    fun awaitGeodata() = geodataReady.await()
+
     fun ensureGeodataLinks(context: Context, subscriptionDir: File) {
+        awaitGeodata()
         val geodataDir = getGeodataDir(context)
         for (fileName in GEODATA_FILES) {
             val source = File(geodataDir, fileName)
-            val target = File(subscriptionDir, fileName)
-            if (source.exists() && !target.exists()) {
-                // 优先做符号链接，几十兆的地理数据只留一份。链接建不起来才退回真拷贝；
-                // 拷贝也失败就放着，mihomo 启动时会自己去下载。
-                runCatching { Files.createSymbolicLink(target.toPath(), source.toPath()) }
-                    .onFailure { runCatching { source.copyTo(target, overwrite = false) } }
-            }
+            if (!source.exists()) continue
+            val target = File(subscriptionDir, fileName).toPath()
+            if (Files.isSymbolicLink(target) && Files.exists(target)) continue
+            // 工作目录里的实体文件是 mihomo 自己下载的，可能是被中断的残片，校验失败后它会在启动时阻塞重下。
+            Files.deleteIfExists(target)
+            runCatching { Files.createSymbolicLink(target, source.toPath()) }
+                .onFailure { AppLogger.warn(TAG, "Failed to link $fileName into ${subscriptionDir.name}", it) }
         }
     }
 }

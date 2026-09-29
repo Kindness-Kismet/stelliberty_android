@@ -2,6 +2,7 @@ package com.stelliberty.android.data.bridge
 
 import com.stelliberty.android.domain.model.ChainProxyContext
 import com.stelliberty.android.domain.model.RuleOverrideContext
+import com.stelliberty.android.service.ProfileFileOps
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
@@ -80,6 +81,7 @@ object StellibertyCoreBridge {
         val pollerJob = launchProgressPoller(this, token, onProgress)
         try {
             val raw = withContext(Dispatchers.IO) {
+                ProfileFileOps.awaitGeodata()
                 nativeSetAgeSecretKey(ageSecretKey)
                 try {
                     nativeFetchAndValid(workDir, url, force, httpProxy, userAgent, token)
@@ -150,11 +152,23 @@ object StellibertyCoreBridge {
         }
     }
 
+    // 从 APK 里解出 xz 压缩的 asset 写到 target，失败抛 StellibertyCoreError。
+    fun extractXzAsset(apkPath: String, entry: String, target: File) {
+        val raw = nativeExtractXzAsset(apkPath, entry, target.path)
+        if (raw != null && raw.startsWith("error:")) {
+            throw StellibertyCoreError(raw.removePrefix("error:").trim())
+        }
+    }
+
+    @JvmStatic
+    private external fun nativeExtractXzAsset(apkPath: String, entry: String, target: String): String?
+
     @JvmStatic
     private external fun nativeDecryptFile(source: String, target: String, secretKey: String): String?
 
     // 与运行时同一套变换与解析流程，失败抛 StellibertyCoreError；返回变换后的配置是否含链式代理循环引用。
     fun validateTransform(workDir: File, transform: File, ageSecretKey: String): Boolean {
+        ProfileFileOps.awaitGeodata()
         val raw = nativeValidateTransform(workDir.path, transform.path, ageSecretKey)
         return decodePayload(raw, TransformCheck.serializer()).hasCycle
     }
