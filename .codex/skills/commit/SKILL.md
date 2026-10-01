@@ -1,6 +1,6 @@
 ---
 name: commit
-description: Write English commit messages and create explicitly requested local commits for Stelliberty Android. Use when drafting a commit message, committing task changes, or preparing an authorized push. Does not authorize staging, committing, or pushing by itself.
+description: 为 Stelliberty Android 撰写英文提交信息，在当前任务完成且验证通过后主动创建原子化本地提交；也用于用户要求的本地提交及已授权的推送准备。仅撰写文案或明确要求不提交时不执行暂存和提交；推送须单独授权。
 ---
 
 # Commit
@@ -9,10 +9,10 @@ Read [AGENTS.md](../../../AGENTS.md) and inspect the actual changes before writi
 
 ## Authorization
 
-- 用户要求本地提交时执行暂存和提交；更新版本号的请求按 [version-bump 技能](../version-bump/SKILL.md) 包含本次版本提交授权。只要求撰写文案或明确要求不提交时，保留修改。
+- 当前任务完成且所需验证通过后，按 [AGENTS.md](../../../AGENTS.md) 的默认授权主动暂存并提交本次任务修改，无需再次确认。用户明确要求不提交或只要求撰写文案时，不执行暂存和提交。
 - Push only after explicit confirmation covering the outgoing commits, remote, and destination branch. Permission to edit, commit, or open a pull request is separate from permission to push.
 - Finish the local result, report changes and validation, and list the whole outgoing range before asking to push. A confirmation already given for the same result and destination stands; ask again when the scope or destination changes.
-- Default to one focused local commit per task. Release metadata follows the [version-bump skill](../version-bump/SKILL.md).
+- 一个独立目的对应一个原子提交，实现与必需说明一并提交；多个独立目的分别提交。版本更新遵循 [version-bump 技能](../version-bump/SKILL.md)。
 - Amending, rewriting shared history, force pushing, merging, tagging, and publishing each need their own explicit authorization.
 
 ## Select changes
@@ -74,7 +74,7 @@ Use the validation required by [AGENTS.md](../../../AGENTS.md) and the affected 
 
 Run `python scripts/prebuild.py` before the first build or when resources are missing. Reuse successful checks from the same final state. Report failures and skipped checks accurately, and resolve task-related failures before committing unless the user asks for an incomplete checkpoint.
 
-After an authorized commit, inspect its message and file summary and run `git status --short --branch`. Report the commit ID, a concise summary, validation, and push status. Without commit authorization, deliver the draft and leave the index and history as they are.
+任务完成且所需验证通过后，在交付结果前完成本地提交；检查提交信息与文件摘要，再运行 `git status --short --branch`，报告提交编号、变更摘要、验证结果和推送状态。只要求撰写文案或明确要求不提交时，保持索引与历史不变，并说明保留的修改。
 
 ## Push after confirmation
 

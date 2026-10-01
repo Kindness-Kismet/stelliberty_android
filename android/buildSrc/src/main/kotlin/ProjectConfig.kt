@@ -1,7 +1,7 @@
 object ProjectConfig {
     const val APP_NAME = "Stelliberty"
     const val PACKAGE_NAME = "com.stelliberty.android"
-    const val VERSION_NAME = "1.0.1"
+    const val VERSION_NAME = "1.0.2"
 
     object Android {
         const val TARGET_SDK = 37
