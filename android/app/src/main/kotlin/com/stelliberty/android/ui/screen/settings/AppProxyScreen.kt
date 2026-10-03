@@ -38,7 +38,10 @@ import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import com.stelliberty.android.R
 import com.stelliberty.android.domain.model.AppProxyMode
 import com.stelliberty.android.platform.showToast
@@ -89,6 +92,12 @@ fun AppProxyScreen(
     onBack: () -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(viewModel, lifecycleOwner) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            viewModel.refreshApps()
+        }
+    }
     val scrollBehavior = MiuixScrollBehavior()
     val showPopup = remember { mutableStateOf(false) }
     val density = LocalDensity.current
@@ -394,9 +403,10 @@ fun AppProxyScreen(
                             SmallTitle(
                                 text = stringResource(
                                     R.string.app_proxy_app_list,
-                                    uiState.selectedPackages.size,
-                                    uiState.apps.size
-                                )
+                                    filteredApps.count { it.packageName in uiState.selectedPackages },
+                                    filteredApps.size,
+                                ),
+                                modifier = Modifier.testTag(TestTags.AppProxy.APP_LIST),
                             )
                         }
                         items(

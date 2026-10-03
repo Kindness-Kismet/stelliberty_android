@@ -17,7 +17,6 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentSet
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -25,9 +24,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 
 @Immutable
 data class AppProxyUiState(
@@ -53,8 +50,6 @@ class AppProxyViewModel(
 
     private val _sortAnchor = MutableStateFlow<Set<String>>(emptySet())
 
-    private var appsLoadJob: Job? = null
-
     private data class ListInput(
         val apps: ImmutableList<AppInfo>,
         val query: String,
@@ -62,7 +57,6 @@ class AppProxyViewModel(
     )
 
     // 有意不依赖已勾选的集合：勾选只该改变复选框的样子，不该让列表重新排序，那样看着会跳。
-    // 应用列表在第一个订阅者出现时才去枚举——这个 ViewModel 随冷启动创建，而多数人不会打开这一页。
     val filteredAppsFlow: StateFlow<ImmutableList<AppInfo>> = combine(
         _uiState.map { ListInput(it.apps, it.searchQuery, it.showSystemApps) }.distinctUntilChanged(),
         _sortAnchor,
@@ -74,7 +68,6 @@ class AppProxyViewModel(
             )
             .toPersistentList()
     }
-        .onStart { ensureAppsLoaded() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), persistentListOf())
 
     init {
@@ -93,13 +86,10 @@ class AppProxyViewModel(
         _uiState.value = _uiState.value.copy(mode = mode, selectedPackages = packages)
     }
 
-    private fun ensureAppsLoaded() {
-        if (appsLoadJob != null) return
-        appsLoadJob = viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
-            val apps = appListProvider.getInstalledApps()
-            _uiState.value = _uiState.value.copy(apps = apps, isLoading = false)
-        }
+    suspend fun refreshApps() {
+        _uiState.value = _uiState.value.copy(isLoading = true)
+        val apps = appListProvider.getInstalledApps()
+        _uiState.value = _uiState.value.copy(apps = apps, isLoading = false)
     }
 
     fun filteredApps(searchQuery: String = _uiState.value.searchQuery): List<AppInfo> {

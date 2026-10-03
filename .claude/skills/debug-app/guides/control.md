@@ -49,6 +49,7 @@ testTag 挂在最外层节点，按钮文字在子节点，`get` 返回整棵子
 | `RuleOverride.*` | 新增、更多、保存；`Row.<序号>` 是规则行（序号从 1 起），`.Toggle` 是开关；`Menu.<序号>` 是更多菜单项；编辑页的内容、位置输入与删除按钮 |
 | `Settings.Entry.<key>` | 设置项，由 `groupedCardItems` 按 `CardItem.key` 自动生成，key 与 `settings.dump` 的键名一致 |
 | `AppProxy.Mode.<模式名>` | 分应用代理三种模式（`AllowAll` / `AllowSelected` / `DenySelected`） |
+| `AppProxy.AppList` | 当前筛选列表的已选数与总数 |
 | `AppProxy.App.<包名>` | 应用项，点一下切换勾选 |
 | `Log.*` | 清空 `Log.ClearButton`、导出 `Log.ExportButton`、等级筛选 `Log.LevelFilter` 与选项 `Log.Level.<Debug/Info/Warning/Error>`、列表 `Log.List`、空列表连接提示 `Log.Status` |
 | `Connection.CloseAllButton` | 关闭全部连接；`Connection.Close.<连接 id>` 是单条 |
