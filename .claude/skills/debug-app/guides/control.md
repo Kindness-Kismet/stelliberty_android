@@ -43,7 +43,7 @@ testTag 挂在最外层节点，按钮文字在子节点，`get` 返回整棵子
 | `Proxy.GroupTab.<组名>` | 横向组标签 |
 | `Proxy.Group.<组名>` | 代理组行；`.TestButton` 是组测速（兼作右侧延迟标签），`.ToggleButton` 是展开，`.UnfixButton` 是解除固定 |
 | `Proxy.Node.<节点名>` | 节点项；`.TestButton` 是节点测速 |
-| `Subscription.*` | 新增、全部更新、添加页与编辑页的自动测试延迟输入框（`AutoDelayField`）；`Subscription.Item.<uuid>` 是订阅行 |
+| `Subscription.*` | 新增、全部更新、进度弹窗（`ProgressDialog`）与取消按钮（`CancelUpdateButton`）、添加页与编辑页的自动测试延迟输入框（`AutoDelayField`）；`Subscription.Item.<uuid>` 是订阅行 |
 | `Overrides.*` | 新增、保存、名称与地址输入；`Item.<id>` 的编辑 / 更新 / 删除按钮，`Select.<id>` 的选择与上下移动 |
 | `ChainProxy.*` | 新增、保存、名称输入；`Custom.<id>` 的开关与删除按钮，`Hop.<序号>` 的上下移动与移除 |
 | `RuleOverride.*` | 新增、更多、保存；`Row.<序号>` 是规则行（序号从 1 起），`.Toggle` 是开关；`Menu.<序号>` 是更多菜单项；编辑页的内容、位置输入与删除按钮 |
