@@ -42,6 +42,8 @@ object TestTags {
     object Subscription {
         const val ADD = "Subscription.AddButton"
         const val UPDATE_ALL = "Subscription.UpdateAllButton"
+        const val PROGRESS = "Subscription.ProgressDialog"
+        const val CANCEL_UPDATE = "Subscription.CancelUpdateButton"
         const val AUTO_DELAY = "Subscription.AutoDelayField"
 
         fun item(uuid: String) = "Subscription.Item.$uuid"

@@ -9,10 +9,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.stelliberty.android.BuildConfig
 import com.stelliberty.android.R
+import com.stelliberty.android.ui.util.TestTags
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
@@ -28,6 +33,9 @@ fun ImportProgressDialog(
 ) {
     WindowDialog(
         show = show,
+        modifier = Modifier
+            .semantics { testTagsAsResourceId = BuildConfig.DEBUG }
+            .testTag(TestTags.Subscription.PROGRESS),
         title = title,
         onDismissRequest = null,
         content = {
@@ -48,7 +56,7 @@ fun ImportProgressDialog(
                     TextButton(
                         text = stringResource(R.string.common_cancel),
                         onClick = onCancel,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().testTag(TestTags.Subscription.CANCEL_UPDATE),
                     )
                 }
             }

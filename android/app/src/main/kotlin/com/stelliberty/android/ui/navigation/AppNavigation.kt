@@ -110,6 +110,7 @@ import com.stelliberty.android.ui.screen.overrides.OverrideFileEditorScreen
 import com.stelliberty.android.ui.screen.overrides.OverrideListScreen
 import com.stelliberty.android.ui.screen.overrides.SubscriptionOverridesScreen
 import com.stelliberty.android.ui.screen.subscription.SubscriptionScreen
+import com.stelliberty.android.ui.screen.subscription.SubscriptionUpdateProgressDialog
 import com.stelliberty.android.ui.theme.BottomBarMode
 import com.stelliberty.android.ui.theme.FloatingBottomBarStyle
 import com.stelliberty.android.ui.theme.LocalAppDarkMode
@@ -602,6 +603,8 @@ fun AppNavigation(
             }
         }
     }
+
+    subscriptionViewModel?.let { SubscriptionUpdateProgressDialog(it) }
 }
 
 @Composable

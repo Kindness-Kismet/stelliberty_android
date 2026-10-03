@@ -10,6 +10,7 @@
 
 - miuix NavDisplay + 自定义 Navigator（push / replace / pop / popUntil）+ LocalNavigator。back stack 经 Route sealed 多态序列化持久化（`NavBackStackSaver`），新增路由加 `@Serializable` 即支持进程死亡恢复。`sealed interface Route` 自身保留 `@Serializable`：缺了照样编译通过，恢复时抛 `SerializationException`。
 - 四个主页面保持组合：`HorizontalPager` 的 `beyondViewportPageCount = pageCount - 1`，切页动画中节点与毛玻璃保持存活。每页用 `rememberLifecycleOwner` 继承父生命周期，按 `visiblePagesInfo` 把离屏页限制到 `CREATED`，暂停其 `collectAsStateWithLifecycle`；逐帧动画也单独跟随生命周期。此策略针对固定四页，页数增加时重新评估内存与首屏成本。
+- 跨页面任务的弹窗在 `AppNavigation` 层收集状态并显示，不放进 Pager 或 NavDisplay 的页面生命周期内；启动时订阅更新由 `SubscriptionUpdateProgressDialog` 统一承接，取消与完成状态才能在首页及时生效。
 
 ## 毛玻璃
 

@@ -193,33 +193,16 @@ fun SubscriptionScreen(
         }
     }
 
-    val updateAll = uiState.updateAll
-    if (updateAll != null) {
-        val progressText = stringResource(
-            R.string.subscription_updating_progress,
-            updateAll.currentName,
-            updateAll.completed + 1,
-            updateAll.total,
-        )
-        val step = updateAll.currentStep?.let { "$progressText\n${importStepLabel(it)}" } ?: progressText
-        ImportProgressDialog(
-            show = true,
-            step = step,
-            title = stringResource(R.string.subscription_updating_title),
-            onCancel = { viewModel.cancelCurrentUpdate() },
-        )
-    } else {
-        val title = when (uiState.operation) {
-            ProfileOperation.Update -> stringResource(R.string.subscription_update_config)
-            else -> stringResource(R.string.subscription_import_config)
-        }
-        ImportProgressDialog(
-            show = uiState.importProgress != null,
-            step = uiState.importProgress?.let { importStepLabel(it) } ?: stringResource(R.string.common_processing),
-            title = title,
-            onCancel = { viewModel.cancelCurrentUpdate() },
-        )
+    val title = when (uiState.operation) {
+        ProfileOperation.Update -> stringResource(R.string.subscription_update_config)
+        else -> stringResource(R.string.subscription_import_config)
     }
+    ImportProgressDialog(
+        show = uiState.importProgress != null,
+        step = uiState.importProgress?.let { importStepLabel(it) } ?: stringResource(R.string.common_processing),
+        title = title,
+        onCancel = { viewModel.cancelCurrentUpdate() },
+    )
 }
 
 @Composable
