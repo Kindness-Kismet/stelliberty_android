@@ -394,9 +394,10 @@ fun AppProxyScreen(
                             SmallTitle(
                                 text = stringResource(
                                     R.string.app_proxy_app_list,
-                                    uiState.selectedPackages.size,
-                                    uiState.apps.size
-                                )
+                                    filteredApps.count { it.packageName in uiState.selectedPackages },
+                                    filteredApps.size,
+                                ),
+                                modifier = Modifier.testTag(TestTags.AppProxy.APP_LIST),
                             )
                         }
                         items(

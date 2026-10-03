@@ -116,6 +116,8 @@ object TestTags {
     }
 
     object AppProxy {
+        const val APP_LIST = "AppProxy.AppList"
+
         fun mode(mode: String) = "AppProxy.Mode.$mode"
 
         fun app(packageName: String) = "AppProxy.App.$packageName"
