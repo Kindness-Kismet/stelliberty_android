@@ -1,5 +1,6 @@
 package com.stelliberty.android.service
 
+import com.stelliberty.android.BuildConfig
 import com.stelliberty.android.util.AppLogger
 import java.util.concurrent.TimeUnit
 
@@ -83,144 +84,29 @@ object RootHelper {
         }
     }
 
-    fun readRootCmdline(pid: Int): String {
-        return try {
-            val process = ProcessBuilder("su", "-c", "cat /proc/$pid/cmdline 2>/dev/null")
-                .redirectErrorStream(true)
-                .start()
-            val output = process.inputStream.bufferedReader().readText()
-            process.waitFor(3, TimeUnit.SECONDS)
-            output
-        } catch (_: Exception) {
-            ""
-        }
-    }
-
     fun isAliveAsRoot(pid: Int): Boolean {
         return try {
-            val process = ProcessBuilder("su", "-c", "kill -0 $pid")
-                .redirectErrorStream(true)
-                .start()
-            process.waitFor(3, TimeUnit.SECONDS)
-            process.exitValue() == 0
+            val script = RootProcessScript.isAlive(BuildConfig.APPLICATION_ID, pid)
+            val process = ProcessBuilder("su", "-c", script).redirectErrorStream(true).start()
+            awaitDrained(process, 3).code == 0
         } catch (_: Exception) {
             false
         }
     }
 
-    fun killAsRoot(pid: Int, tunDevice: String = "Stelliberty"): Boolean {
-        try {
-            AppLogger.info(TAG, "Killing root process: pid=$pid")
-            // 判活留在同一次 su 内，避免轮询每次都支付提权开销；正常退出无需等满一个长轮询周期。
-            val script = """
-                kill -TERM $pid 2>/dev/null
-                i=0
-                while kill -0 $pid 2>/dev/null; do
-                    [ ${'$'}i -ge 30 ] && break
-                    sleep 0.1
-                    i=${'$'}((i+1))
-                done
-                kill -0 $pid 2>/dev/null || exit 0
-                kill -KILL $pid 2>/dev/null
-                i=0
-                while kill -0 $pid 2>/dev/null; do
-                    [ ${'$'}i -ge 20 ] && exit 1
-                    sleep 0.1
-                    i=${'$'}((i+1))
-                done
-                ip link delete ${escapeShellSingleQuoted(tunDevice)} 2>/dev/null
-                exit 2
-            """.trimIndent()
+    fun stopMihomo(tunDevice: String, pid: Int? = null): Boolean {
+        return try {
+            AppLogger.info(TAG, "Stopping owned root mihomo processes: pid=$pid")
+            val script = RootProcessScript.stop(BuildConfig.APPLICATION_ID, tunDevice, pid)
             val process = ProcessBuilder("su", "-c", script).redirectErrorStream(true).start()
             val result = awaitDrained(process, 8)
-            when (result.code) {
-                0 -> AppLogger.info(TAG, "Process $pid terminated after SIGTERM")
-                2 -> AppLogger.warn(TAG, "Process $pid terminated after SIGKILL")
-                else -> {
-                    AppLogger.error(TAG, "Failed to stop root process $pid: code=${result.code} ${result.output}")
-                    return false
-                }
+            if (result.code != 0) {
+                AppLogger.error(TAG, "Failed to stop root mihomo: code=${result.code} ${result.output}")
             }
-            return true
+            result.code == 0
         } catch (e: Exception) {
-            AppLogger.warn(TAG, "Failed to kill root process: ${e.message}")
-            return false
-        }
-    }
-
-    // 按 PID 停不掉时的最后手段。这两步本身就是收拾残局，再失败也没有下一招，出错只能咽下。
-    fun killMihomoByName(tunDevice: String = "Stelliberty") {
-        runCatching {
-            AppLogger.warn(TAG, "Falling back to pkill for libmihomo_runner.so")
-            runRootCommand("pkill -TERM -f libmihomo_runner.so")
-            Thread.sleep(1000)
-            runRootCommand("pkill -9 -f libmihomo_runner.so")
-            cleanupRootNetwork(tunDevice)
-        }
-    }
-
-    private fun cleanupRootNetwork(tunDevice: String) {
-        runCatching {
-            AppLogger.info(TAG, "Cleaning up root network state")
-            runRootCommand("ip link delete ${escapeShellSingleQuoted(tunDevice)} 2>/dev/null; true")
-        }
-    }
-
-    private fun runRootCommand(command: String): Boolean {
-        return try {
-            val process = ProcessBuilder("su", "-c", command)
-                .redirectErrorStream(true)
-                .start()
-            process.waitFor(3, TimeUnit.SECONDS)
-            process.exitValue() == 0
-        } catch (_: Exception) {
+            AppLogger.error(TAG, "Failed to stop root mihomo", e)
             false
-        }
-    }
-
-    // 上次被强杀的 mihomo 没机会清理，留下的 TUN 网卡会让下次启动创建网卡时报「已存在」，
-    // 于是 mihomo 照常运行其他入口但实际没有网卡，界面显示已连接却上不了网。
-    fun cleanupOrphanedMihomo(tunDevice: String? = null) {
-        val tunCleanupLine = tunDevice?.let {
-            "ip link delete ${escapeShellSingleQuoted(it)} 2>/dev/null; true"
-        } ?: "true"
-
-        val script = """
-            pgrep -f libmihomo_runner.so >/dev/null 2>&1 && {
-                pkill -TERM -f libmihomo_runner.so 2>/dev/null
-                i=0; while [ ${'$'}i -lt 6 ]; do
-                    sleep 0.5
-                    pgrep -f libmihomo_runner.so >/dev/null 2>&1 || break
-                    i=${'$'}((i+1))
-                done
-                pgrep -f libmihomo_runner.so >/dev/null 2>&1 && {
-                    pkill -KILL -f libmihomo_runner.so 2>/dev/null
-                    i=0; while [ ${'$'}i -lt 4 ]; do
-                        sleep 0.5
-                        pgrep -f libmihomo_runner.so >/dev/null 2>&1 || break
-                        i=${'$'}((i+1))
-                    done
-                }
-            }
-            # 最后再删一次 TUN 网卡，避免下次启动时报「已存在」
-            $tunCleanupLine
-            pgrep -f libmihomo_runner.so >/dev/null 2>&1 && exit 1
-            exit 0
-        """.trimIndent()
-
-        // 没有 root、su 被拒都会抛到这里，此时也没有别的办法清掉孤儿进程，记日志就够了。
-        runCatching {
-            val process = ProcessBuilder("su", "-c", script)
-                .redirectErrorStream(true)
-                .start()
-            if (!process.waitFor(8, TimeUnit.SECONDS)) {
-                process.destroyForcibly()
-                AppLogger.error(TAG, "cleanupOrphanedMihomo timed out")
-                return
-            }
-            if (process.exitValue() == 1) {
-                AppLogger.error(TAG, "Orphaned mihomo still alive after SIGKILL")
-            }
         }
     }
 

@@ -49,6 +49,7 @@ mihomo.log 在 debug 级别可达数十 MB，一律尾读：[readLastLines](../.
 
 ## 启动就绪与停止等待
 
-- `MihomoRunner` 在应用缓存目录预建空文件，经 `--ready-file` 交给子进程；native 在 TUN 与 provider 初始化结束后才写入。控制接口先于这些步骤启动，就绪以该文件为准，与日志级别和滚动无关。
-- 就绪文件每 100ms 检查一次，启动总超时 10s；ROOT 判活间隔 2s（每次都要启动 su）。启动结束或失败都删除临时文件。
+- `MihomoRunner` 启动与 ROOT 重连共用 `MihomoApiProbe`：携带 secret 请求 `/stelliberty/runtime`，只接受 200 与目标 PID，禁止跟随重定向。native 在 TUN 与 provider 初始化结束前返回 503，完成后才返回当前进程号；相同 secret 的其他内核也不能冒充就绪。
+- 就绪检查间隔 100ms，单次连接与读取超时 500ms，启动总时限 10s；ROOT 判活间隔 2s（每次都要启动 su）。日志等级与滚动不影响就绪判据。
 - ROOT 停止时，发信号、判活与网卡清理在同一次 su 中完成，轮询 100ms，正常退出立即返回；SIGTERM 最多等 3s，SIGKILL 最多等 2s。确认进程退出后再完成服务清理并上报停止。
+- ROOT 清理失败时阻止继续启动；停止或重启失败时保留 PID 与持久化状态，报告 Error，供后续重试。

@@ -56,7 +56,8 @@
     <string name="error_fork_failed">fork+exec 失敗</string>
     <string name="error_root_start_failed">root 啟動失敗</string>
     <string name="error_mihomo_exited">mihomo 處理程序啟動後立即結束</string>
-    <string name="error_api_not_ready">mihomo 處理程序執行中但 API 無回應</string>
+    <string name="error_mihomo_not_ready">mihomo 尚未完成啟動，或控制介面身分驗證失敗</string>
+    <string name="error_root_stop_failed">無法停止現有的 mihomo 處理程序，請檢查 Root 權限後重試</string>
     <string name="error_mihomo_start_failed">mihomo 啟動失敗:\n%1$s</string>
     <string name="error_generic_start_failed">啟動失敗: %1$s</string>
     <string name="error_foreground_failed">前景服務啟動失敗: %1$s</string>

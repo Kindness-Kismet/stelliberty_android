@@ -139,7 +139,13 @@ class StellibertyTunService : VpnService() {
             val hasRoot = storage.getString(StorageKeys.HAS_ROOT, "false") == "true"
             if (hadRootPid || hasRoot) {
                 val residualTun = storage.getString(StorageKeys.ROOT_TUN_DEVICE, RuntimeOverrideBuilder.DEFAULT_TUN_DEVICE)
-                RootHelper.cleanupOrphanedMihomo(tunDevice = residualTun)
+                if (!RootHelper.stopMihomo(residualTun)) {
+                    ProxyServiceBridge.updateState(
+                        ProxyServiceStatus(ProxyState.Error, errorMessage = getString(R.string.error_root_stop_failed), tunMode = TunMode.Vpn)
+                    )
+                    stopSelf()
+                    return@launch
+                }
                 ProfileFileOps.cleanupAllRootRuntime(this@StellibertyTunService)
                 storage.putString(StorageKeys.ROOT_MIHOMO_PID, "")
                 storage.putString(StorageKeys.ROOT_MIHOMO_SECRET, "")

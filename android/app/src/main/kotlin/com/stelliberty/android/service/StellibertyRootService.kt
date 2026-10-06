@@ -242,7 +242,6 @@ class StellibertyRootService : Service() {
                     return@launch
                 }
                 AppLogger.info(TAG, "Existing process pid=$existingPid failed attach verification, cleaning up")
-                clearPersistedState(storage)
             }
 
             if (attachOnly) {
@@ -259,12 +258,7 @@ class StellibertyRootService : Service() {
                 return@launch
             }
 
-            if (runner.isRunning) {
-                runner.stop()
-            }
-            val currentTun = storage.getString(StorageKeys.ROOT_TUN_DEVICE, RuntimeOverrideBuilder.DEFAULT_TUN_DEVICE)
-            RootHelper.cleanupOrphanedMihomo(tunDevice = currentTun)
-            teardownAllRootRules()
+            if (runner.isRunning && !stopRunner()) return@launch
 
             if (!RootHelper.hasRootAccess()) {
                 AppLogger.error(TAG, "Failed to obtain root access")
@@ -274,6 +268,17 @@ class StellibertyRootService : Service() {
                 stopSelf()
                 return@launch
             }
+
+            val currentTun = storage.getString(StorageKeys.ROOT_TUN_DEVICE, RuntimeOverrideBuilder.DEFAULT_TUN_DEVICE)
+            if (!RootHelper.stopMihomo(currentTun)) {
+                ProxyServiceBridge.updateState(
+                    ProxyServiceStatus(ProxyState.Error, errorMessage = getString(R.string.error_root_stop_failed), tunMode = tunMode)
+                )
+                stopSelf()
+                return@launch
+            }
+            clearPersistedState(storage)
+            teardownAllRootRules()
 
             if (submode == Submode.Tproxy) {
                 if (!RootTproxyApplier.probeTproxySupport()) {
@@ -453,6 +458,14 @@ class StellibertyRootService : Service() {
         }
     }
 
+    private fun stopRunner(): Boolean {
+        if (runner.stop()) return true
+        ProxyServiceBridge.updateState(
+            ProxyServiceStatus(ProxyState.Error, errorMessage = runner.errorMessage, tunMode = currentSubmode.tunMode)
+        )
+        return false
+    }
+
     private fun persistState(storage: PlatformStorage, secret: String, startTime: Long, subscriptionId: String?) {
         storage.putString(StorageKeys.ROOT_MIHOMO_PID, runner.pid.toString())
         storage.putString(StorageKeys.ROOT_MIHOMO_SECRET, secret)
@@ -500,7 +513,7 @@ class StellibertyRootService : Service() {
             startJob?.cancelAndJoin()
             val storage = PlatformStorage(this@StellibertyRootService)
             val runningSubscriptionId = storage.getString(StorageKeys.ROOT_ACTIVE_SUBSCRIPTION_ID, "").ifEmpty { null }
-            runner.stop()
+            if (!stopRunner()) return@launch
             teardownAllRootRules()
             runningSubscriptionId?.let { ProfileFileOps.cleanupRootRuntime(this@StellibertyRootService, it) }
             clearPersistedState(storage)
@@ -519,7 +532,7 @@ class StellibertyRootService : Service() {
             startJob?.cancelAndJoin()
             val storage = PlatformStorage(this@StellibertyRootService)
             val runningSubscriptionId = storage.getString(StorageKeys.ROOT_ACTIVE_SUBSCRIPTION_ID, "").ifEmpty { null }
-            runner.stop()
+            if (!stopRunner()) return@launch
             teardownAllRootRules()
             runningSubscriptionId?.let { ProfileFileOps.cleanupRootRuntime(this@StellibertyRootService, it) }
             clearPersistedState(storage)

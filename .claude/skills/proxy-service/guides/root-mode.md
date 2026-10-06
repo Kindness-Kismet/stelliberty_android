@@ -22,11 +22,13 @@ ROOT mihomo 的工作目录是独立的 `runtime/{uuid}/`（从 imported/ 复制
 
 ## 孤儿进程清理
 
-`RootHelper.cleanupOrphanedMihomo(tunDevice)` 在单次 su shell 里完成 pkill + `ip link delete <tunDevice>`（避免 sing-tun EEXIST）。VPN 启动在 `hadRootPid || HAS_ROOT` 时触发，清除 ROOT 持久化 key，并兜底执行 `cleanupAllRootRuntime`。
+`RootHelper.stopMihomo(tunDevice, pid)` 统一处理指定进程与孤儿进程，省略 PID 时用 `pidof libmihomo_runner.so` 获取候选。`RootProcessScript` 在发信号与等待退出时核对 `/proc/<pid>/exe`，只接受当前包安装目录内的 runner（含安装包更新后的 `(deleted)` 后缀），避免匹配清理 shell 或其他应用。SIGTERM → 有限等待 → SIGKILL → 确认退出全部在单次 su 中完成，成功后清理 TUN 网卡。
+
+ROOT 与 VPN 启动必须确认清理成功再继续。VPN 在 `hadRootPid || HAS_ROOT` 时清理 ROOT 进程，成功后才清除 ROOT 持久化 key 和运行目录；失败保留这些信息并报告 Error。
 
 ## attach 重连
 
-`attachToExisting` 三重校验：`kill -0` 存活 + `/proc/$pid/cmdline` 含 libmihomo.so + stored secret 经 `/configs` Bearer 鉴权返回 2xx。订阅一致性由 `startProxy` 在 attach 前比对持久化的与请求的 subscriptionId，不一致时 cleanup + 全新启动。
+`attachToExisting` 校验 `/proc/<pid>/exe` 归属，并携带已保存的 secret 请求 `/stelliberty/runtime`，只接受 200 与目标 PID。订阅一致性由 `startProxy` 在 attach 前比对持久化的与请求的 subscriptionId，不一致时 cleanup + 全新启动。
 
 app 重新打开（`onResume` → `verifyAndSyncState`）时，ROOT 模式走 `reattachRoot()`，发送带 `EXTRA_ATTACH_ONLY=true` 的 START intent；`startProxy(attachOnly=true)` 在 attach 失败时保持停止（清状态、置 Stopped、`stopSelf`），重启后自动拉起代理只由开机自启负责。`SERVICE_WAS_RUNNING` / `ROOT_MIHOMO_PID` 存在 SharedPreferences 里、跨重启保留，而重启会杀死 root mihomo，PID 随之过期。两层防护：
 

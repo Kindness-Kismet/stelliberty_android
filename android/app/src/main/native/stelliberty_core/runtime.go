@@ -55,7 +55,6 @@ func runMihomo() int {
 		overrideJSON       string
 		transformPath      string
 		ageSecretKey       string
-		readyFile          string
 	)
 	fs.StringVar(&homeDir, "d", "", "set configuration directory")
 	fs.StringVar(&configFile, "f", "", "specify configuration file")
@@ -64,7 +63,6 @@ func runMihomo() int {
 	fs.StringVar(&secret, "secret", "", "override RESTful API secret")
 	fs.StringVar(&externalController, "ext-ctl", "", "override external controller address")
 	fs.StringVar(&ageSecretKey, "age-secret-key", "", "age secret key to decrypt age-armor encrypted configuration")
-	fs.StringVar(&readyFile, "ready-file", "", "signal completed runtime initialization to the parent process")
 	if err := fs.Parse(os.Args[1:]); err != nil {
 		return 2
 	}
@@ -124,10 +122,14 @@ func runMihomo() int {
 		options = append(options, hub.WithSecret(secret))
 	}
 
+	ready := registerRuntimeProbe()
 	if err := hub.Parse(configBytes, options...); err != nil {
 		log.Fatalln("Parse config: %s", err.Error())
 	}
-	defer executor.Shutdown()
+	defer func() {
+		ready.Store(false)
+		executor.Shutdown()
+	}()
 	if tunEnabled && !listener.GetTunConf().Enable {
 		log.Errorln("Start TUN listening error: TUN listener is not active")
 		return 1
@@ -141,22 +143,18 @@ func runMihomo() int {
 	hupSig := make(chan os.Signal, 1)
 	signal.Notify(termSig, syscall.SIGINT, syscall.SIGTERM)
 	signal.Notify(hupSig, syscall.SIGHUP)
-	// 控制接口先于隧道与 provider 创建；父进程预建文件，保留应用的所有权与读取权限。
-	if readyFile != "" {
-		if err := os.WriteFile(readyFile, []byte("ready"), 0600); err != nil {
-			log.Errorln("write runtime ready signal: %s", err.Error())
-			return 1
-		}
-	}
+	ready.Store(true)
 
 	for {
 		select {
 		case <-termSig:
 			return 0
 		case <-hupSig:
+			ready.Store(false)
 			if err := hub.Parse(configBytes, options...); err != nil {
 				log.Errorln("Reload config: %s", err.Error())
 			}
+			ready.Store(true)
 		}
 	}
 }
