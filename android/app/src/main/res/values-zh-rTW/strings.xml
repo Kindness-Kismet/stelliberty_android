@@ -710,4 +710,8 @@
     <string name="rule_override_error_duplicate_custom">已有相同比對條件的自訂規則</string>
     <string name="rule_override_error_duplicate_builtin">此比對條件已存在於啟用的訂閱規則中，請先停用對應的訂閱規則</string>
     <string name="rule_override_error_position">請輸入 1 到 %1$d 之間的位置</string>
+    <string name="log_source_application">應用程式日誌</string>
+    <string name="log_source_core">核心日誌</string>
+    <string name="log_empty">沒有符合條件的日誌</string>
+    <string name="error_clear_failed">清除日誌失敗：%1$s</string>
 </resources>

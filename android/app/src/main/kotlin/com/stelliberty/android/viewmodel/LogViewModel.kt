@@ -3,17 +3,20 @@ package com.stelliberty.android.viewmodel
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.stelliberty.android.domain.model.LogEvent
 import com.stelliberty.android.domain.model.LogLevel
-import com.stelliberty.android.domain.model.LogMessage
-import com.stelliberty.android.domain.repository.MihomoRepository
-import java.time.Instant
+import com.stelliberty.android.domain.model.LogSource
+import com.stelliberty.android.util.AppLogger
+import com.stelliberty.android.util.DiagnosticLogStore
+import com.stelliberty.android.util.LogEntry
+import com.stelliberty.android.util.LogFormatter
 import java.time.LocalDateTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toPersistentList
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,135 +24,87 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Immutable
 data class LogUiState(
+    val source: LogSource = LogSource.Application,
     val isConnected: Boolean = false,
     val minimumLevel: LogLevel = LogLevel.Info,
 )
 
 @Immutable
-data class IndexedLog(val id: Long, val message: LogMessage, val receivedAt: Instant)
-
-@Immutable
 data class LogExport(val fileName: String, val content: String)
 
-class LogViewModel : ViewModel() {
-
+class LogViewModel(private val store: DiagnosticLogStore = AppLogger.logs) : ViewModel() {
     private val _uiState = MutableStateFlow(LogUiState())
     val uiState: StateFlow<LogUiState> = _uiState.asStateFlow()
-
-    private var nextLogId = 0L
-    private val buffer = ArrayDeque<IndexedLog>(MAX_LOGS)
-
-    private var logsDirty = false
-    private val _logs = MutableStateFlow<ImmutableList<IndexedLog>>(persistentListOf())
-    val logs: StateFlow<ImmutableList<IndexedLog>> = _logs.asStateFlow()
-
-    private var repository: MihomoRepository? = null
-    private var observing = false
+    private val _logs = MutableStateFlow<ImmutableList<LogEntry>>(persistentListOf())
+    val logs: StateFlow<ImmutableList<LogEntry>> = _logs.asStateFlow()
     private var collectionJob: Job? = null
-
-    fun setRepository(repo: MihomoRepository?) {
-        if (repository === repo) return
-        stopCollection()
-        repository = repo
-        clearLogs()
-        if (observing) startCollection()
-    }
+    private var lastRevision = -1L
 
     fun startObserving() {
-        if (observing) return
-        observing = true
-        startCollection()
+        if (collectionJob != null) return
+        collectionJob = viewModelScope.launch {
+            while (isActive) {
+                refreshLogs()
+                delay(120)
+            }
+        }
     }
 
     fun stopObserving() {
-        observing = false
-        stopCollection()
-        flushLogs()
+        collectionJob?.cancel()
+        collectionJob = null
+    }
+
+    fun setSource(source: LogSource) {
+        if (_uiState.value.source == source) return
+        _uiState.value = _uiState.value.copy(source = source)
+        refreshLogs(force = true)
     }
 
     fun setMinimumLevel(level: LogLevel) {
         if (_uiState.value.minimumLevel == level) return
-        stopCollection()
         _uiState.value = _uiState.value.copy(minimumLevel = level)
-        logsDirty = true
-        flushLogs()
-        if (observing) startCollection()
+        refreshLogs(force = true)
     }
 
-    private fun stopCollection() {
-        collectionJob?.cancel()
-        collectionJob = null
-        _uiState.value = _uiState.value.copy(isConnected = false)
+    // 采集独立于页面生命周期，界面只按固定间隔发布快照。
+    private fun refreshLogs(force: Boolean = false) {
+        _uiState.value = _uiState.value.copy(isConnected = store.coreConnected.value)
+        val revision = store.revision.value
+        if (!force && lastRevision == revision) return
+        lastRevision = revision
+        _logs.value = snapshot().toPersistentList()
     }
 
-    private fun startCollection() {
-        val repo = repository ?: return
-        val level = _uiState.value.minimumLevel
+    private fun snapshot(): List<LogEntry> = store.snapshot(_uiState.value.source, _uiState.value.minimumLevel)
 
-        collectionJob = viewModelScope.launch {
-            launch {
-                repo.logsFlow(level).collect { event ->
-                    if (repository !== repo || !observing || _uiState.value.minimumLevel != level) return@collect
-                    when (event) {
-                        LogEvent.Connected -> _uiState.value = _uiState.value.copy(isConnected = true)
-                        LogEvent.Disconnected -> _uiState.value = _uiState.value.copy(isConnected = false)
-                        is LogEvent.Message -> appendLog(event.message)
-                    }
-                }
-            }
-            while (isActive) {
-                flushLogs()
-                delay(FLUSH_INTERVAL_MS)
-            }
-        }
+    suspend fun clearLogs(): Result<Unit> {
+        val source = _uiState.value.source
+        return withContext(Dispatchers.IO) { runCatching { store.clear(source) } }
+            .onSuccess { refreshLogs(force = true) }
+            .onFailure { AppLogger.error("LogExport", "Failed to clear $source logs", it) }
     }
 
-    // 高频日志先缓冲，按固定间隔发布，避免每一行都触发列表重组。
-    private fun appendLog(log: LogMessage) {
-        buffer.addLast(IndexedLog(nextLogId++, log, Instant.now()))
-        while (buffer.size > MAX_LOGS) {
-            buffer.removeFirst()
-        }
-        logsDirty = true
-    }
-
-    private fun flushLogs() {
-        if (!logsDirty) return
-        logsDirty = false
-        _logs.value = filteredLogs().toPersistentList()
-    }
-
-    private fun filteredLogs(): List<IndexedLog> =
-        buffer.filter { it.message.type >= _uiState.value.minimumLevel }
-
-    fun clearLogs() {
-        buffer.clear()
-        logsDirty = false
-        _logs.value = persistentListOf()
-    }
-
-    fun exportLogs(): LogExport? {
-        val snapshot = filteredLogs()
-        if (snapshot.isEmpty()) return null
+    fun exportLogs(): LogExport {
+        val source = _uiState.value.source
+        val snapshot = snapshot()
         val content = buildString {
-            snapshot.forEach { log ->
-                append(log.receivedAt)
-                append(" [").append(log.message.type.name.uppercase(Locale.ROOT)).append("] ")
-                appendLine(log.message.payload)
-            }
+            appendLine("Stelliberty ${source.name} logs")
+            appendLine("Time zone: ${ZoneId.systemDefault()}; minimum level: ${_uiState.value.minimumLevel}")
+            snapshot.forEach { appendLine(LogFormatter.format(it)) }
+            if (snapshot.isEmpty()) appendLine("No matching log entries.")
         }
         return LogExport(
-            fileName = "Stelliberty-logs-${LocalDateTime.now().format(EXPORT_TIME_FORMAT)}.txt",
+            fileName = "Stelliberty-${source.name.lowercase(Locale.ROOT)}-${LocalDateTime.now().format(EXPORT_TIME_FORMAT)}.txt",
             content = content,
         )
     }
 
-    companion object {
-        private const val MAX_LOGS = 500
-        private const val FLUSH_INTERVAL_MS = 120L
-        private val EXPORT_TIME_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss", Locale.ROOT)
+    private companion object {
+        val EXPORT_TIME_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss", Locale.ROOT)
     }
 }

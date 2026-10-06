@@ -198,7 +198,6 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             connectionManager.repository.collect { repo ->
                 proxyViewModel.setRepository(repo)
-                logViewModel.setRepository(repo)
                 providerViewModel.setRepository(repo)
                 connectionViewModel.setRepository(repo)
                 dnsQueryViewModel.setRepository(repo)

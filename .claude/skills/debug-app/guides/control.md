@@ -51,7 +51,7 @@ testTag 挂在最外层节点，按钮文字在子节点，`get` 返回整棵子
 | `AppProxy.Mode.<模式名>` | 分应用代理三种模式（`AllowAll` / `AllowSelected` / `DenySelected`） |
 | `AppProxy.AppList` | 当前筛选列表的已选数与总数 |
 | `AppProxy.App.<包名>` | 应用项，点一下切换勾选 |
-| `Log.*` | 清空 `Log.ClearButton`、导出 `Log.ExportButton`、等级筛选 `Log.LevelFilter` 与选项 `Log.Level.<Debug/Info/Warning/Error>`、列表 `Log.List`、空列表连接提示 `Log.Status` |
+| `Log.*` | 来源切换 `Log.SourceTabs`（应用 / 核心）、清空 `Log.ClearButton`、导出 `Log.ExportButton`、等级筛选 `Log.LevelFilter` 与选项 `Log.Level.<Debug/Info/Warning/Error>`、列表 `Log.List`、空列表连接提示 `Log.Status` |
 | `Connection.CloseAllButton` | 关闭全部连接；`Connection.Close.<连接 id>` 是单条 |
 | `Nav.Tab.<0-3>` | 底栏四个 Tab；`Nav.BackButton` 是返回 |
 

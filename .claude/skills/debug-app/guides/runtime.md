@@ -51,7 +51,7 @@ adb -s <device_id> logcat -d -b crash -t 50                      # 崩溃
 adb -s <device_id> logcat -d --pid=$(adb -s <device_id> shell pidof com.stelliberty.android)
 ```
 
-`AppLogger` 同时写 logcat 与 `files/stelliberty.log`（上限 1 MB，超出从头截断），进程被杀后查这个文件：
+`AppLogger` 统一应用日志入口，`LogFormatter` 统一本地时间、等级与标签格式。`DiagnosticLogStore` 分别保存 `files/stelliberty.log`（应用）和 `files/core.log`（核心），每份上限 1 MB，超限保留后半段完整行；界面与导出各保留最近 500 条，并恢复上次进程的历史。应用日志同时写入 logcat，进程被杀后查这个文件：
 
 ```bash
 adb -s <device_id> shell run-as com.stelliberty.android tail -n 200 files/stelliberty.log

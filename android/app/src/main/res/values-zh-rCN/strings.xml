@@ -710,4 +710,8 @@
     <string name="rule_override_error_duplicate_custom">已有相同匹配条件的自定义规则</string>
     <string name="rule_override_error_duplicate_builtin">该匹配条件已存在于启用的订阅规则中，请先禁用对应的订阅规则</string>
     <string name="rule_override_error_position">请输入 1 到 %1$d 之间的位置</string>
+    <string name="log_source_application">应用日志</string>
+    <string name="log_source_core">核心日志</string>
+    <string name="log_empty">暂无符合条件的日志</string>
+    <string name="error_clear_failed">清空日志失败：%1$s</string>
 </resources>

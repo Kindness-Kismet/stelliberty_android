@@ -48,7 +48,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.stelliberty.android.BuildConfig
 import com.stelliberty.android.R
 import com.stelliberty.android.domain.model.LogLevel
-import com.stelliberty.android.domain.model.LogMessage
+import com.stelliberty.android.domain.model.LogSource
 import com.stelliberty.android.platform.FilePicker
 import com.stelliberty.android.platform.showToast
 import com.stelliberty.android.ui.component.AdaptiveTopAppBar
@@ -60,6 +60,9 @@ import com.stelliberty.android.ui.theme.StatusColors
 import com.stelliberty.android.ui.util.TestTags
 import com.stelliberty.android.ui.util.horizontalCutoutPadding
 import com.stelliberty.android.util.describe
+import com.stelliberty.android.util.AppLogger
+import com.stelliberty.android.util.LogEntry
+import com.stelliberty.android.util.LogFormatter
 import com.stelliberty.android.viewmodel.LogViewModel
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.Card
@@ -71,6 +74,7 @@ import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.PopupPositionProvider
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TabRow
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.squircle.squircleBackground
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -111,7 +115,7 @@ fun LogScreen(
     // 缓冲写满后长度不变，用单调递增的编号驱动自动滚动。
     val lastLogId = logs.lastOrNull()?.id
     val isScrolling = listState.isScrollInProgress
-    LaunchedEffect(lastLogId, uiState.minimumLevel, autoScrollEnabled, isScrolling) {
+    LaunchedEffect(lastLogId, uiState.source, uiState.minimumLevel, autoScrollEnabled, isScrolling) {
         if (lastLogId == null) {
             autoScrollEnabled = true
         } else if (autoScrollEnabled && !isScrolling) {
@@ -126,122 +130,145 @@ fun LogScreen(
     Scaffold(
         topBar = {
             BlurredBar(backdrop = backdrop, blurActive = blurActive) {
-                AdaptiveTopAppBar(
-                    title = stringResource(R.string.log_title),
-                    color = barColor,
-                    scrollBehavior = scrollBehavior,
-                    navigationIcon = {
-                        IconButton(
-                            onClick = onBack,
-                            modifier = Modifier.testTag(TestTags.Nav.BACK),
-                        ) {
-                            val layoutDirection = LocalLayoutDirection.current
-                            Icon(
-                                imageVector = AppIcons.Back,
-                                contentDescription = stringResource(R.string.common_back),
-                                tint = MiuixTheme.colorScheme.onSurface,
-                                modifier = Modifier.graphicsLayer {
-                                    scaleX = if (layoutDirection == LayoutDirection.Rtl) -1f else 1f
-                                },
-                            )
-                        }
-                    },
-                    actions = {
-                        Box {
-                            val selectedLevel = getLevelInfo(uiState.minimumLevel)
-                            val filterDescription = stringResource(R.string.log_level_filter, selectedLevel.name)
+                Column {
+                    AdaptiveTopAppBar(
+                        title = stringResource(R.string.log_title),
+                        color = barColor,
+                        scrollBehavior = scrollBehavior,
+                        navigationIcon = {
                             IconButton(
-                                onClick = { showLevelPopup = true },
-                                holdDownState = showLevelPopup,
-                                modifier = Modifier
-                                    .testTag(TestTags.Log.LEVEL_FILTER)
-                                    .semantics { contentDescription = filterDescription },
+                                onClick = onBack,
+                                modifier = Modifier.testTag(TestTags.Nav.BACK),
                             ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
+                                val layoutDirection = LocalLayoutDirection.current
+                                Icon(
+                                    imageVector = AppIcons.Back,
+                                    contentDescription = stringResource(R.string.common_back),
+                                    tint = MiuixTheme.colorScheme.onSurface,
+                                    modifier = Modifier.graphicsLayer {
+                                        scaleX = if (layoutDirection == LayoutDirection.Rtl) -1f else 1f
+                                    },
+                                )
+                            }
+                        },
+                        actions = {
+                            Box {
+                                val selectedLevel = getLevelInfo(uiState.minimumLevel)
+                                val filterDescription = stringResource(R.string.log_level_filter, selectedLevel.name)
+                                IconButton(
+                                    onClick = { showLevelPopup = true },
+                                    holdDownState = showLevelPopup,
+                                    modifier = Modifier
+                                        .testTag(TestTags.Log.LEVEL_FILTER)
+                                        .semantics { contentDescription = filterDescription },
                                 ) {
-                                    Text(
-                                        text = selectedLevel.name,
-                                        fontSize = 14.sp,
-                                        color = MiuixTheme.colorScheme.onSurface,
-                                    )
-                                    Icon(
-                                        imageVector = AppIcons.MoveDown,
-                                        contentDescription = null,
-                                        tint = MiuixTheme.colorScheme.onSurface,
-                                        modifier = Modifier.size(18.dp),
-                                    )
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Text(
+                                            text = selectedLevel.name,
+                                            fontSize = 14.sp,
+                                            color = MiuixTheme.colorScheme.onSurface,
+                                        )
+                                        Icon(
+                                            imageVector = AppIcons.MoveDown,
+                                            contentDescription = null,
+                                            tint = MiuixTheme.colorScheme.onSurface,
+                                            modifier = Modifier.size(18.dp),
+                                        )
+                                    }
                                 }
-                            }
-                            WindowListPopup(
-                                show = showLevelPopup,
-                                popupPositionProvider = MenuPositionProvider,
-                                alignment = PopupPositionProvider.Align.TopEnd,
-                                onDismissRequest = { showLevelPopup = false },
-                            ) {
-                                ListPopupColumn {
-                                    LogLevel.entries.forEach { level ->
-                                        Box(
-                                            modifier = Modifier
-                                                .semantics { testTagsAsResourceId = BuildConfig.DEBUG }
-                                                .testTag(TestTags.Log.level(level.name)),
-                                        ) {
-                                            DropdownImpl(
-                                                text = stringResource(R.string.log_level_and_above, getLevelInfo(level).name),
-                                                optionSize = LogLevel.entries.size,
-                                                isSelected = uiState.minimumLevel == level,
-                                                index = level.ordinal,
-                                                onSelectedIndexChange = {
-                                                    viewModel.setMinimumLevel(level)
-                                                    autoScrollEnabled = true
-                                                    showLevelPopup = false
-                                                },
-                                            )
+                                WindowListPopup(
+                                    show = showLevelPopup,
+                                    popupPositionProvider = MenuPositionProvider,
+                                    alignment = PopupPositionProvider.Align.TopEnd,
+                                    onDismissRequest = { showLevelPopup = false },
+                                ) {
+                                    ListPopupColumn {
+                                        LogLevel.entries.forEach { level ->
+                                            Box(
+                                                modifier = Modifier
+                                                    .semantics { testTagsAsResourceId = BuildConfig.DEBUG }
+                                                    .testTag(TestTags.Log.level(level.name)),
+                                            ) {
+                                                DropdownImpl(
+                                                    text = stringResource(R.string.log_level_and_above, getLevelInfo(level).name),
+                                                    optionSize = LogLevel.entries.size,
+                                                    isSelected = uiState.minimumLevel == level,
+                                                    index = level.ordinal,
+                                                    onSelectedIndexChange = {
+                                                        viewModel.setMinimumLevel(level)
+                                                        autoScrollEnabled = true
+                                                        showLevelPopup = false
+                                                    },
+                                                )
+                                            }
                                         }
                                     }
                                 }
                             }
-                        }
-                        IconButton(
-                            enabled = filePicker != null && logs.isNotEmpty(),
-                            onClick = {
-                                val export = viewModel.exportLogs()
-                                if (filePicker != null && export != null) {
-                                    filePicker.createDocument(export.fileName, "text/plain") { uri ->
-                                        if (uri != null) scope.launch {
-                                            filePicker.writeTextDocument(uri, export.content)
-                                                .onSuccess { showToast(context.getString(R.string.log_export_done)) }
-                                                .onFailure {
-                                                    showToast(context.getString(R.string.error_save_failed, it.describe()), long = true)
+                            IconButton(
+                                enabled = filePicker != null,
+                                onClick = {
+                                    val export = viewModel.exportLogs()
+                                    runCatching {
+                                        if (filePicker != null) {
+                                            AppLogger.info("LogExport", "Preparing ${uiState.source} log export (${export.content.length} characters)")
+                                            filePicker.createDocument(export.fileName, "text/plain") { uri ->
+                                                if (uri != null) scope.launch {
+                                                    filePicker.writeTextDocument(uri, export.content)
+                                                        .onSuccess { showToast(context.getString(R.string.log_export_done)) }
+                                                        .onFailure {
+                                                            AppLogger.error("LogExport", "Failed to export logs", it)
+                                                            showToast(context.getString(R.string.error_save_failed, it.describe()), long = true)
+                                                        }
                                                 }
+                                            }
+                                        }
+                                    }.onFailure {
+                                        AppLogger.error("LogExport", "Failed to open log export destination", it)
+                                        showToast(context.getString(R.string.error_save_failed, it.describe()), long = true)
+                                    }
+                                },
+                                modifier = Modifier.testTag(TestTags.Log.EXPORT),
+                            ) {
+                                Icon(
+                                    imageVector = AppIcons.Backup,
+                                    contentDescription = stringResource(R.string.log_export),
+                                    tint = MiuixTheme.colorScheme.onSurface,
+                                )
+                            }
+                            IconButton(
+                                onClick = {
+                                    autoScrollEnabled = true
+                                    scope.launch {
+                                        viewModel.clearLogs().onFailure {
+                                            showToast(context.getString(R.string.error_clear_failed, it.describe()), long = true)
                                         }
                                     }
-                                }
-                            },
-                            modifier = Modifier.testTag(TestTags.Log.EXPORT),
-                        ) {
-                            Icon(
-                                imageVector = AppIcons.Backup,
-                                contentDescription = stringResource(R.string.log_export),
-                                tint = MiuixTheme.colorScheme.onSurface,
-                            )
-                        }
-                        IconButton(
-                            onClick = {
-                                autoScrollEnabled = true
-                                viewModel.clearLogs()
-                            },
-                            modifier = Modifier.testTag(TestTags.Log.CLEAR),
-                        ) {
-                            Icon(
-                                imageVector = AppIcons.Delete,
-                                contentDescription = stringResource(R.string.log_clear),
-                                tint = MiuixTheme.colorScheme.onSurface,
-                            )
-                        }
-                    },
-                )
+                                },
+                                modifier = Modifier.testTag(TestTags.Log.CLEAR),
+                            ) {
+                                Icon(
+                                    imageVector = AppIcons.Delete,
+                                    contentDescription = stringResource(R.string.log_clear),
+                                    tint = MiuixTheme.colorScheme.onSurface,
+                                )
+                            }
+                        },
+                    )
+                    TabRow(
+                        tabs = listOf(stringResource(R.string.log_source_application), stringResource(R.string.log_source_core)),
+                        selectedTabIndex = uiState.source.ordinal,
+                        onTabSelected = {
+                            autoScrollEnabled = true
+                            viewModel.setSource(LogSource.entries[it])
+                        },
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp)
+                            .testTag(TestTags.Log.SOURCES),
+                    )
+                }
             }
         },
     ) { innerPadding ->
@@ -270,7 +297,9 @@ fun LogScreen(
                     ) {
                         Text(
                             modifier = Modifier.testTag(TestTags.Log.STATUS),
-                            text = if (uiState.isConnected) {
+                            text = if (uiState.source == LogSource.Application) {
+                                stringResource(R.string.log_empty)
+                            } else if (uiState.isConnected) {
                                 stringResource(R.string.log_waiting)
                             } else {
                                 stringResource(R.string.log_not_connected)
@@ -291,7 +320,7 @@ fun LogScreen(
                 key = { it.id },
                 contentType = { "log" },
             ) { indexedLog ->
-                LogCard(indexedLog.message)
+                LogCard(indexedLog, uiState.source == LogSource.Core)
             }
 
             item(key = "bottom_spacer", contentType = "spacer") {
@@ -343,10 +372,11 @@ private fun parsePayload(payload: String): ParsedLog {
 }
 
 @Composable
-private fun LogCard(log: LogMessage) {
+private fun LogCard(entry: LogEntry, isCore: Boolean) {
+    val log = entry.message
     val levelInfo = getLevelInfo(log.type)
     val parsed = remember(log.payload) { parsePayload(log.payload) }
-    val isParsed = parsed.target.isNotEmpty()
+    val isParsed = isCore && parsed.target.isNotEmpty()
 
     Card(
         modifier = Modifier
@@ -376,6 +406,11 @@ private fun LogCard(log: LogMessage) {
                     color = levelInfo.color,
                 )
             }
+            Text(
+                text = "${LogFormatter.time(entry.receivedAt)} · ${entry.tag}",
+                fontSize = 11.sp,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+            )
 
             if (isParsed) {
                 Text(

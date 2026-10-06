@@ -2,50 +2,58 @@ package com.stelliberty.android.util
 
 import android.content.Context
 import android.util.Log
+import android.os.Build
+import com.stelliberty.android.BuildConfig
+import com.stelliberty.android.domain.model.LogLevel
+import com.stelliberty.android.domain.model.LogSource
 
 object AppLogger {
-    private var fileLogStore: FileLogStore? = null
+    val logs = DiagnosticLogStore { error ->
+        Log.e("AppLogger", "Failed to persist diagnostic logs", error)
+    }
 
     fun initialize(context: Context) {
-        fileLogStore = FileLogStore(context.applicationContext)
+        logs.initialize(context.applicationContext.filesDir)
+        info("Application", "Starting Stelliberty ${BuildConfig.VERSION_NAME} (${BuildConfig.BUILD_TYPE}); " +
+            "Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT}); " +
+            "${Build.MANUFACTURER} ${Build.MODEL}; ABI=${Build.SUPPORTED_ABIS.joinToString()}")
+        val previous = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, error ->
+            error("Application", "Uncaught exception on ${thread.name}", error)
+            previous?.uncaughtException(thread, error)
+        }
     }
 
     fun debug(tag: String, message: String) {
-        runCatching { Log.d(tag, message) }
-        writeToFile("D", tag, message)
+        emit(LogLevel.Debug, tag, message)
     }
 
     fun info(tag: String, message: String) {
-        runCatching { Log.i(tag, message) }
-        writeToFile("I", tag, message)
+        emit(LogLevel.Info, tag, message)
     }
 
     fun warn(tag: String, message: String, throwable: Throwable? = null) {
-        emitWithThrowable("W", tag, message, throwable) { t, m -> Log.w(t, m) }
+        emit(LogLevel.Warning, tag, message, throwable)
     }
 
     fun error(tag: String, message: String, throwable: Throwable? = null) {
-        emitWithThrowable("E", tag, message, throwable) { t, m -> Log.e(t, m) }
+        emit(LogLevel.Error, tag, message, throwable)
     }
 
-    fun readLogs(): String = runCatching { fileLogStore?.read().orEmpty() }.getOrDefault("")
-
-    fun clearLogs(): Boolean = runCatching { fileLogStore?.clear() == true }.getOrDefault(false)
-
-    private inline fun emitWithThrowable(
-        level: String,
+    private fun emit(
+        level: LogLevel,
         tag: String,
         message: String,
-        throwable: Throwable?,
-        logcat: (String, String) -> Unit,
+        throwable: Throwable? = null,
     ) {
         val trace = throwable?.stackTraceToString()
-        val logcatMessage = if (trace == null) message else "$message\n$trace"
-        runCatching { logcat(tag, logcatMessage) }
-        writeToFile(level, tag, message, trace)
-    }
-
-    private fun writeToFile(level: String, tag: String, message: String, throwable: String? = null) {
-        runCatching { fileLogStore?.append(level, tag, message, throwable) }
+        val entry = logs.append(LogSource.Application, level, tag, if (trace == null) message else "$message\n$trace")
+        val priority = when (level) {
+            LogLevel.Debug -> Log.DEBUG
+            LogLevel.Info -> Log.INFO
+            LogLevel.Warning -> Log.WARN
+            LogLevel.Error -> Log.ERROR
+        }
+        runCatching { Log.println(priority, tag, LogFormatter.format(entry)) }
     }
 }

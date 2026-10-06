@@ -1,38 +1,18 @@
 package com.stelliberty.android.util
 
-import android.content.Context
 import java.io.File
 import java.io.RandomAccessFile
 import java.nio.charset.StandardCharsets
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 class FileLogStore(
-    context: Context,
+    private val logFile: File,
     private val maxSizeBytes: Long = MAX_LOG_SIZE_BYTES,
 ) {
-    private val logFile = File(context.filesDir, LOG_FILE_NAME)
-    private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US)
     private val lock = Any()
 
-    fun append(level: String, tag: String, message: String, throwable: String? = null) = synchronized(lock) {
-        val line = buildString {
-            append(dateFormat.format(Date()))
-            append(' ')
-            append(level)
-            append('/')
-            append(tag)
-            append(": ")
-            append(message)
-            throwable?.let {
-                appendLine()
-                append(it)
-            }
-            appendLine()
-        }
+    fun append(line: String) = synchronized(lock) {
         logFile.parentFile?.mkdirs()
-        logFile.appendText(line)
+        logFile.appendText(line + "\n")
         trimToMaxSize()
     }
 
@@ -42,13 +22,13 @@ class FileLogStore(
         logFile.readText()
     }
 
-    fun clear(): Boolean = synchronized(lock) {
-        runCatching { if (logFile.exists()) logFile.writeText("") }.isSuccess
+    fun clear() = synchronized(lock) {
+        if (logFile.exists()) logFile.writeText("")
     }
 
     private fun trimToMaxSize() {
         if (logFile.length() <= maxSizeBytes) return
-        logFile.writeText(readTailText(maxSizeBytes))
+        logFile.writeText(readTailText(maxSizeBytes / 2))
     }
 
     // 从尾部回读固定字节窗口，不把整个文件读进堆。窗口起点会切在半行中间，故丢掉首行残段。
@@ -68,7 +48,6 @@ class FileLogStore(
     }
 
     companion object {
-        private const val LOG_FILE_NAME = "stelliberty.log"
         const val MAX_LOG_SIZE_BYTES = 1L * 1024L * 1024L
     }
 }

@@ -21,6 +21,7 @@ class MihomoConnectionManager(scope: CoroutineScope) {
 
     private val mutex = Mutex()
     private var current: MihomoRepository? = null
+    private val coreLogs = CoreLogCollector(scope)
 
     init {
         scope.launch {
@@ -45,6 +46,7 @@ class MihomoConnectionManager(scope: CoroutineScope) {
         mutex.withLock {
             val old = current
             current = next
+            coreLogs.setRepository(next)
             _repository.value = next
             old?.close()
         }

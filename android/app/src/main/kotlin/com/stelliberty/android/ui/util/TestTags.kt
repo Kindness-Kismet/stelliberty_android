@@ -129,6 +129,7 @@ object TestTags {
     }
 
     object Log {
+        const val SOURCES = "Log.SourceTabs"
         const val CLEAR = "Log.ClearButton"
         const val EXPORT = "Log.ExportButton"
         const val LEVEL_FILTER = "Log.LevelFilter"

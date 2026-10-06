@@ -712,4 +712,8 @@
     <string name="rule_override_error_duplicate_custom">A custom rule with the same match condition already exists</string>
     <string name="rule_override_error_duplicate_builtin">This match condition is in an enabled subscription rule; disable that rule first</string>
     <string name="rule_override_error_position">Enter a position from 1 to %1$d</string>
+    <string name="log_source_application">Application logs</string>
+    <string name="log_source_core">Core logs</string>
+    <string name="log_empty">No matching logs</string>
+    <string name="error_clear_failed">Failed to clear logs: %1$s</string>
 </resources>

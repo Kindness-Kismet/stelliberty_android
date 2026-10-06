@@ -9,6 +9,7 @@ import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import com.stelliberty.android.util.AppLogger
 
 data class FilePickResult(
     val fileName: String,
@@ -38,6 +39,7 @@ class FilePicker(private val activity: ComponentActivity) {
     ) { result ->
         val cb = saveCallback
         saveCallback = null
+        AppLogger.info("FilePicker", "Create document result: code=${result.resultCode}, hasUri=${result.data?.data != null}")
         cb?.invoke(if (result.resultCode == Activity.RESULT_OK) result.data?.data else null)
     }
 
@@ -52,11 +54,16 @@ class FilePicker(private val activity: ComponentActivity) {
 
     fun createDocument(suggestedName: String, mimeType: String, onResult: (Uri?) -> Unit) {
         saveCallback = onResult
-        saveLauncher.launch(Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
-            addCategory(Intent.CATEGORY_OPENABLE)
-            type = mimeType
-            putExtra(Intent.EXTRA_TITLE, suggestedName)
-        })
+        try {
+            saveLauncher.launch(Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+                addCategory(Intent.CATEGORY_OPENABLE)
+                type = mimeType
+                putExtra(Intent.EXTRA_TITLE, suggestedName)
+            })
+        } catch (error: Exception) {
+            saveCallback = null
+            throw error
+        }
     }
 
     suspend fun writeTextDocument(uri: Uri, content: String): Result<Unit> = withContext(Dispatchers.IO) {
@@ -65,6 +72,7 @@ class FilePicker(private val activity: ComponentActivity) {
                 "Unable to open document for writing"
             }
             output.bufferedWriter(Charsets.UTF_8).use { it.write(content) }
+            AppLogger.info("FilePicker", "Document saved (${content.length} characters)")
         }
     }
 
