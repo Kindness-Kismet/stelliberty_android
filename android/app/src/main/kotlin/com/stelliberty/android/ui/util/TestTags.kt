@@ -45,6 +45,11 @@ object TestTags {
         const val PROGRESS = "Subscription.ProgressDialog"
         const val CANCEL_UPDATE = "Subscription.CancelUpdateButton"
         const val AUTO_DELAY = "Subscription.AutoDelayField"
+        const val NAME = "Subscription.NameField"
+        const val URL = "Subscription.UrlField"
+        const val USER_AGENT = "Subscription.UserAgentField"
+        const val AGE_KEY = "Subscription.AgeKeyField"
+        const val INTERVAL = "Subscription.IntervalField"
 
         fun item(uuid: String) = "Subscription.Item.$uuid"
     }
