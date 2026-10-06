@@ -274,7 +274,6 @@
     <string name="log_export">Export logs</string>
     <string name="log_export_done">Log file saved</string>
     <string name="log_level_filter">Minimum log level: %1$s</string>
-    <string name="log_level_and_above">%1$s and above</string>
     <string name="log_level_debug">Debug</string>
     <string name="log_level_info">Info</string>
     <string name="log_level_warning">Warning</string>

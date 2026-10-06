@@ -272,7 +272,6 @@
     <string name="log_export">匯出日誌</string>
     <string name="log_export_done">日誌已儲存</string>
     <string name="log_level_filter">最低日誌等級：%1$s</string>
-    <string name="log_level_and_above">%1$s以上</string>
     <string name="log_level_debug">偵錯</string>
     <string name="log_level_info">資訊</string>
     <string name="log_level_warning">警告</string>

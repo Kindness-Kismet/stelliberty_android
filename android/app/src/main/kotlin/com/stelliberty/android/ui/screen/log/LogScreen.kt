@@ -193,7 +193,7 @@ fun LogScreen(
                                                     .testTag(TestTags.Log.level(level.name)),
                                             ) {
                                                 DropdownImpl(
-                                                    text = stringResource(R.string.log_level_and_above, getLevelInfo(level).name),
+                                                    text = getLevelInfo(level).name,
                                                     optionSize = LogLevel.entries.size,
                                                     isSelected = uiState.minimumLevel == level,
                                                     index = level.ordinal,
