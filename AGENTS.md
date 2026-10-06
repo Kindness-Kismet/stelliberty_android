@@ -11,7 +11,7 @@ miuix + mihomo 的 Android 代理客户端。单模块 `:app`（`com.android.app
 - 首次编译或资源缺失时运行 `python scripts/prebuild.py`，恢复未跟踪的 Gradle 启动器、便携 JDK / Go 与 GeoIP。
 - 编译一律走 `python scripts/build.py`。脚本默认编译 release，`--dev` 编译 debug；助手未指定构建类型时始终加 `--dev`。
 - 改 Kotlin：`python scripts/build.py compile --dev`。验证 native / 打包：`python scripts/build.py --dev`。架构 `--abi`，默认 `arm64-v8a`。
-- 单元测试在 `android/app/src/test/`，改到被测代码时跑 `python scripts/build.py gradle :app:testDebugUnitTest`。
+- 默认不新增任何单元测试，已有单元测试保持不动；仅在用户明确要求时新增、修改或移除。验证使用与变更匹配的编译检查和实机 / 模拟器测试。
 - 新增 composable 后临时加 `composeCompiler { reportsDestination.set(layout.buildDirectory.dir("compose_reports")) }`，再 `python scripts/build.py gradle :app:compileDebugKotlin --rerun-tasks` 跑报告，确认 restartable 全部 skippable、0 unstable 参数（当前 132 个），验完删掉临时配置。
 - `third_party/mihomo` 是 submodule、`third_party/scripta` 是 includeBuild 复合构建，改前先确认确需触及。
 - 保留用户已有的未提交改动；不用破坏性 reset/checkout；不修改或输出 `local.properties`。
