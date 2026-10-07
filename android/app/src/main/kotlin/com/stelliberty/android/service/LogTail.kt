@@ -28,3 +28,16 @@ internal fun File.readLastLines(maxLines: Int, maxBytes: Long = DEFAULT_TAIL_BYT
         ""
     }
 }
+
+// 开头与末尾各取一段；总行数不超过两段之和时返回全文。开头只按行数读，不受文件大小影响。
+internal fun File.readEndLines(headLines: Int, tailLines: Int): String {
+    if (!isFile) return ""
+    val head = try {
+        bufferedReader().useLines { it.take(headLines + tailLines + 1).toList() }
+    } catch (e: Exception) {
+        AppLogger.warn(TAG, "failed to read $name", e)
+        return ""
+    }
+    if (head.size <= headLines + tailLines) return head.joinToString("\n").trim()
+    return head.take(headLines).joinToString("\n") + "\n" + readLastLines(tailLines)
+}

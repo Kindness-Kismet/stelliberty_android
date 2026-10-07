@@ -47,6 +47,8 @@ Tun / Root / ProfileWorker 的 onCreate 均 `try { startForeground() } catch (Ex
 
 mihomo.log 在 debug 级别可达数十 MB，一律尾读：[readLastLines](../../../../android/app/src/main/kotlin/com/stelliberty/android/service/LogTail.kt) 从尾部回读固定字节窗口，窗口起点未到文件开头时丢弃首行（它可能切在半行或半个 UTF-8 字符上）。ROOT 路径用 `su tail -n`。
 
+启动日志另留开头 100 行（`readEndLines` / `RootHelper.readLogEnds`，总行数不超过两段之和时取全文）：provider 多时加载日志会把解析配置阶段挤出末尾窗口。开头按行数读取，不随文件大小增长。
+
 ## 启动就绪与停止等待
 
 - `MihomoRunner` 启动与 ROOT 重连共用 `MihomoApiProbe`：携带 secret 请求 `/stelliberty/runtime`，禁止跟随重定向。native 在 TUN 与 provider 初始化结束前返回 503、完成后返回 200，两者都带当前进程号；只有目标 PID 的 200 算就绪，相同 secret 的其他内核也不能冒充。ROOT 重连只接受就绪。
