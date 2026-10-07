@@ -41,7 +41,7 @@ Tun / Root / ProfileWorker 的 onCreate 均 `try { startForeground() } catch (Ex
 - `onActiveSubscriptionChanged()`：切换或删除 active；删光最后一条时改为 stop + `cancelPendingRestart()`。
 - `restartAfterProfileUpdate(uuid)`：见 `subscription` skill 的 `guides/lifecycle.md`。
 
-重启是整进程重来：VPN 杀进程并重建 TUN fd；ROOT 另清 `runtime/{uuid}/` 沙箱与持久化 PID，强制全新启动读取新配置。
+重启是整进程重来：VPN 杀进程并重建 TUN fd；ROOT 另清 `runtime/{uuid}/` 沙箱（provider 缓存保留）与持久化 PID，强制全新启动读取新配置。
 
 ## 日志尾读
 
