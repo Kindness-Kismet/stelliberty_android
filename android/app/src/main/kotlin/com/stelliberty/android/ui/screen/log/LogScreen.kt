@@ -211,13 +211,13 @@ fun LogScreen(
                             IconButton(
                                 enabled = filePicker != null,
                                 onClick = {
-                                    val export = viewModel.exportLogs()
+                                    val export = viewModel.prepareExport()
                                     runCatching {
                                         if (filePicker != null) {
-                                            AppLogger.info("LogExport", "Preparing ${uiState.source} log export (${export.content.length} characters)")
+                                            AppLogger.info("LogExport", "Preparing ${export.source} log export")
                                             filePicker.createDocument(export.fileName, "text/plain") { uri ->
                                                 if (uri != null) scope.launch {
-                                                    filePicker.writeTextDocument(uri, export.content)
+                                                    filePicker.writeTextDocument(uri) { viewModel.writeExport(export, it) }
                                                         .onSuccess { showToast(context.getString(R.string.log_export_done)) }
                                                         .onFailure {
                                                             AppLogger.error("LogExport", "Failed to export logs", it)

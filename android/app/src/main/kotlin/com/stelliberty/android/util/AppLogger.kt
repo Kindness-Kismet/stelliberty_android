@@ -14,15 +14,18 @@ object AppLogger {
 
     fun initialize(context: Context) {
         logs.initialize(context.applicationContext.filesDir)
-        info("Application", "Starting Stelliberty ${BuildConfig.VERSION_NAME} (${BuildConfig.BUILD_TYPE}); " +
-            "Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT}); " +
-            "${Build.MANUFACTURER} ${Build.MODEL}; ABI=${Build.SUPPORTED_ABIS.joinToString()}")
+        info("Application", "Starting ${environment()}")
         val previous = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, error ->
             error("Application", "Uncaught exception on ${thread.name}", error)
             previous?.uncaughtException(thread, error)
         }
     }
+
+    fun environment(): String =
+        "Stelliberty ${BuildConfig.VERSION_NAME} (${BuildConfig.BUILD_TYPE}); " +
+            "Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT}); " +
+            "${Build.MANUFACTURER} ${Build.MODEL}; ABI=${Build.SUPPORTED_ABIS.joinToString()}"
 
     fun debug(tag: String, message: String) {
         emit(LogLevel.Debug, tag, message)

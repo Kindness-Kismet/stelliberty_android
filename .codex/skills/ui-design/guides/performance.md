@@ -14,5 +14,5 @@
 
 - **Koin single VM 的初始化按需进行**：ViewModel 随冷启动构造、`onCleared` 不会触发，分应用代理由页面 `repeatOnLifecycle(STARTED)` 调用可取消的 `refreshApps()`，每次进入或返回前台重新枚举，离开时取消；筛选流的 `WhileSubscribed` 停止延迟不控制刷新。分应用列表用「持 INTERNET 权限的包名集合 + `getInstalledApplications`」两次窄查询（`getInstalledPackages(GET_PERMISSIONS)` 会把完整权限数组过 Binder，易触发 `TransactionTooLargeException`）。
 - **viewModelScope 的轮询按 UI 可见性门控**：`HomeViewModel` 的系统信息采样（`NetworkInterface` 枚举 + `/proc/<pid>/stat`，均阻塞，放在 IO）、`/configs` 轮询、uptime 计数都挂在 `viewModelScope` 上，统一收敛到 `pollWhileVisible(interval)`，由 `MainActivity.onStart/onStop` 经 `setUiVisible` 驱动。
-- **日志采集与页面刷新分离**：`CoreLogCollector` 随 repository 采集，`DiagnosticLogStore` 分别保存两类日志与递增编号；`LifecycleStartEffect` 只控制每 120ms 一次的页面快照，最多展示 500 条。列表与导出按接收顺序由新到旧排列，跟随的 `LaunchedEffect` key 使用 `logs.firstOrNull()?.id`。
+- **日志采集与页面刷新分离**：`CoreLogCollector` 随 repository 采集，`DiagnosticLogStore` 分别保存两类日志与递增编号；`LifecycleStartEffect` 只控制每 120ms 一次的页面快照，最多展示 500 条。列表按接收顺序由新到旧排列（导出保持文件里的时间顺序），跟随的 `LaunchedEffect` key 使用 `logs.firstOrNull()?.id`。
 - **日志默认从顶部查看**：停在顶部时跟随最新日志，向下查看历史时按条目 key 保持阅读位置；嵌套滚动用 `canScrollBackward` 更新跟随状态，新增日志不改变跟随意图。停止滚动后用 `requestScrollToItem(0)` 回到顶部，清空、切换类型或等级时重新开启跟随。

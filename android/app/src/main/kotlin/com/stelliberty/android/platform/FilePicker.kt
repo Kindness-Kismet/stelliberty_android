@@ -7,6 +7,7 @@ import android.provider.OpenableColumns
 import androidx.activity.ComponentActivity
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import java.io.Writer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.stelliberty.android.util.AppLogger
@@ -66,13 +67,13 @@ class FilePicker(private val activity: ComponentActivity) {
         }
     }
 
-    suspend fun writeTextDocument(uri: Uri, content: String): Result<Unit> = withContext(Dispatchers.IO) {
+    suspend fun writeTextDocument(uri: Uri, write: (Writer) -> Unit): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
             val output = checkNotNull(activity.contentResolver.openOutputStream(uri, "wt")) {
                 "Unable to open document for writing"
             }
-            output.bufferedWriter(Charsets.UTF_8).use { it.write(content) }
-            AppLogger.info("FilePicker", "Document saved (${content.length} characters)")
+            output.bufferedWriter(Charsets.UTF_8).use(write)
+            AppLogger.info("FilePicker", "Document saved")
         }
     }
 

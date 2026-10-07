@@ -25,7 +25,7 @@ Ktor 的 `for (frame in incoming)` 在 graceful close 时静默退出，`MihomoW
 - `connectionState` 由四条流共享，语义是「任意一条连着」，按引用计数发布：计数与发布一起放在 `@Synchronized` 里；握手失败的那次未计数，`finally` 按实际计数递减。
 - 日志通道用 `Flow<LogEvent>` 同时发布握手成功、断线与日志；页面连接状态只消费该通道的事件，避免被流量等通道的连接状态干扰。
 - `MihomoConnectionManager` 持有 `CoreLogCollector`，运行期间以 Debug 最低等级订阅 `/logs`；切换 repository 时先取消旧任务，接收帧时在同一把锁内复核实例并写入日志模块。
-- 日志页通过 `LifecycleStartEffect` 控制每 120ms 一次的快照发布；采集与页面生命周期分离，停止代理保留历史。应用与核心日志分别保存，类型切换和等级筛选只影响查看与导出，清空只作用于所选类型。
+- 日志页通过 `LifecycleStartEffect` 控制每 120ms 一次的快照发布；采集与页面生命周期分离，停止代理保留历史。应用与核心日志分别保存，类型切换和等级筛选只影响查看，导出所选类型的整份日志文件，清空只作用于所选类型。
 
 ## Flow.catch 是终结操作
 

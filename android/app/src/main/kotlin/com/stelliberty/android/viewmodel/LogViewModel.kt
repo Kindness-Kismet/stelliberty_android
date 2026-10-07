@@ -8,7 +8,7 @@ import com.stelliberty.android.domain.model.LogSource
 import com.stelliberty.android.util.AppLogger
 import com.stelliberty.android.util.DiagnosticLogStore
 import com.stelliberty.android.util.LogEntry
-import com.stelliberty.android.util.LogFormatter
+import java.io.Writer
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -34,7 +34,7 @@ data class LogUiState(
 )
 
 @Immutable
-data class LogExport(val fileName: String, val content: String)
+data class LogExport(val source: LogSource, val fileName: String)
 
 class LogViewModel(private val store: DiagnosticLogStore = AppLogger.logs) : ViewModel() {
     private val _uiState = MutableStateFlow(LogUiState())
@@ -90,19 +90,23 @@ class LogViewModel(private val store: DiagnosticLogStore = AppLogger.logs) : Vie
             .onFailure { AppLogger.error("LogExport", "Failed to clear $source logs", it) }
     }
 
-    fun exportLogs(): LogExport {
+    fun prepareExport(): LogExport {
         val source = _uiState.value.source
-        val snapshot = snapshot()
-        val content = buildString {
-            appendLine("Stelliberty ${source.name} logs")
-            appendLine("Time zone: ${ZoneId.systemDefault()}; minimum level: ${_uiState.value.minimumLevel}")
-            snapshot.forEach { appendLine(LogFormatter.format(it)) }
-            if (snapshot.isEmpty()) appendLine("No matching log entries.")
-        }
         return LogExport(
+            source = source,
             fileName = "Stelliberty-${source.name.lowercase(Locale.ROOT)}-${LocalDateTime.now().format(EXPORT_TIME_FORMAT)}.txt",
-            content = content,
         )
+    }
+
+    // 在 IO 线程调用：导出已保存的完整日志文件，与页面的等级筛选无关。
+    fun writeExport(export: LogExport, output: Writer) {
+        output.appendLine("Stelliberty ${export.source.name} logs")
+        output.appendLine(AppLogger.environment())
+        output.appendLine("Time zone: ${ZoneId.systemDefault()}; exported at ${LocalDateTime.now()}")
+        output.appendLine()
+        val lines = store.export(export.source, output)
+        if (lines == 0) output.appendLine("No log entries.")
+        AppLogger.info("LogExport", "Exported $lines lines of ${export.source} logs")
     }
 
     private companion object {

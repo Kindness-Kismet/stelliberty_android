@@ -16,10 +16,13 @@ class FileLogStore(
         trimToMaxSize()
     }
 
-    fun read(): String = synchronized(lock) {
+    fun readTail(maxBytes: Long): String = synchronized(lock) {
         if (!logFile.exists()) return@synchronized ""
-        trimToMaxSize()
-        logFile.readText()
+        readTailBytes(maxBytes).toString(StandardCharsets.UTF_8)
+    }
+
+    fun readBytes(): ByteArray = synchronized(lock) {
+        if (logFile.exists()) logFile.readBytes() else ByteArray(0)
     }
 
     fun clear() = synchronized(lock) {
@@ -28,26 +31,26 @@ class FileLogStore(
 
     private fun trimToMaxSize() {
         if (logFile.length() <= maxSizeBytes) return
-        logFile.writeText(readTailText(maxSizeBytes / 2))
+        logFile.writeBytes(readTailBytes(maxSizeBytes / 2))
     }
 
-    // 从尾部回读固定字节窗口，不把整个文件读进堆。窗口起点会切在半行中间，故丢掉首行残段。
-    private fun readTailText(maxBytes: Long): String {
-        if (maxBytes <= 0L) return ""
+    // 从尾部回读固定字节窗口，不把整个文件读进堆。窗口起点会切在半行中间，故丢掉首行残段；
+    // UTF-8 多字节序列里不会出现 0x0A，按字节找换行是安全的。
+    private fun readTailBytes(maxBytes: Long): ByteArray {
+        if (maxBytes <= 0L) return ByteArray(0)
         val length = logFile.length()
         val start = (length - maxBytes).coerceAtLeast(0L)
-        val size = (length - start).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
-        val bytes = ByteArray(size)
+        val bytes = ByteArray((length - start).toInt())
         RandomAccessFile(logFile, "r").use { input ->
             input.seek(start)
             input.readFully(bytes)
         }
-        val tail = bytes.toString(StandardCharsets.UTF_8)
-        val firstBreak = tail.indexOf('\n')
-        return if (start > 0L && firstBreak >= 0) tail.drop(firstBreak + 1) else tail
+        if (start == 0L) return bytes
+        val firstBreak = bytes.indexOf('\n'.code.toByte())
+        return if (firstBreak >= 0) bytes.copyOfRange(firstBreak + 1, bytes.size) else bytes
     }
 
     companion object {
-        const val MAX_LOG_SIZE_BYTES = 1L * 1024L * 1024L
+        const val MAX_LOG_SIZE_BYTES = 5L * 1024L * 1024L
     }
 }
