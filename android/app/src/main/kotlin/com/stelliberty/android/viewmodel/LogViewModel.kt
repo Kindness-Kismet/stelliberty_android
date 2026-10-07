@@ -80,7 +80,8 @@ class LogViewModel(private val store: DiagnosticLogStore = AppLogger.logs) : Vie
         _logs.value = snapshot().toPersistentList()
     }
 
-    private fun snapshot(): List<LogEntry> = store.snapshot(_uiState.value.source, _uiState.value.minimumLevel)
+    private fun snapshot(): List<LogEntry> =
+        store.snapshot(_uiState.value.source, _uiState.value.minimumLevel).asReversed()
 
     suspend fun clearLogs(): Result<Unit> {
         val source = _uiState.value.source

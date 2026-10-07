@@ -106,20 +106,20 @@ fun LogScreen(
         object : NestedScrollConnection {
             override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
                 // 追加日志引起的布局变化不能关闭跟随，跟随状态只随滚动操作改变。
-                if (consumed.y != 0f) autoScrollEnabled = !listState.canScrollForward
+                if (consumed.y != 0f) autoScrollEnabled = !listState.canScrollBackward
                 return Offset.Zero
             }
         }
     }
 
     // 缓冲写满后长度不变，用单调递增的编号驱动自动滚动。
-    val lastLogId = logs.lastOrNull()?.id
+    val newestLogId = logs.firstOrNull()?.id
     val isScrolling = listState.isScrollInProgress
-    LaunchedEffect(lastLogId, uiState.source, uiState.minimumLevel, autoScrollEnabled, isScrolling) {
-        if (lastLogId == null) {
+    LaunchedEffect(newestLogId, uiState.source, uiState.minimumLevel, autoScrollEnabled, isScrolling) {
+        if (newestLogId == null) {
             autoScrollEnabled = true
         } else if (autoScrollEnabled && !isScrolling) {
-            listState.requestScrollToItem(logs.size + 1)
+            listState.requestScrollToItem(0)
         }
     }
 
