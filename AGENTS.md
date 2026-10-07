@@ -12,7 +12,7 @@ miuix + mihomo 的 Android 代理客户端。单模块 `:app`（`com.android.app
 - 编译一律走 `python scripts/build.py`。脚本默认编译 release，`--dev` 编译 debug；助手未指定构建类型时始终加 `--dev`。
 - 改 Kotlin：`python scripts/build.py compile --dev`。验证 native / 打包：`python scripts/build.py --dev`。架构 `--abi`，默认 `arm64-v8a`。
 - 默认不新增任何单元测试，已有单元测试保持不动；仅在用户明确要求时新增、修改或移除。验证使用与变更匹配的编译检查和实机 / 模拟器测试。
-- 新增 composable 后临时加 `composeCompiler { reportsDestination.set(layout.buildDirectory.dir("compose_reports")) }`，再 `python scripts/build.py gradle :app:compileDebugKotlin --rerun-tasks` 跑报告，确认 restartable 全部 skippable、0 unstable 参数（当前 140 个），验完删掉临时配置。
+- 新增 composable 后临时加 `composeCompiler { reportsDestination.set(layout.buildDirectory.dir("compose_reports")) }`，再 `python scripts/build.py gradle :app:compileDebugKotlin --rerun-tasks` 跑报告，确认 restartable 全部 skippable、0 unstable 参数（当前 142 个），验完删掉临时配置。
 - `third_party/mihomo` 是 submodule、`third_party/scripta` 是 includeBuild 复合构建，改前先确认确需触及。
 - 保留用户已有的未提交改动；不用破坏性 reset/checkout；不修改或输出 `local.properties`。
 - 当前任务目标完成且所需验证通过后，**主动按改动目的创建原子化本地提交，无需再次确认**；只暂存和提交本次任务的修改，保留用户已有的无关改动。用户明确要求不提交或只要求撰写文案时，不执行暂存和提交。完成后报告提交、变更和验证结果。

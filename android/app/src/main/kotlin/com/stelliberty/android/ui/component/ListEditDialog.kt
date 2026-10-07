@@ -16,7 +16,7 @@ import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.window.WindowDialog
 
-// 留空确定写回 null（使用默认值）；「清除」写回空列表，二者在覆写里含义不同。
+// 留空确定写回 null（使用默认值）；右上角清除写回空列表，二者在覆写里含义不同。
 @Composable
 fun ListEditDialog(
     show: Boolean,
@@ -27,10 +27,14 @@ fun ListEditDialog(
 ) {
     WindowDialog(
         show = show,
-        title = title,
-        summary = stringResource(R.string.override_empty_hint),
         onDismissRequest = onDismiss,
     ) {
+        DialogHeader(title = title, summary = stringResource(R.string.override_empty_hint)) {
+            DialogClearAction {
+                onConfirm(emptyList())
+                onDismiss()
+            }
+        }
         TextField(
             state = textState,
             modifier = Modifier.fillMaxWidth(),
@@ -41,14 +45,6 @@ fun ListEditDialog(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            TextButton(
-                text = stringResource(R.string.common_clear),
-                modifier = Modifier.weight(1f),
-                onClick = {
-                    onConfirm(emptyList())
-                    onDismiss()
-                },
-            )
             TextButton(
                 text = stringResource(R.string.common_cancel),
                 modifier = Modifier.weight(1f),
