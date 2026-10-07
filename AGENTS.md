@@ -99,7 +99,7 @@ UPDATE（手动/自动）→ 等价 APPLY，snapshot 取自 Imported
 DELETE → 列表、草稿与节点选择清理 + imported/{uuid}/ + pending/{uuid}/ 删除
 ```
 
-**目录**：`files/mihomo/` 下 `subscriptions/`、`proxies/`（见上）、`geodata/`（共享 GeoIP + 符号链接）、`imported/{uuid}/`、`pending/{uuid}/`、`processing/`（临时校验沙箱，单例）、`runtime/{uuid}/`（ROOT 运行时沙箱）、`overrides/`（覆写列表与内容）、`rules/`（规则覆写与模板）、`profile.transform.json`（当前订阅的覆写、链式代理与规则覆写，启动前生成）、`override.user.json`（用户设置）、`override.run.json`（启动时合并 TUN fd + AppProxy + rootMode）。换入用的临时目录：`commit.new` / `commit.old.{uuid}`、`.restore` / `.restore-old`。
+**目录**：`files/mihomo/` 下 `subscriptions/`、`proxies/`（见上）、`geodata/`（共享 GeoIP + 符号链接）、`imported/{uuid}/`、`pending/{uuid}/`、`processing/`（临时校验沙箱，单例）、`runtime/{uuid}/`（ROOT 运行时沙箱；这四类目录下的 `providers/` 存 http provider 缓存）、`overrides/`（覆写列表与内容）、`rules/`（规则覆写与模板）、`profile.transform.json`（当前订阅的覆写、链式代理与规则覆写，启动前生成）、`override.user.json`（用户设置）、`override.run.json`（启动时合并 TUN fd + AppProxy + rootMode）。换入用的临时目录：`commit.new` / `commit.old.{uuid}`、`.restore` / `.restore-old`。
 
 ## 构建
 

@@ -111,6 +111,12 @@ func runMihomo() int {
 		if configBytes, err = applyTransformFile(configBytes, transformPath, ageSecretKey); err != nil {
 			log.Fatalln("apply transform: %s", err.Error())
 		}
+	} else if configBytes, err = decryptConfig(configBytes, ageSecretKey); err != nil {
+		log.Fatalln("%s", err.Error())
+	}
+	// 覆写也可能新增 provider，所以按变换后的配置改写路径。
+	if configBytes, err = patchProviderPathsYAML(configBytes, filepath.Join(Const.Path.HomeDir(), "providers")); err != nil {
+		log.Fatalln("patch provider paths: %s", err.Error())
 	}
 
 	var tunEnabled bool

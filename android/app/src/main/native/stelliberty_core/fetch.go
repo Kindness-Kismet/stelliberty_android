@@ -17,14 +17,12 @@ import (
 	"os"
 	"path"
 	P "path"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/metacubex/mihomo/common/utils"
 	clashHttp "github.com/metacubex/mihomo/component/http"
 	"github.com/metacubex/mihomo/config"
 )
@@ -277,21 +275,6 @@ func parseUserinfo(header string, result *FetchResult) {
 	}
 }
 
-func patchProvidersPath(cfg *config.RawConfig, providersDir string) {
-	forEachProviders(cfg, func(_, _ int, _ string, provider map[string]any, _ string) {
-		urlStr, _ := provider["url"].(string)
-		pathStr, _ := provider["path"].(string)
-		if urlStr == "" && pathStr == "" {
-			return
-		}
-		fileName := utils.MakeHash([]byte(urlStr)).String()
-		if pathStr != "" {
-			fileName = filepath.Base(pathStr)
-		}
-		provider["path"] = P.Join(providersDir, fileName)
-	})
-}
-
 func prefetchProviders(ctx context.Context, token int32, cfg *config.RawConfig, userAgent string) {
 	type item struct {
 		key  string
@@ -300,9 +283,10 @@ func prefetchProviders(ctx context.Context, token int32, cfg *config.RawConfig, 
 	}
 	var items []item
 	forEachProviders(cfg, func(_, _ int, key string, provider map[string]any, _ string) {
+		vehicle, _ := provider["type"].(string)
 		urlStr, _ := provider["url"].(string)
 		dest, _ := provider["path"].(string)
-		if urlStr == "" || dest == "" {
+		if vehicle != "http" || urlStr == "" || dest == "" {
 			return
 		}
 		if _, err := os.Stat(dest); err == nil {
@@ -401,19 +385,6 @@ func fetchProvider(ctx context.Context, u *url.URL, dest string, userAgent strin
 	}
 	_, err = writeFileAtomic(dest, resp.Body)
 	return err
-}
-
-func forEachProviders(cfg *config.RawConfig, fn func(index, total int, key string, provider map[string]any, kind string)) {
-	total := len(cfg.ProxyProvider) + len(cfg.RuleProvider)
-	idx := 0
-	for k, v := range cfg.ProxyProvider {
-		fn(idx, total, k, v, "proxies")
-		idx++
-	}
-	for k, v := range cfg.RuleProvider {
-		fn(idx, total, k, v, "rules")
-		idx++
-	}
 }
 
 func destroyProviders(cfg *config.Config) {
