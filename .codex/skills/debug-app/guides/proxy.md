@@ -16,7 +16,7 @@
 
 ```bash
 debug-call.sh -s <dev> -m proxy.start
-sleep 8                      # 启动窗口可达 10s，期间 state=Starting
+sleep 8                      # 有 provider 缓存时数秒就绪；缺缓存时可达一分钟，期间 state=Starting
 debug-call.sh -s <dev> -m state.get
 ```
 

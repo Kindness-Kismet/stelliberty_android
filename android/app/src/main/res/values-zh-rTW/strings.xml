@@ -56,7 +56,9 @@
     <string name="error_fork_failed">fork+exec 失敗</string>
     <string name="error_root_start_failed">root 啟動失敗</string>
     <string name="error_mihomo_exited">mihomo 處理程序啟動後立即結束</string>
-    <string name="error_mihomo_not_ready">mihomo 尚未完成啟動，或控制介面身分驗證失敗</string>
+    <string name="error_mihomo_not_ready">mihomo 控制介面沒有回應</string>
+    <string name="error_mihomo_init_timeout">mihomo 載入 provider 逾時</string>
+    <string name="error_controller_port_in_use">控制介面位址 %1$s 已被其他程式佔用</string>
     <string name="error_root_stop_failed">無法停止現有的 mihomo 處理程序，請檢查 Root 權限後重試</string>
     <string name="error_mihomo_start_failed">mihomo 啟動失敗:\n%1$s</string>
     <string name="error_generic_start_failed">啟動失敗: %1$s</string>

@@ -44,7 +44,7 @@ class MihomoRunner(private val context: Context) {
             AppLogger.warn(TAG, "Attach failed: pid dead (pid=$pid)")
             return false
         }
-        if (!MihomoApiProbe.isReady(pid, secret, externalController, timeoutMs = 1500)) {
+        if (MihomoApiProbe.probe(pid, secret, externalController, timeoutMs = 1500) != MihomoApiProbe.Status.Ready) {
             AppLogger.warn(TAG, "Attach failed: runtime identity check failed (pid=$pid)")
             return false
         }
@@ -180,14 +180,31 @@ class MihomoRunner(private val context: Context) {
         return true
     }
 
+    // 控制接口在配置解析完后开始监听，provider 全部加载完才就绪；缺缓存的 provider 要在就绪前同步下载，
+    // 所以接口应答「初始化中」之后改用更宽的时限。
     private suspend fun waitForReady(useRoot: Boolean, workDir: File): String? {
-        val deadline = SystemClock.elapsedRealtime() + STARTUP_TIMEOUT_MS
+        val startedAt = SystemClock.elapsedRealtime()
+        var initializing = false
         var nextLivenessCheck = 0L
-        while (SystemClock.elapsedRealtime() < deadline) {
-            if (MihomoApiProbe.isReady(childPid, secret, externalController)) {
-                val log = readStartupLog(useRoot, workDir)
-                recordStartupLog(log)
-                return scanLogForTunError(log)
+        while (true) {
+            val elapsed = SystemClock.elapsedRealtime() - startedAt
+            if (elapsed >= if (initializing) INIT_TIMEOUT_MS else RESPONSE_TIMEOUT_MS) break
+            when (MihomoApiProbe.probe(childPid, secret, externalController)) {
+                MihomoApiProbe.Status.Ready -> {
+                    AppLogger.info(TAG, "mihomo ready after ${elapsed}ms")
+                    val log = readStartupLog(useRoot, workDir)
+                    recordStartupLog(log)
+                    return scanLogForTunError(log)
+                }
+                MihomoApiProbe.Status.Initializing -> if (!initializing) {
+                    initializing = true
+                    AppLogger.info(TAG, "mihomo API up after ${elapsed}ms, waiting for providers")
+                }
+                MihomoApiProbe.Status.Foreign -> {
+                    recordStartupLog(readStartupLog(useRoot, workDir))
+                    return context.getString(R.string.error_controller_port_in_use, externalController)
+                }
+                MihomoApiProbe.Status.Unreachable -> Unit
             }
             if (SystemClock.elapsedRealtime() >= nextLivenessCheck) {
                 val alive = if (useRoot) RootHelper.isAliveAsRoot(childPid) else isProcessAlive(childPid)
@@ -206,11 +223,10 @@ class MihomoRunner(private val context: Context) {
         }
         val logContent = readStartupLog(useRoot, workDir)
         recordStartupLog(logContent)
-        return if (logContent.isNotBlank()) {
-            context.getString(R.string.error_mihomo_not_ready) + "\n" + extractErrorMessage(logContent)
-        } else {
-            context.getString(R.string.error_mihomo_not_ready)
-        }
+        val reason = context.getString(
+            if (initializing) R.string.error_mihomo_init_timeout else R.string.error_mihomo_not_ready
+        )
+        return listOfNotNull(reason, logErrors(logContent)).joinToString("\n")
     }
 
     private fun scanLogForTunError(log: String): String? {
@@ -291,11 +307,15 @@ class MihomoRunner(private val context: Context) {
         return out.toString()
     }
 
-    private fun extractErrorMessage(logContent: String): String {
+    // 进程已退出时没有错误行就取末尾几行，崩溃调用栈不是 logrus 格式。
+    private fun extractErrorMessage(logContent: String): String =
+        logErrors(logContent) ?: logContent.lines().takeLast(5).joinToString("\n")
+
+    private fun logErrors(logContent: String): String? {
         val errorLines = logContent.lines().filter {
             it.contains("level=error") || it.contains("level=fatal")
         }
-        if (errorLines.isEmpty()) return logContent.lines().takeLast(5).joinToString("\n")
+        if (errorLines.isEmpty()) return null
 
         val msgRegex = Regex("""msg="(.+?)"""")
         val messages = errorLines.mapNotNull { msgRegex.find(it)?.groupValues?.get(1) }
@@ -316,7 +336,9 @@ class MihomoRunner(private val context: Context) {
 
         private const val LIVENESS_CHECK_INTERVAL_MS = 2000L
         private const val READY_POLL_INTERVAL_MS = 100L
-        private const val STARTUP_TIMEOUT_MS = 10_000L
+        private const val RESPONSE_TIMEOUT_MS = 15_000L
+        // provider 分代理、规则两批串行加载，单个下载最长 20s，再留出解析配置的时间。
+        private const val INIT_TIMEOUT_MS = 60_000L
 
         private const val GRACEFUL_STOP_TIMEOUT_MS = 3000
         private const val FORCE_STOP_TIMEOUT_MS = 500

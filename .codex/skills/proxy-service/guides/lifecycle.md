@@ -36,7 +36,7 @@ Tun / Root / ProfileWorker 的 onCreate 均 `try { startForeground() } catch (Ex
 
 ## 配置变了就重启
 
-决策单点是 [ProxyServiceController.restartWhenReady](../../../../android/app/src/main/kotlin/com/stelliberty/android/platform/ProxyServiceController.kt)，读 ProxyServiceBridge：`uiState.isRunning` 在 Starting 窗口（约 10s）内仍为 false，以它为准会漏掉重启。Starting / Stopping 过渡态挂起等待收敛：落到 Running 补一次重启，落到 Stopped / Error 放弃（尊重用户中途的手动停止）。两个调用方：
+决策单点是 [ProxyServiceController.restartWhenReady](../../../../android/app/src/main/kotlin/com/stelliberty/android/platform/ProxyServiceController.kt)，读 ProxyServiceBridge：`uiState.isRunning` 在 Starting 窗口内仍为 false（同步加载 provider 时可达一分钟），以它为准会漏掉重启。Starting / Stopping 过渡态挂起等待收敛：落到 Running 补一次重启，落到 Stopped / Error 放弃（尊重用户中途的手动停止）。两个调用方：
 
 - `onActiveSubscriptionChanged()`：切换或删除 active；删光最后一条时改为 stop + `cancelPendingRestart()`。
 - `restartAfterProfileUpdate(uuid)`：见 `subscription` skill 的 `guides/lifecycle.md`。
@@ -49,7 +49,8 @@ mihomo.log 在 debug 级别可达数十 MB，一律尾读：[readLastLines](../.
 
 ## 启动就绪与停止等待
 
-- `MihomoRunner` 启动与 ROOT 重连共用 `MihomoApiProbe`：携带 secret 请求 `/stelliberty/runtime`，只接受 200 与目标 PID，禁止跟随重定向。native 在 TUN 与 provider 初始化结束前返回 503，完成后才返回当前进程号；相同 secret 的其他内核也不能冒充就绪。
-- 就绪检查间隔 100ms，单次连接与读取超时 500ms，启动总时限 10s；ROOT 判活间隔 2s（每次都要启动 su）。日志等级与滚动不影响就绪判据。
+- `MihomoRunner` 启动与 ROOT 重连共用 `MihomoApiProbe`：携带 secret 请求 `/stelliberty/runtime`，禁止跟随重定向。native 在 TUN 与 provider 初始化结束前返回 503、完成后返回 200，两者都带当前进程号；只有目标 PID 的 200 算就绪，相同 secret 的其他内核也不能冒充。ROOT 重连只接受就绪。
+- 启动等待按探测结果分段：控制接口 15s 内须应答；目标 PID 应答 503 后时限放宽到 60s，缺缓存的 provider 要在就绪前同步下载，代理与规则两批串行、单个最长 20s；应答来自其他进程（401 / 404 / PID 不符）说明控制端口被占用，目标进程已无法绑定，立即失败。超时文案区分「没有响应」与「加载 provider 超时」，只附带日志里的错误行。
+- 就绪检查间隔 100ms，单次连接与读取超时 500ms；ROOT 判活间隔 2s（每次都要启动 su）。日志等级与滚动不影响就绪判据。
 - ROOT 停止时，发信号、判活与网卡清理在同一次 su 中完成，轮询 100ms，正常退出立即返回；SIGTERM 最多等 3s，SIGKILL 最多等 2s。确认进程退出后再完成服务清理并上报停止。
 - ROOT 清理失败时阻止继续启动；停止或重启失败时保留 PID 与持久化状态，报告 Error，供后续重试。

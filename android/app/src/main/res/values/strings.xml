@@ -58,7 +58,9 @@
     <string name="error_fork_failed">fork+exec failed</string>
     <string name="error_root_start_failed">root start failed</string>
     <string name="error_mihomo_exited">mihomo process exited immediately</string>
-    <string name="error_mihomo_not_ready">mihomo startup is incomplete or its API identity could not be verified</string>
+    <string name="error_mihomo_not_ready">mihomo API did not respond</string>
+    <string name="error_mihomo_init_timeout">mihomo initialization timed out while loading providers</string>
+    <string name="error_controller_port_in_use">External controller %1$s is in use by another program</string>
     <string name="error_root_stop_failed">Could not stop the existing mihomo process. Please check Root permission and try again.</string>
     <string name="error_mihomo_start_failed">mihomo start failed:\n%1$s</string>
     <string name="error_generic_start_failed">Start failed: %1$s</string>
