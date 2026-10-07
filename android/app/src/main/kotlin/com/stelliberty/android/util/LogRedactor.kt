@@ -1,10 +1,10 @@
 package com.stelliberty.android.util
 
-// 订阅与覆写的凭据常放在路径、查询串或 userinfo 里：http(s) / ws(s) 只留协议与主机，
+// 订阅与覆写的凭据常放在路径、查询串或 userinfo 里：http(s) / ws(s) 与 DNS 上游协议只留协议与主机，
 // 其他协议（节点分享链接、clash:// 深链）整体遮掉。
 object LogRedactor {
     private val url = Regex("""\b([A-Za-z][A-Za-z0-9+.\-]*)://([^\s"'<>]*)""")
-    private val hostSchemes = setOf("http", "https", "ws", "wss")
+    private val hostSchemes = setOf("http", "https", "ws", "wss", "tcp", "udp", "tls", "quic")
 
     fun redact(text: String): String {
         if (!text.contains("://")) return text
