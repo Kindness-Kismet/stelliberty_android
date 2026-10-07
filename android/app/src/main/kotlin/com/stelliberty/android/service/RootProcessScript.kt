@@ -1,15 +1,17 @@
 package com.stelliberty.android.service
 
 internal object RootProcessScript {
-    // 可执行文件标识实际程序；安装包更新后仍存活的进程会带 (deleted) 后缀。
+    // 可执行文件确认是 runner，启动参数里的应用数据目录确认归属。安装包更新后旧安装目录可能被改名
+    // （如 ==deleted==），exe 路径里不再有包名，数据目录则跨更新不变。
     private fun identity(packageName: String): String = """
-        package_name=${RootHelper.escapeShellSingleQuoted(packageName)}
+        data_dir=${RootHelper.escapeShellSingleQuoted("/$packageName/files/mihomo/")}
         is_mihomo() {
             executable=${'$'}(readlink /proc/"${'$'}1"/exe 2>/dev/null) || return 1
             case "${'$'}executable" in
-                /data/app/*/"${'$'}package_name"-*/lib/*/libmihomo_runner.so|/data/app/*/"${'$'}package_name"-*/lib/*/libmihomo_runner.so\ \(deleted\)) return 0 ;;
+                /data/app/*/lib/*/libmihomo_runner.so|/data/app/*/lib/*/libmihomo_runner.so\ \(deleted\)) ;;
                 *) return 1 ;;
             esac
+            grep -qaF "${'$'}data_dir" /proc/"${'$'}1"/cmdline 2>/dev/null
         }
     """.trimIndent()
 
