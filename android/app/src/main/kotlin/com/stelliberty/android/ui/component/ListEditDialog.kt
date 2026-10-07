@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.clearText
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -16,7 +17,7 @@ import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.window.WindowDialog
 
-// 留空确定写回 null（使用默认值）；右上角清除写回空列表，二者在覆写里含义不同。
+// 留空确定写回 null（使用默认值），与 PC 一致不区分空列表；右上角清除只清空输入，提交仍走确定。
 @Composable
 fun ListEditDialog(
     show: Boolean,
@@ -30,10 +31,7 @@ fun ListEditDialog(
         onDismissRequest = onDismiss,
     ) {
         DialogHeader(title = title, summary = stringResource(R.string.override_empty_hint)) {
-            DialogClearAction {
-                onConfirm(emptyList())
-                onDismiss()
-            }
+            DialogClearAction(onClick = textState::clearText)
         }
         TextField(
             state = textState,

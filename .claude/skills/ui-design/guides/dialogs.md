@@ -3,7 +3,7 @@
 ## Dialog
 
 - **编辑类 Dialog 按钮顺序** `cancel | confirm`：按钮 weight(1f) + `spacedBy(8.dp)`，confirm 用 `textButtonColorsPrimary()`。覆写字段留空确定即使用默认值，不另设「不修改」按钮。
-- **清除类操作放右上角**：`WindowDialog` 不传 title / summary，内容首行用 [DialogHeader](../../../../android/app/src/main/kotlin/com/stelliberty/android/ui/component/DialogHeader.kt) 按原生样式重画标题并放 `DialogClearAction`，图标与页面顶栏的清除操作一致；miuix 的标题区没有操作位。
+- **清除类操作放右上角**：`WindowDialog` 不传 title / summary，内容首行用 [DialogHeader](../../../../android/app/src/main/kotlin/com/stelliberty/android/ui/component/DialogHeader.kt) 按原生样式重画标题并放 `DialogClearAction`，图标与页面顶栏的清除操作一致；miuix 的标题区没有操作位。清除只清空输入、不关闭弹窗，写回仍由确定提交。
 - **长内容 Dialog**：miuix `WindowDialog` 在手机上不限制内容高度。外层包 `Column(Modifier.heightIn(max = 500.dp))`，滚动区用 `weight(1f, fill = false).verticalScroll(...)`，按钮作为非加权子项固定在底部。
 - **选项列表 Dialog**（点入口行弹出、内含若干操作行）：`insideMargin = DpSize(0.dp, 24.dp)`。水平 0 让 `ArrowPreference` 全出血、涟漪铺满整宽，行自带 `horizontal = 24.dp` 内缩；垂直 24 补足内置 title 的顶距（miuix title 自身只有 `bottom 12dp`）。
 - **弹 Dialog 的入口行设 `holdDownState`**，Dialog 打开期间保持按下态（MIUI 惯例）；先关自身再弹下一层的操作行没有按下态窗口，无需设置。

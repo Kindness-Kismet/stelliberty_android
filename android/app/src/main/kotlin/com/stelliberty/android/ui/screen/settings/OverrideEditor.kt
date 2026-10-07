@@ -145,11 +145,12 @@ internal fun portSummary(port: Int?): String =
     port?.toString() ?: stringResource(R.string.common_not_modified)
 
 @Composable
-internal fun listSummary(list: List<String>?): String = when {
-    list == null -> stringResource(R.string.common_not_modified)
-    list.isEmpty() -> stringResource(R.string.common_cleared)
-    else -> pluralStringResource(R.plurals.common_items_count, list.size, list.size)
-}
+internal fun listSummary(list: List<String>?): String =
+    if (list == null) {
+        stringResource(R.string.common_not_modified)
+    } else {
+        pluralStringResource(R.plurals.common_items_count, list.size, list.size)
+    }
 
 @Composable
 private fun PortEditDialog(
