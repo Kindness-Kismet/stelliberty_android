@@ -244,13 +244,14 @@ class MihomoRunner(private val context: Context) {
         return context.getString(R.string.error_tun_init_failed, extractErrorMessage(errorLine))
     }
 
-    // 200 行够装下 Go 崩溃调用栈（通常三五十行）加崩溃前的首条错误，再少会被调用栈挤掉。
+    // 末尾 200 行够装下 Go 崩溃调用栈（通常三五十行）加崩溃前的首条错误，再少会被调用栈挤掉；
+    // 开头另留一段，provider 多时加载日志会把解析配置阶段挤出末尾窗口。
     private fun readStartupLog(useRoot: Boolean, workDir: File): String {
         val logFile = File(workDir, "mihomo.log")
         return if (useRoot && !logFile.canRead()) {
-            RootHelper.readLogFile(logFile.absolutePath, STARTUP_LOG_LINES)
+            RootHelper.readLogEnds(logFile.absolutePath, STARTUP_LOG_HEAD_LINES, STARTUP_LOG_LINES)
         } else {
-            logFile.readLastLines(STARTUP_LOG_LINES)
+            logFile.readEndLines(STARTUP_LOG_HEAD_LINES, STARTUP_LOG_LINES)
         }
     }
 
@@ -343,6 +344,7 @@ class MihomoRunner(private val context: Context) {
         private const val GRACEFUL_STOP_TIMEOUT_MS = 3000
         private const val FORCE_STOP_TIMEOUT_MS = 500
 
+        private const val STARTUP_LOG_HEAD_LINES = 100
         private const val STARTUP_LOG_LINES = 200
         private const val CORE_LOG_TAG = "mihomo"
         private val STARTUP_LOG_LINE = Regex("""^time="([^"]*)" level=(\w+) msg=(?:"((?:[^"\\]|\\.)*)"|(\S*))""")
