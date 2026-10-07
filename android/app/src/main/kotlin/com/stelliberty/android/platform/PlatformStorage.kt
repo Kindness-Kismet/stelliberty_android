@@ -81,6 +81,7 @@ object StorageKeys {
     const val PREDICTIVE_BACK = "predictive_back"
     const val SWIPE_DISMISS = "swipe_dismiss"
     const val HIDE_TASK_CARD = "hide_task_card"
+    const val APP_LOG_LEVEL = "app_log_level"
 
     const val WEBDAV_URL = "webdav_url"
     const val WEBDAV_USERNAME = "webdav_username"

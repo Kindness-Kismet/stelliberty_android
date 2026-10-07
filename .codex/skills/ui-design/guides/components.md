@@ -21,4 +21,4 @@
 - `outerBottomPadding` 取所替换 Card 的 bottom padding；条件行用 `buildList`。
 - `groupedCardItems` 本身不带 item 动画（拆分对用户不可见）。需要动画时在 item 内加 `Modifier.animateItem(...)`，并给 placement spec 一个有效动画，下方各组才会平滑换位。
 
-保持单个 `item { Card }` 的场景：纯静态文本卡（ExternalControl 提示、RootSettings 警告）与带视差 + textureBlur 的 AboutScreen。AboutScreen 的内容 Column 用 `heightIn(min = 视口高)`，横屏矮视口下内容仍可滚动（`fillParentMaxHeight()` 会把高度锁成恰好一屏）。
+保持单个 `item { Card }` 的场景：纯静态文本卡（RootSettings 警告）与带视差 + textureBlur 的 AboutScreen。AboutScreen 的内容 Column 用 `heightIn(min = 视口高)`，横屏矮视口下内容仍可滚动（`fillParentMaxHeight()` 会把高度锁成恰好一屏）。

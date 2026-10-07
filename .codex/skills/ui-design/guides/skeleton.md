@@ -6,6 +6,8 @@
 - 二级页用末尾 Spacer 自适应底距，签名里只保留这一种方案（再加 `bottomPadding: Dp` 会叠成双倍底距）。4 个 Pager Tab 由外层 `MainPage` Scaffold 持有 bottomBar，接收 `bottomPadding` 透传给 `contentPadding`。
 - Card 水平间距 12.dp，每项统一 `padding(horizontal = 12.dp).padding(bottom = 12.dp)`（`Arrangement.spacedBy` 会在 stickyHeader 与内容之间多出一份间距）。TextField 表单直接用同样的 padding，外层不包 Card。
 
+- 可编辑表单的滚动容器加 `.imePadding()`，键盘弹出时缩小可视区域，焦点输入框才能自动滚动到键盘上方。
+
 ## 导航
 
 - miuix NavDisplay + 自定义 Navigator（push / replace / pop / popUntil）+ LocalNavigator。back stack 经 Route sealed 多态序列化持久化（`NavBackStackSaver`），新增路由加 `@Serializable` 即支持进程死亡恢复。`sealed interface Route` 自身保留 `@Serializable`：缺了照样编译通过，恢复时抛 `SerializationException`。

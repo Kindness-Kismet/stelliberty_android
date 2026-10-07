@@ -39,7 +39,7 @@ class StellibertyApplication : Application() {
         super.onCreate()
         instance = this
         // 排在最前：后面每一步都要打日志，未初始化时文件写入会静默降级、只剩 logcat。
-        AppLogger.initialize(this)
+        AppLogger.initialize(this, PlatformStorage(this).getString(StorageKeys.APP_LOG_LEVEL, AppLogger.DEFAULT_LEVEL))
         startKoin {
             androidContext(this@StellibertyApplication)
             modules(dataModule, androidPlatformModule, androidAppModule, viewModelModule)

@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -20,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.LayoutDirection
@@ -35,6 +37,7 @@ import com.stelliberty.android.ui.component.blur.BlurredBar
 import com.stelliberty.android.ui.component.blur.rememberBlurBackdrop
 import com.stelliberty.android.ui.component.groupedCardItems
 import com.stelliberty.android.ui.icon.AppIcons
+import com.stelliberty.android.ui.util.TestTags
 import com.stelliberty.android.ui.util.horizontalCutoutPadding
 import com.stelliberty.android.viewmodel.SubscriptionViewModel
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
@@ -111,6 +114,7 @@ fun SubscriptionAddUrlScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
+                .imePadding()
                 .horizontalCutoutPadding()
                 .then(if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier)
                 .scrollEndHaptic()
@@ -153,6 +157,7 @@ fun SubscriptionAddUrlScreen(
                     value = inputName,
                     onValueChange = { inputName = it },
                     modifier = Modifier
+                        .testTag(TestTags.Subscription.NAME)
                         .fillMaxWidth()
                         .padding(horizontal = 12.dp)
                         .padding(bottom = 6.dp),
@@ -168,6 +173,7 @@ fun SubscriptionAddUrlScreen(
                     value = inputUrl,
                     onValueChange = { inputUrl = it },
                     modifier = Modifier
+                        .testTag(TestTags.Subscription.URL)
                         .fillMaxWidth()
                         .padding(horizontal = 12.dp)
                         .padding(bottom = 6.dp),
@@ -183,6 +189,7 @@ fun SubscriptionAddUrlScreen(
                     value = userAgent,
                     onValueChange = { userAgent = it },
                     modifier = Modifier
+                        .testTag(TestTags.Subscription.USER_AGENT)
                         .fillMaxWidth()
                         .padding(horizontal = 12.dp)
                         .padding(bottom = 6.dp),
@@ -198,6 +205,7 @@ fun SubscriptionAddUrlScreen(
                     value = ageSecretKey,
                     onValueChange = { ageSecretKey = it },
                     modifier = Modifier
+                        .testTag(TestTags.Subscription.AGE_KEY)
                         .fillMaxWidth()
                         .padding(horizontal = 12.dp)
                         .padding(bottom = 6.dp),
@@ -224,6 +232,7 @@ fun SubscriptionAddUrlScreen(
                         label = stringResource(R.string.subscription_auto_update_placeholder),
                         useLabelAsPlaceholder = true,
                         modifier = Modifier
+                            .testTag(TestTags.Subscription.INTERVAL)
                             .fillMaxWidth()
                             .padding(horizontal = 12.dp)
                             .padding(bottom = 12.dp),

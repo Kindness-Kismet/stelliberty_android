@@ -297,7 +297,10 @@ data class LiveProviderSnapshot(
 sealed class ImportError(message: String) : Exception(message) {
     class HttpStatus(val code: Int) : ImportError("HTTP $code")
     class EmptyBody : ImportError("empty response body")
-    class InvalidScheme(val source: String) : ImportError("unsupported scheme: $source")
+    // message 会进日志，只带协议名：原文可能含凭据且未必有协议头，日志脱敏认不出来。
+    class InvalidScheme(val source: String) : ImportError(
+        "unsupported scheme: ${Regex("^[A-Za-z][A-Za-z0-9+.\\-]*(?=://)").find(source)?.value ?: "<none>"}",
+    )
     class InvalidName : ImportError("empty profile name")
     class IntervalTooSmall : ImportError("auto-update interval below minimum")
 }

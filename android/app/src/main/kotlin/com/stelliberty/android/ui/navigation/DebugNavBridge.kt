@@ -25,18 +25,23 @@ object DebugNavBridge {
         "provider" -> Route.Provider
         "dns" -> Route.DnsQuery
         "connection" -> Route.Connection
+        "settings.theme" -> Route.ThemeSettings
+        "settings.clash" -> Route.ClashFeatures
+        "settings.network" -> Route.NetworkSettings
+        "settings.port_control" -> Route.PortControl
+        "settings.system_integration" -> Route.SystemIntegration
+        "settings.dns" -> Route.DnsSettings
+        "settings.performance" -> Route.PerformanceSettings
         "settings.vpn" -> Route.VpnSettings
         "settings.root" -> Route.RootSettings
-        "settings.network" -> Route.NetworkSettings
-        "settings.external_control" -> Route.ExternalControl
-        "settings.file_manager" -> Route.FileManager
-        "settings.overrides" -> Route.OverrideList
-        "settings.backup" -> Route.BackupRestore
         "settings.app_proxy" -> Route.AppProxy
+        "settings.overrides" -> Route.OverrideList
+        "settings.file_manager" -> Route.FileManager
+        "settings.app_behavior" -> Route.AppBehavior
         "settings.wifi_policy" -> Route.WifiPolicy
-        "settings.theme" -> Route.ThemeSettings
-        "settings.meta" -> Route.MetaSettings
         "settings.about" -> Route.About
+        "settings.data" -> Route.DataManagement
+        "settings.age_key" -> Route.AgeKey
         else -> null
     }
 

@@ -85,15 +85,20 @@ import com.stelliberty.android.ui.screen.log.LogScreen
 import com.stelliberty.android.ui.screen.provider.ProviderScreen
 import com.stelliberty.android.ui.screen.proxy.ProxyScreen
 import com.stelliberty.android.ui.screen.settings.AboutScreen
+import com.stelliberty.android.ui.screen.settings.AgeKeyScreen
+import com.stelliberty.android.ui.screen.settings.AppBehaviorScreen
 import com.stelliberty.android.ui.screen.settings.AppProxyScreen
-import com.stelliberty.android.ui.screen.settings.BackupRestoreScreen
-import com.stelliberty.android.ui.screen.settings.ExternalControlScreen
+import com.stelliberty.android.ui.screen.settings.ClashFeaturesScreen
+import com.stelliberty.android.ui.screen.settings.DataManagementScreen
+import com.stelliberty.android.ui.screen.settings.DnsSettingsScreen
 import com.stelliberty.android.ui.screen.settings.FileManagerEditorScreen
 import com.stelliberty.android.ui.screen.settings.FileManagerScreen
-import com.stelliberty.android.ui.screen.settings.MetaSettingsScreen
 import com.stelliberty.android.ui.screen.settings.NetworkSettingsScreen
+import com.stelliberty.android.ui.screen.settings.PerformanceSettingsScreen
+import com.stelliberty.android.ui.screen.settings.PortControlScreen
 import com.stelliberty.android.ui.screen.settings.RootSettingsScreen
 import com.stelliberty.android.ui.screen.settings.SettingsScreen
+import com.stelliberty.android.ui.screen.settings.SystemIntegrationScreen
 import com.stelliberty.android.ui.screen.settings.ThemeSettingsScreen
 import com.stelliberty.android.ui.screen.settings.VpnSettingsScreen
 import com.stelliberty.android.ui.screen.settings.WifiPolicyScreen
@@ -120,14 +125,12 @@ import com.stelliberty.android.ui.util.TestTags
 import com.stelliberty.android.ui.util.rememberIsWideScreen
 import com.stelliberty.android.viewmodel.AppProxyViewModel
 import com.stelliberty.android.viewmodel.BackupViewModel
+import com.stelliberty.android.viewmodel.ClashFeaturesViewModel
 import com.stelliberty.android.viewmodel.ConnectionViewModel
 import com.stelliberty.android.viewmodel.DnsQueryViewModel
-import com.stelliberty.android.viewmodel.ExternalControlViewModel
 import com.stelliberty.android.viewmodel.HomeUiState
 import com.stelliberty.android.viewmodel.HomeViewModel
 import com.stelliberty.android.viewmodel.LogViewModel
-import com.stelliberty.android.viewmodel.MetaSettingsViewModel
-import com.stelliberty.android.viewmodel.NetworkSettingsViewModel
 import com.stelliberty.android.viewmodel.ChainProxyViewModel
 import com.stelliberty.android.viewmodel.RuleOverrideViewModel
 import com.stelliberty.android.viewmodel.OverrideProfileViewModel
@@ -202,9 +205,7 @@ fun AppNavigation(
     providerViewModel: ProviderViewModel? = null,
     connectionViewModel: ConnectionViewModel? = null,
     dnsQueryViewModel: DnsQueryViewModel? = null,
-    networkSettingsViewModel: NetworkSettingsViewModel? = null,
-    metaSettingsViewModel: MetaSettingsViewModel? = null,
-    externalControlViewModel: ExternalControlViewModel? = null,
+    clashFeaturesViewModel: ClashFeaturesViewModel? = null,
     appProxyViewModel: AppProxyViewModel? = null,
     filePicker: FilePicker? = null,
     storage: PlatformStorage? = null,
@@ -488,6 +489,65 @@ fun AppNavigation(
                     )
                 }
             }
+            entry<Route.ClashFeatures>(swipeDismiss = swipeDismiss) {
+                clashFeaturesViewModel?.let {
+                    ClashFeaturesScreen(
+                        viewModel = it,
+                        onBack = { navigator.pop() },
+                        onNavigateNetwork = { navigator.push(Route.NetworkSettings) },
+                        onNavigatePortControl = { navigator.push(Route.PortControl) },
+                        onNavigateSystemIntegration = { navigator.push(Route.SystemIntegration) },
+                        onNavigateDns = { navigator.push(Route.DnsSettings) },
+                        onNavigatePerformance = { navigator.push(Route.PerformanceSettings) },
+                    )
+                }
+            }
+            entry<Route.NetworkSettings>(swipeDismiss = swipeDismiss) {
+                clashFeaturesViewModel?.let {
+                    NetworkSettingsScreen(
+                        viewModel = it,
+                        onBack = { navigator.pop() },
+                    )
+                }
+            }
+            entry<Route.PortControl>(swipeDismiss = swipeDismiss) {
+                clashFeaturesViewModel?.let {
+                    PortControlScreen(
+                        viewModel = it,
+                        onBack = { navigator.pop() },
+                    )
+                }
+            }
+            entry<Route.SystemIntegration>(swipeDismiss = swipeDismiss) {
+                storage?.let {
+                    val homeState = homeViewModel?.uiState?.collectAsStateWithLifecycle()?.value
+                    SystemIntegrationScreen(
+                        storage = it,
+                        hasRootPermission = hasRootPermission,
+                        isProxyRunning = homeState?.isRunning == true || homeState?.isStarting == true,
+                        onBack = { navigator.pop() },
+                        onNavigateVpnSettings = { navigator.push(Route.VpnSettings) },
+                        onNavigateRootSettings = { navigator.push(Route.RootSettings) },
+                        onNavigateAppProxy = { navigator.push(Route.AppProxy) },
+                    )
+                }
+            }
+            entry<Route.DnsSettings>(swipeDismiss = swipeDismiss) {
+                clashFeaturesViewModel?.let {
+                    DnsSettingsScreen(
+                        viewModel = it,
+                        onBack = { navigator.pop() },
+                    )
+                }
+            }
+            entry<Route.PerformanceSettings>(swipeDismiss = swipeDismiss) {
+                clashFeaturesViewModel?.let {
+                    PerformanceSettingsScreen(
+                        viewModel = it,
+                        onBack = { navigator.pop() },
+                    )
+                }
+            }
             entry<Route.VpnSettings>(swipeDismiss = swipeDismiss) {
                 storage?.let {
                     VpnSettingsScreen(
@@ -507,27 +567,22 @@ fun AppNavigation(
                     )
                 }
             }
-            entry<Route.NetworkSettings>(swipeDismiss = swipeDismiss) {
-                networkSettingsViewModel?.let {
-                    NetworkSettingsScreen(
-                        viewModel = it,
-                        onBack = { navigator.pop() },
-                    )
-                }
-            }
-            entry<Route.MetaSettings>(swipeDismiss = swipeDismiss) {
-                metaSettingsViewModel?.let {
-                    MetaSettingsScreen(
-                        viewModel = it,
-                        onBack = { navigator.pop() },
-                    )
-                }
-            }
             entry<Route.AppProxy>(swipeDismiss = swipeDismiss) {
                 appProxyViewModel?.let {
                     AppProxyScreen(
                         viewModel = it,
                         onBack = { navigator.pop() },
+                    )
+                }
+            }
+            entry<Route.AppBehavior>(swipeDismiss = swipeDismiss) {
+                storage?.let {
+                    AppBehaviorScreen(
+                        storage = it,
+                        bootStartManager = bootStartManager,
+                        onHideTaskCardChange = onHideTaskCardChange,
+                        onBack = { navigator.pop() },
+                        onNavigateWifiPolicy = { navigator.push(Route.WifiPolicy) },
                     )
                 }
             }
@@ -557,17 +612,9 @@ fun AppNavigation(
                     )
                 }
             }
-            entry<Route.ExternalControl>(swipeDismiss = swipeDismiss) {
-                externalControlViewModel?.let {
-                    ExternalControlScreen(
-                        viewModel = it,
-                        onBack = { navigator.pop() },
-                    )
-                }
-            }
-            entry<Route.BackupRestore>(swipeDismiss = swipeDismiss) {
+            entry<Route.DataManagement>(swipeDismiss = swipeDismiss) {
                 if (backupViewModel != null && storage != null) {
-                    BackupRestoreScreen(
+                    DataManagementScreen(
                         viewModel = backupViewModel,
                         storage = storage,
                         filePicker = filePicker,
@@ -592,6 +639,9 @@ fun AppNavigation(
                     subscriptionViewModel = subscriptionViewModel,
                     onBack = { navigator.pop() },
                 )
+            }
+            entry<Route.AgeKey>(swipeDismiss = swipeDismiss) {
+                AgeKeyScreen(onBack = { navigator.pop() })
             }
             entry<Route.About>(swipeDismiss = swipeDismiss) {
                 val uriHandler = LocalUriHandler.current
@@ -678,23 +728,14 @@ private fun MainPage(
 
                     3 -> SettingsScreen(
                         bottomPadding = bottomPadding,
-                        onNavigateVpnSettings = { navigator.push(Route.VpnSettings) },
-                        onNavigateRootSettings = { navigator.push(Route.RootSettings) },
-                        onNavigateNetworkSettings = { navigator.push(Route.NetworkSettings) },
-                        onNavigateMetaSettings = { navigator.push(Route.MetaSettings) },
-                        onNavigateExternalControl = { navigator.push(Route.ExternalControl) },
-                        onNavigateAppProxy = { navigator.push(Route.AppProxy) },
-                        onNavigateWifiPolicy = { navigator.push(Route.WifiPolicy) },
                         onNavigateThemeSettings = { navigator.push(Route.ThemeSettings) },
-                        onNavigateFileManager = { navigator.push(Route.FileManager) },
+                        onNavigateClashFeatures = { navigator.push(Route.ClashFeatures) },
                         onNavigateOverrides = { navigator.push(Route.OverrideList) },
-                        onNavigateBackup = { navigator.push(Route.BackupRestore) },
+                        onNavigateFileManager = { navigator.push(Route.FileManager) },
+                        onNavigateAppBehavior = { navigator.push(Route.AppBehavior) },
                         onNavigateAbout = { navigator.push(Route.About) },
-                        bootStartManager = bootStartManager,
-                        storage = storage,
-                        onHideTaskCardChange = onHideTaskCardChange,
-                        hasRootPermission = hasRootPermission,
-                        isProxyRunning = homeUiState.isRunning || homeUiState.isStarting,
+                        onNavigateDataManagement = { navigator.push(Route.DataManagement) },
+                        onNavigateAgeKey = { navigator.push(Route.AgeKey) },
                     )
                 }
             }

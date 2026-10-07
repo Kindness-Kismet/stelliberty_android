@@ -45,6 +45,11 @@ object TestTags {
         const val PROGRESS = "Subscription.ProgressDialog"
         const val CANCEL_UPDATE = "Subscription.CancelUpdateButton"
         const val AUTO_DELAY = "Subscription.AutoDelayField"
+        const val NAME = "Subscription.NameField"
+        const val URL = "Subscription.UrlField"
+        const val USER_AGENT = "Subscription.UserAgentField"
+        const val AGE_KEY = "Subscription.AgeKeyField"
+        const val INTERVAL = "Subscription.IntervalField"
 
         fun item(uuid: String) = "Subscription.Item.$uuid"
     }
@@ -110,8 +115,6 @@ object TestTags {
     }
 
     object Settings {
-        const val TUN_MODE = "Settings.TunModeEntry"
-
         fun entry(key: String) = "Settings.Entry.$key"
     }
 
@@ -124,6 +127,7 @@ object TestTags {
     }
 
     object Log {
+        const val SOURCES = "Log.SourceTabs"
         const val CLEAR = "Log.ClearButton"
         const val EXPORT = "Log.ExportButton"
         const val LEVEL_FILTER = "Log.LevelFilter"

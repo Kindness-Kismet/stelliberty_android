@@ -62,7 +62,7 @@ import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 import top.yukonga.miuix.kmp.window.WindowDialog
 
 @Composable
-fun BackupRestoreScreen(
+fun DataManagementScreen(
     viewModel: BackupViewModel,
     storage: PlatformStorage,
     filePicker: FilePicker? = null,
@@ -83,7 +83,7 @@ fun BackupRestoreScreen(
         topBar = {
             BlurredBar(backdrop = backdrop, blurActive = blurActive) {
                 AdaptiveTopAppBar(
-                    title = stringResource(R.string.backup_title),
+                    title = stringResource(R.string.data_management_title),
                     color = barColor,
                     scrollBehavior = scrollBehavior,
                     navigationIcon = {

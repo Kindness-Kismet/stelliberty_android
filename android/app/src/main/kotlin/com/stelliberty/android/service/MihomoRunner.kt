@@ -3,12 +3,14 @@ package com.stelliberty.android.service
 import android.content.Context
 import android.os.SystemClock
 import com.stelliberty.android.R
+import com.stelliberty.android.domain.model.LogLevel
+import com.stelliberty.android.domain.model.LogSource
 import com.stelliberty.android.platform.PlatformStorage
 import com.stelliberty.android.platform.StorageKeys
 import com.stelliberty.android.util.AppLogger
 import java.io.File
-import java.net.HttpURLConnection
-import java.net.URL
+import java.time.Instant
+import java.time.OffsetDateTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
@@ -31,8 +33,7 @@ class MihomoRunner(private val context: Context) {
         // 启动一个 su 进程，因为 Android 10 以后普通应用读不到 root 进程的 /proc。轮询它的地方要自己控制频率。
         get() = childPid > 0 && if (isRootMode) RootHelper.isAliveAsRoot(childPid) else isProcessAlive(childPid)
 
-    // 重连上次留下的 mihomo 进程，三道检查全过才算成功：进程还活着、命令行确实是 mihomo
-    // （防止 PID 被别的进程复用）、用存下来的密码能通过接口鉴权（防止密码变了却显示已连接）。
+    // 进程归属与接口身份必须同时匹配，避免重连到复用端口或 PID 的其他进程。
     fun attachToExisting(
         pid: Int,
         secret: String,
@@ -43,13 +44,8 @@ class MihomoRunner(private val context: Context) {
             AppLogger.warn(TAG, "Attach failed: pid dead (pid=$pid)")
             return false
         }
-        val cmdline = RootHelper.readRootCmdline(pid)
-        if (!cmdline.contains("libmihomo_runner.so")) {
-            AppLogger.warn(TAG, "Attach failed: wrong cmdline (pid=$pid, cmdline=${cmdline.take(64)})")
-            return false
-        }
-        if (!isApiAuthorized(secret, externalController)) {
-            AppLogger.warn(TAG, "Attach failed: auth failed (pid=$pid)")
+        if (!MihomoApiProbe.isReady(pid, secret, externalController, timeoutMs = 1500)) {
+            AppLogger.warn(TAG, "Attach failed: runtime identity check failed (pid=$pid)")
             return false
         }
         childPid = pid
@@ -97,9 +93,7 @@ class MihomoRunner(private val context: Context) {
             ProfileFileOps.ensureGeodataLinks(context, workDir)
         }
 
-        var readyFile: File? = null
         try {
-            readyFile = File.createTempFile("mihomo-ready-", ".status", context.cacheDir)
             val args = buildList {
                 add("-d"); add(workDir.absolutePath)
                 add("-f"); add(configFile.absolutePath)
@@ -109,7 +103,6 @@ class MihomoRunner(private val context: Context) {
                 }
                 add("--secret"); add(secret)
                 add("--ext-ctl"); add(externalController)
-                add("--ready-file"); add(readyFile.absolutePath)
                 if (ageSecretKey.isNotEmpty()) {
                     add("--age-secret-key"); add(ageSecretKey)
                 }
@@ -141,7 +134,7 @@ class MihomoRunner(private val context: Context) {
 
             AppLogger.info(TAG, "mihomo child pid=$childPid (root=$useRoot)")
 
-            val result = waitForReady(useRoot, workDir, readyFile)
+            val result = waitForReady(useRoot, workDir)
             if (result != null) {
                 errorMessage = result
                 AppLogger.error(TAG, errorMessage)
@@ -160,19 +153,17 @@ class MihomoRunner(private val context: Context) {
             errorMessage = context.getString(R.string.error_generic_start_failed, e.message ?: "")
             AppLogger.error(TAG, "Failed to start mihomo", e)
             false
-        } finally {
-            readyFile?.delete()
         }
     }
 
-    fun stop() {
+    fun stop(): Boolean {
         if (childPid > 0) {
             AppLogger.info(TAG, "Stopping mihomo pid=$childPid (root=$isRootMode)")
             if (isRootMode) {
                 val tunDevice = PlatformStorage(context).getString(StorageKeys.ROOT_TUN_DEVICE, "Stelliberty")
-                val killed = RootHelper.killAsRoot(childPid, tunDevice)
-                if (!killed) {
-                    RootHelper.killMihomoByName(tunDevice)
+                if (!RootHelper.stopMihomo(tunDevice, childPid)) {
+                    errorMessage = context.getString(R.string.error_root_stop_failed)
+                    return false
                 }
             } else {
                 ProcessHelper.nativeKill(childPid, force = false)
@@ -186,23 +177,24 @@ class MihomoRunner(private val context: Context) {
         }
         secret = ""
         isRootMode = false
+        return true
     }
 
-    // 独立就绪文件不受日志级别、日志滚动和提权读取开销影响。
-    private suspend fun waitForReady(useRoot: Boolean, workDir: File, readyFile: File): String? {
+    private suspend fun waitForReady(useRoot: Boolean, workDir: File): String? {
         val deadline = SystemClock.elapsedRealtime() + STARTUP_TIMEOUT_MS
         var nextLivenessCheck = 0L
         while (SystemClock.elapsedRealtime() < deadline) {
-            if (readyFile.length() > 0 && isApiReady()) {
+            if (MihomoApiProbe.isReady(childPid, secret, externalController)) {
                 val log = readStartupLog(useRoot, workDir)
+                recordStartupLog(log)
                 return scanLogForTunError(log)
             }
             if (SystemClock.elapsedRealtime() >= nextLivenessCheck) {
                 val alive = if (useRoot) RootHelper.isAliveAsRoot(childPid) else isProcessAlive(childPid)
                 if (!alive) {
                     val logContent = readStartupLog(useRoot, workDir)
+                    recordStartupLog(logContent)
                     return if (logContent.isNotBlank()) {
-                        AppLogger.error(TAG, "mihomo log:\n$logContent")
                         context.getString(R.string.error_mihomo_start_failed, extractErrorMessage(logContent))
                     } else {
                         context.getString(R.string.error_mihomo_exited)
@@ -213,11 +205,11 @@ class MihomoRunner(private val context: Context) {
             delay(READY_POLL_INTERVAL_MS)
         }
         val logContent = readStartupLog(useRoot, workDir)
+        recordStartupLog(logContent)
         return if (logContent.isNotBlank()) {
-            AppLogger.warn(TAG, "API timeout, mihomo log:\n$logContent")
-            context.getString(R.string.error_api_not_ready) + "\n" + extractErrorMessage(logContent)
+            context.getString(R.string.error_mihomo_not_ready) + "\n" + extractErrorMessage(logContent)
         } else {
-            context.getString(R.string.error_api_not_ready)
+            context.getString(R.string.error_mihomo_not_ready)
         }
     }
 
@@ -246,6 +238,59 @@ class MihomoRunner(private val context: Context) {
         }
     }
 
+    // API 就绪前 WebSocket 还没连上，这段内核日志只能从启动日志文件补进核心日志。
+    // 不是 logrus 格式的连续行（崩溃调用栈）合并成一条错误。
+    private fun recordStartupLog(log: String) {
+        val raw = mutableListOf<String>()
+        fun flushRaw() {
+            if (raw.isEmpty()) return
+            AppLogger.logs.append(LogSource.Core, LogLevel.Error, CORE_LOG_TAG, raw.joinToString("\n"))
+            raw.clear()
+        }
+        log.lineSequence().filter { it.isNotBlank() }.forEach { line ->
+            val match = STARTUP_LOG_LINE.find(line)
+            if (match == null) {
+                raw += line
+                return@forEach
+            }
+            flushRaw()
+            val (time, level, quoted, bare) = match.destructured
+            AppLogger.logs.append(
+                source = LogSource.Core,
+                level = when (level) {
+                    "trace", "debug" -> LogLevel.Debug
+                    "info" -> LogLevel.Info
+                    "warning" -> LogLevel.Warning
+                    else -> LogLevel.Error
+                },
+                tag = CORE_LOG_TAG,
+                message = bare.ifEmpty { unquoteGo(quoted) },
+                receivedAt = runCatching { OffsetDateTime.parse(time).toInstant() }.getOrElse { Instant.now() },
+            )
+        }
+        flushRaw()
+    }
+
+    // logrus 用 Go 的 %q 引用含空格的值，这里只还原日志里会出现的转义。
+    private fun unquoteGo(text: String): String {
+        if ('\\' !in text) return text
+        val out = StringBuilder(text.length)
+        var i = 0
+        while (i < text.length) {
+            val c = text[i++]
+            if (c != '\\' || i == text.length) {
+                out.append(c)
+                continue
+            }
+            when (val escaped = text[i++]) {
+                'n' -> out.append('\n')
+                't' -> out.append('\t')
+                else -> out.append(escaped)
+            }
+        }
+        return out.toString()
+    }
+
     private fun extractErrorMessage(logContent: String): String {
         val errorLines = logContent.lines().filter {
             it.contains("level=error") || it.contains("level=fatal")
@@ -255,34 +300,6 @@ class MihomoRunner(private val context: Context) {
         val msgRegex = Regex("""msg="(.+?)"""")
         val messages = errorLines.mapNotNull { msgRegex.find(it)?.groupValues?.get(1) }
         return if (messages.isNotEmpty()) messages.joinToString("\n") else errorLines.joinToString("\n")
-    }
-
-    private fun isApiReady(): Boolean {
-        return try {
-            val conn = URL("http://$externalController/version").openConnection() as HttpURLConnection
-            conn.connectTimeout = 500
-            conn.readTimeout = 500
-            conn.responseCode
-            conn.disconnect()
-            true
-        } catch (_: Exception) {
-            false
-        }
-    }
-
-    // 用 /configs 而不是 /version 来验密码：/version 在某些 mihomo 版本上不要求鉴权，验不出真假。
-    private fun isApiAuthorized(secret: String, externalController: String, timeoutMs: Int = 1500): Boolean {
-        return try {
-            val conn = URL("http://$externalController/configs").openConnection() as HttpURLConnection
-            conn.connectTimeout = timeoutMs
-            conn.readTimeout = timeoutMs
-            conn.setRequestProperty("Authorization", "Bearer $secret")
-            val code = conn.responseCode
-            conn.disconnect()
-            code in 200..299
-        } catch (_: Exception) {
-            false
-        }
     }
 
     private fun isProcessAlive(pid: Int): Boolean = ProcessHelper.nativeIsAlive(pid)
@@ -305,5 +322,7 @@ class MihomoRunner(private val context: Context) {
         private const val FORCE_STOP_TIMEOUT_MS = 500
 
         private const val STARTUP_LOG_LINES = 200
+        private const val CORE_LOG_TAG = "mihomo"
+        private val STARTUP_LOG_LINE = Regex("""^time="([^"]*)" level=(\w+) msg=(?:"((?:[^"\\]|\\.)*)"|(\S*))""")
     }
 }

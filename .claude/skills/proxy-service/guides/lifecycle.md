@@ -20,7 +20,7 @@
 
 **停止态一律走 `ProxyServiceBridge.markStopped(tunMode)` / `markStoppedUnlessError(tunMode)`**，终态带着刚才运行的模式（storage 存的是「用户当前选择」）。onDestroy 保留 Error：失败路径是 `updateState(Error) + stopSelf()`，随后进入 onDestroy，`markStoppedUnlessError`（CAS）让 errorMessage 保留下来，两个 Service 共用这一实现。`HomeViewModel` 的 Error 分支弹 toast（首页不渲染 errorMessage，Error 与 Stopped 外观一致），同一条只弹一次，回到 Stopped 时清除标记；发布方已经 toast 过的（如 `resolveStartSubscriptionId`，它覆盖 Tile / 通知这类无 HomeViewModel 的入口）置 `errorNotified = true`，UI 据此跳过。
 
-**「用户选的模式」也写入桥**：`markStopped` 覆盖「运行后停止」；冷启动尚未启动过代理、或用户在停止态改模式时，走 **`ProxyServiceBridge.setSelectedTunMode(mode)`**。调用点：`StellibertyApplication.onCreate` 在 startKoin 之后立即填一次（唯一既能拿到 storage 又早于全部读取方的位置）；设置页选择器、`settings.set_tun_mode`、MainActivity 的 ROOT 不可用回退各同步一次。它只改 `tunMode` 一个字段（Error 与 errorMessage 保持原样），且只在非运行态生效（运行中的 `tunMode` 表示正在跑的模式）。`HomeViewModel` 的 Stopped / Error 分支整体重建 `HomeUiState` 以清空运行期数据，要保留的字段（含 `tunMode`）逐个显式带上。
+**「用户选的模式」也写入桥**：`markStopped` 覆盖「运行后停止」；冷启动尚未启动过代理、或用户在停止态改模式时，走 **`ProxyServiceBridge.setSelectedTunMode(mode)`**。调用点：`StellibertyApplication.onCreate` 在 startKoin 之后立即填一次（唯一既能拿到 storage 又早于全部读取方的位置）；系统集成页选择器、`settings.set_tun_mode`、MainActivity 的 ROOT 不可用回退各同步一次。它只改 `tunMode` 一个字段（Error 与 errorMessage 保持原样），且只在非运行态生效（运行中的 `tunMode` 表示正在跑的模式）。`HomeViewModel` 的 Stopped / Error 分支整体重建 `HomeUiState` 以清空运行期数据，要保留的字段（含 `tunMode`）逐个显式带上。
 
 ## 打开应用时自动连接
 
@@ -49,6 +49,7 @@ mihomo.log 在 debug 级别可达数十 MB，一律尾读：[readLastLines](../.
 
 ## 启动就绪与停止等待
 
-- `MihomoRunner` 在应用缓存目录预建空文件，经 `--ready-file` 交给子进程；native 在 TUN 与 provider 初始化结束后才写入。控制接口先于这些步骤启动，就绪以该文件为准，与日志级别和滚动无关。
-- 就绪文件每 100ms 检查一次，启动总超时 10s；ROOT 判活间隔 2s（每次都要启动 su）。启动结束或失败都删除临时文件。
+- `MihomoRunner` 启动与 ROOT 重连共用 `MihomoApiProbe`：携带 secret 请求 `/stelliberty/runtime`，只接受 200 与目标 PID，禁止跟随重定向。native 在 TUN 与 provider 初始化结束前返回 503，完成后才返回当前进程号；相同 secret 的其他内核也不能冒充就绪。
+- 就绪检查间隔 100ms，单次连接与读取超时 500ms，启动总时限 10s；ROOT 判活间隔 2s（每次都要启动 su）。日志等级与滚动不影响就绪判据。
 - ROOT 停止时，发信号、判活与网卡清理在同一次 su 中完成，轮询 100ms，正常退出立即返回；SIGTERM 最多等 3s，SIGKILL 最多等 2s。确认进程退出后再完成服务清理并上报停止。
+- ROOT 清理失败时阻止继续启动；停止或重启失败时保留 PID 与持久化状态，报告 Error，供后续重试。

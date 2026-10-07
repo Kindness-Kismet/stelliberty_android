@@ -6,7 +6,7 @@ libmihomo.so（cgo c-shared，arm64 约 71MB）同时承担 JNI 导出与 `mihom
 
 1. **加载顺序**：`System.loadLibrary("mihomo")` 先于 `loadLibrary("stelliberty_jni")`，后者依赖前者导出的符号。
 2. **显式 SONAME**：cgo c-shared 默认不写 SONAME，消费方会把构建期绝对路径写进 DT_NEEDED，运行时报 `UnsatisfiedLinkError`。GoBuildTask 的 `-extldflags=-Wl,-soname,libmihomo.so` 与 CMake `IMPORTED_SONAME` 保持一致。
-3. **PIE wrapper**：libmihomo_runner.so 读 `/proc/self/exe` 定位同目录 → dlopen → dlsym `mihomoEntry` → 透传 argv。新 CLI flag 同步注册到 `stelliberty_core/runtime.go` 的 `flag.NewFlagSet`（`ExitOnError` 拦截未注册的 flag）；`cleanupOrphanedMihomo` 按它的 cmdline 匹配孤儿进程。
+3. **PIE wrapper**：libmihomo_runner.so 读 `/proc/self/exe` 定位同目录 → dlopen → dlsym `mihomoEntry` → 透传 argv。新 CLI flag 同步注册到 `stelliberty_core/runtime.go` 的 `flag.NewFlagSet`（`ExitOnError` 拦截未注册的 flag）；`RootProcessScript` 根据 `/proc/<pid>/exe` 与包安装路径识别所属进程。
 4. **`*C.char` 由 Go 侧释放**：`//export` 返回的字符串内存属于 Go runtime，C 侧调用 `stellibertyFreeString()`（`free()` 会破坏 cgo 堆）。
 5. **`//export` 收住 panic**：JNI 在进程内运行，panic 逸出 cgo 边界会终止整个应用。返回字符串的导出函数走 `guardString`，降级为 `"error: "`，覆盖范围限于同一 goroutine。
 
@@ -30,5 +30,5 @@ Android `ProcessBuilder` fork 后会关闭全部非标准 fd，VPN 模式因此�
 
 ## 启动就绪契约
 
-- `--ready-file` 由 `MihomoRunner` 传入，在 `runtime.go` 注册。文件由应用预建，Go 只覆写内容，所有权留在应用，ROOT 子进程写入后应用仍可读取。
-- `hub.Parse` 返回后确认启用的 TUN 已创建成功，再写就绪文件。TUN 初始化失败时 mihomo 的 API 仍可用但没有隧道，按启动失败处理。
+- `runtime_probe.go` 通过 `route.Register` 注册 `/stelliberty/runtime`，沿用控制器 secret 鉴权。初始化期间返回 503，完成后返回 200 与 `{"pid":<pid>}`；应用仅接受目标进程的响应。
+- `hub.Parse` 返回、启用的 TUN 确认创建成功并注册退出信号后，才发布就绪状态；配置重载与退出期间撤销就绪。状态使用原子变量，与 HTTP 协程同步。TUN 初始化失败时按启动失败处理。

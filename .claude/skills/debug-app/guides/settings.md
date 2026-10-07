@@ -24,7 +24,7 @@ debug-call.sh -s <dev> -m settings.set_tun_mode -a root_tproxy
 
 `settings.*` 读写 `PlatformStorage`（SharedPreferences），键名见 `android/app/src/main/kotlin/com/stelliberty/android/platform/PlatformStorage.kt` 的 `StorageKeys`，也可直接 `settings.dump` 查看。
 
-mixed-port、DNS、TUN 栈等 mihomo 配置归 `override.user.json`（`OverrideJsonStore`），在 UI 的网络设置页修改；出站模式例外，用 `proxy.set_mode`。
+mixed-port、DNS、TUN 栈等 mihomo 配置归 `override.user.json`（`OverrideJsonStore`），在 UI 的「Clash 特性」各页修改；出站模式例外，用 `proxy.set_mode`。
 
 ## 切隧道模式
 

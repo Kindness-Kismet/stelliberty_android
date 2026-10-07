@@ -1,6 +1,7 @@
 package com.stelliberty.android.ui.screen.subscription
 
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -15,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -32,6 +34,7 @@ import com.stelliberty.android.ui.component.blur.BlurredBar
 import com.stelliberty.android.ui.component.blur.rememberBlurBackdrop
 import com.stelliberty.android.ui.component.groupedCardItems
 import com.stelliberty.android.ui.icon.AppIcons
+import com.stelliberty.android.ui.util.TestTags
 import com.stelliberty.android.ui.util.horizontalCutoutPadding
 import com.stelliberty.android.viewmodel.SubscriptionViewModel
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
@@ -127,6 +130,7 @@ fun SubscriptionEditScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
+                .imePadding()
                 .horizontalCutoutPadding()
                 .then(if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier)
                 .scrollEndHaptic()
@@ -143,6 +147,7 @@ fun SubscriptionEditScreen(
                     value = name,
                     onValueChange = { name = it },
                     modifier = Modifier
+                        .testTag(TestTags.Subscription.NAME)
                         .fillMaxWidth()
                         .padding(horizontal = 12.dp)
                         .padding(bottom = 6.dp),
@@ -153,6 +158,7 @@ fun SubscriptionEditScreen(
                         value = url,
                         onValueChange = { url = it },
                         modifier = Modifier
+                            .testTag(TestTags.Subscription.URL)
                             .fillMaxWidth()
                             .padding(horizontal = 12.dp)
                             .padding(bottom = 6.dp),
@@ -164,6 +170,7 @@ fun SubscriptionEditScreen(
                         label = stringResource(R.string.subscription_user_agent_placeholder),
                         useLabelAsPlaceholder = true,
                         modifier = Modifier
+                            .testTag(TestTags.Subscription.USER_AGENT)
                             .fillMaxWidth()
                             .padding(horizontal = 12.dp)
                             .padding(bottom = 6.dp),
@@ -175,6 +182,7 @@ fun SubscriptionEditScreen(
                         label = stringResource(R.string.subscription_age_secret_key_placeholder),
                         useLabelAsPlaceholder = true,
                         modifier = Modifier
+                            .testTag(TestTags.Subscription.AGE_KEY)
                             .fillMaxWidth()
                             .padding(horizontal = 12.dp)
                             .padding(bottom = 6.dp),
@@ -200,6 +208,7 @@ fun SubscriptionEditScreen(
                             label = stringResource(R.string.subscription_auto_update_placeholder),
                             useLabelAsPlaceholder = true,
                             modifier = Modifier
+                                .testTag(TestTags.Subscription.INTERVAL)
                                 .fillMaxWidth()
                                 .padding(horizontal = 12.dp)
                                 .padding(bottom = 6.dp),

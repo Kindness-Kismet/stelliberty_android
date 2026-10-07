@@ -31,7 +31,7 @@ per-profile `ageSecretKey` 经 `PendingSnapshot` 传到 `fetchAndValid`。磁盘
 - 运行：Service 从 `SubscriptionStore` 读密钥，经 `MihomoRunner.start(ageSecretKey)` 加 `--age-secret-key`，`runtime.go` 在 `hub.Parse` 前调用 `age.SetGlobalSecretKeys`；ROOT attach 路径的进程已带密钥。
 - 加密订阅对 app 不透明：`ConfigGenerator.readSubscriptionSecret` / `readSubscriptionMixedPort` 的行扫描读不到内容，使用默认值。
 - 备份导出时解密为明文（与 PC 一致），从备份恢复后到下次更新前磁盘上是明文，见 `guides/backup.md`。
-- 密钥在 Meta 设置中生成，调用 `stellibertyGenAgeKeyPair` / `stellibertyGenAgeHybridKeyPair`（X25519 / mlkem768-x25519）。
+- 密钥在 设置 →「Age 密钥」中生成，调用 `stellibertyGenAgeKeyPair` / `stellibertyGenAgeHybridKeyPair`（X25519 / mlkem768-x25519）。
 
 ## 深链一键导入
 

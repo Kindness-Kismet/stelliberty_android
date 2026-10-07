@@ -222,6 +222,7 @@ class SubscriptionViewModel(
                 )
                 updated.forEach { serviceController.restartAfterProfileUpdate(it) }
             } catch (e: CancellationException) {
+                AppLogger.info(TAG, "Batch profile update cancelled")
                 clearProgress()
                 throw e
             } finally {
@@ -269,14 +270,17 @@ class SubscriptionViewModel(
             operation = op,
         )
         currentJob = viewModelScope.launch {
+            AppLogger.info(TAG, "Profile operation $op started")
             try {
                 block()
+                AppLogger.info(TAG, "Profile operation $op completed")
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     importProgress = null,
                     operation = null,
                 )
             } catch (e: CancellationException) {
+                AppLogger.info(TAG, "Profile operation $op cancelled")
                 clearProgress()
                 throw e
             } catch (e: Throwable) {

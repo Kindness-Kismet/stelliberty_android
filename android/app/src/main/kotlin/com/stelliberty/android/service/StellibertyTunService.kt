@@ -139,7 +139,13 @@ class StellibertyTunService : VpnService() {
             val hasRoot = storage.getString(StorageKeys.HAS_ROOT, "false") == "true"
             if (hadRootPid || hasRoot) {
                 val residualTun = storage.getString(StorageKeys.ROOT_TUN_DEVICE, RuntimeOverrideBuilder.DEFAULT_TUN_DEVICE)
-                RootHelper.cleanupOrphanedMihomo(tunDevice = residualTun)
+                if (!RootHelper.stopMihomo(residualTun)) {
+                    ProxyServiceBridge.updateState(
+                        ProxyServiceStatus(ProxyState.Error, errorMessage = getString(R.string.error_root_stop_failed), tunMode = TunMode.Vpn)
+                    )
+                    stopSelf()
+                    return@launch
+                }
                 ProfileFileOps.cleanupAllRootRuntime(this@StellibertyTunService)
                 storage.putString(StorageKeys.ROOT_MIHOMO_PID, "")
                 storage.putString(StorageKeys.ROOT_MIHOMO_SECRET, "")
@@ -147,6 +153,18 @@ class StellibertyTunService : VpnService() {
             }
 
             val userOverride = overrideStore.load()
+            val bypassPrivate = storage.getString(StorageKeys.VPN_BYPASS_PRIVATE_NETWORK, "true") == "true"
+            val allowIpv6 = storage.getString(StorageKeys.VPN_ALLOW_IPV6, "false") == "true"
+            val dnsHijacking = storage.getString(StorageKeys.VPN_DNS_HIJACKING, "true") == "true"
+            val allowBypass = storage.getString(StorageKeys.VPN_ALLOW_BYPASS, "true") == "true"
+            val systemProxy = storage.getString(StorageKeys.VPN_SYSTEM_PROXY, "true") == "true"
+            val proxyMode = AppProxyMode.parse(storage.getString(StorageKeys.APP_PROXY_MODE, ""))
+            val packages = storage.getStringSet(StorageKeys.APP_PROXY_PACKAGES, emptySet())
+            AppLogger.info(
+                TAG,
+                "VPN options: ipv6=$allowIpv6, bypassPrivate=$bypassPrivate, dnsHijacking=$dnsHijacking, " +
+                    "allowBypass=$allowBypass, systemProxy=$systemProxy, appProxy=$proxyMode(${packages.size})",
+            )
 
             val fd = try {
                 Builder().apply {
@@ -155,7 +173,6 @@ class StellibertyTunService : VpnService() {
                     setSession("Stelliberty")
                     setBlocking(false)
 
-                    val bypassPrivate = storage.getString(StorageKeys.VPN_BYPASS_PRIVATE_NETWORK, "true") == "true"
                     if (bypassPrivate) {
                         resources.getStringArray(R.array.bypass_private_route).forEach { cidr ->
                             val parts = cidr.split("/")
@@ -166,7 +183,6 @@ class StellibertyTunService : VpnService() {
                         addRoute("0.0.0.0", 0)
                     }
 
-                    val allowIpv6 = storage.getString(StorageKeys.VPN_ALLOW_IPV6, "false") == "true"
                     if (allowIpv6) {
                         addAddress(TUN_GATEWAY6, TUN_SUBNET_PREFIX6)
                         if (bypassPrivate) {
@@ -180,19 +196,14 @@ class StellibertyTunService : VpnService() {
                         }
                     }
 
-                    val dnsHijacking = storage.getString(StorageKeys.VPN_DNS_HIJACKING, "true") == "true"
                     if (dnsHijacking) {
                         addDnsServer(TUN_DNS)
                         if (allowIpv6) addDnsServer(TUN_DNS6)
                     }
 
-                    val allowBypass = storage.getString(StorageKeys.VPN_ALLOW_BYPASS, "true") == "true"
                     if (allowBypass) {
                         allowBypass()
                     }
-
-                    val proxyMode = AppProxyMode.parse(storage.getString(StorageKeys.APP_PROXY_MODE, ""))
-                    val packages = storage.getStringSet(StorageKeys.APP_PROXY_PACKAGES, emptySet())
 
                     // 自身包名一律排除，否则子进程的 HTTP 请求会被自己代理住、永久卡死。
                     // 单个包名添加失败多是用户选中后又卸载了，跳过即可。
@@ -222,7 +233,6 @@ class StellibertyTunService : VpnService() {
 
                     setMetered(false)
 
-                    val systemProxy = storage.getString(StorageKeys.VPN_SYSTEM_PROXY, "true") == "true"
                     if (systemProxy) {
                         val port = userOverride.mixedPort ?: 7890
                         setHttpProxy(

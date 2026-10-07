@@ -233,7 +233,7 @@ private fun AboutContent(
             ) {
                 Image(
                     modifier = Modifier
-                        .requiredSize(250.dp)
+                        .requiredSize(200.dp)
                         .then(
                             if (blurEnabled) {
                                 Modifier.textureBlur(
@@ -246,7 +246,7 @@ private fun AboutContent(
                                 )
                             } else Modifier
                         ),
-                    painter = painterResource(R.drawable.app_logo),
+                    painter = painterResource(R.drawable.ic_launcher_foreground),
                     colorFilter = ColorFilter.tint(colorScheme.onBackground),
                     // 紧挨着下面就是应用名，读屏再念一遍图标属于噪音。
                     contentDescription = null,

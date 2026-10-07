@@ -44,13 +44,11 @@ import com.stelliberty.android.ui.theme.ThemeConfig
 import com.stelliberty.android.ui.theme.readThemeConfig
 import com.stelliberty.android.ui.theme.resolveIsDark
 import com.stelliberty.android.viewmodel.AppProxyViewModel
+import com.stelliberty.android.viewmodel.ClashFeaturesViewModel
 import com.stelliberty.android.viewmodel.ConnectionViewModel
 import com.stelliberty.android.viewmodel.DnsQueryViewModel
-import com.stelliberty.android.viewmodel.ExternalControlViewModel
 import com.stelliberty.android.viewmodel.HomeViewModel
 import com.stelliberty.android.viewmodel.LogViewModel
-import com.stelliberty.android.viewmodel.MetaSettingsViewModel
-import com.stelliberty.android.viewmodel.NetworkSettingsViewModel
 import com.stelliberty.android.viewmodel.ProviderViewModel
 import com.stelliberty.android.viewmodel.ProxyViewModel
 import com.stelliberty.android.viewmodel.SubscriptionViewModel
@@ -74,9 +72,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var providerViewModel: ProviderViewModel
     private lateinit var connectionViewModel: ConnectionViewModel
     private lateinit var dnsQueryViewModel: DnsQueryViewModel
-    private lateinit var networkSettingsViewModel: NetworkSettingsViewModel
-    private lateinit var metaSettingsViewModel: MetaSettingsViewModel
-    private lateinit var externalControlViewModel: ExternalControlViewModel
+    private lateinit var clashFeaturesViewModel: ClashFeaturesViewModel
     private lateinit var appProxyViewModel: AppProxyViewModel
     private lateinit var filePicker: FilePicker
     private lateinit var scanQrLauncher: ActivityResultLauncher<ScannerConfig>
@@ -185,9 +181,7 @@ class MainActivity : ComponentActivity() {
         providerViewModel = get()
         connectionViewModel = get()
         dnsQueryViewModel = get()
-        networkSettingsViewModel = get()
-        metaSettingsViewModel = get()
-        externalControlViewModel = get()
+        clashFeaturesViewModel = get()
         appProxyViewModel = get()
         subscriptionViewModel = get()
         subscriptionViewModel.runStartupUpdates()
@@ -198,7 +192,6 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             connectionManager.repository.collect { repo ->
                 proxyViewModel.setRepository(repo)
-                logViewModel.setRepository(repo)
                 providerViewModel.setRepository(repo)
                 connectionViewModel.setRepository(repo)
                 dnsQueryViewModel.setRepository(repo)
@@ -241,9 +234,7 @@ class MainActivity : ComponentActivity() {
                 providerViewModel = providerViewModel,
                 connectionViewModel = connectionViewModel,
                 dnsQueryViewModel = dnsQueryViewModel,
-                networkSettingsViewModel = networkSettingsViewModel,
-                metaSettingsViewModel = metaSettingsViewModel,
-                externalControlViewModel = externalControlViewModel,
+                clashFeaturesViewModel = clashFeaturesViewModel,
                 appProxyViewModel = appProxyViewModel,
                 filePicker = filePicker,
                 storage = storage,

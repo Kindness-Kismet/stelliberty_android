@@ -43,7 +43,7 @@ testTag 挂在最外层节点，按钮文字在子节点，`get` 返回整棵子
 | `Proxy.GroupTab.<组名>` | 横向组标签 |
 | `Proxy.Group.<组名>` | 代理组行；`.TestButton` 是组测速（兼作右侧延迟标签），`.ToggleButton` 是展开，`.UnfixButton` 是解除固定 |
 | `Proxy.Node.<节点名>` | 节点项；`.TestButton` 是节点测速 |
-| `Subscription.*` | 新增、全部更新、进度弹窗（`ProgressDialog`）与取消按钮（`CancelUpdateButton`）、添加页与编辑页的自动测试延迟输入框（`AutoDelayField`）；`Subscription.Item.<uuid>` 是订阅行 |
+| `Subscription.*` | 新增、全部更新、进度弹窗（`ProgressDialog`）与取消按钮（`CancelUpdateButton`）、添加页与编辑页的名称（`NameField`）、地址（`UrlField`）、请求标识（`UserAgentField`）、密钥（`AgeKeyField`）、更新间隔（`IntervalField`）与自动测试延迟输入框（`AutoDelayField`）；`Subscription.Item.<uuid>` 是订阅行 |
 | `Overrides.*` | 新增、保存、名称与地址输入；`Item.<id>` 的编辑 / 更新 / 删除按钮，`Select.<id>` 的选择与上下移动 |
 | `ChainProxy.*` | 新增、保存、名称输入；`Custom.<id>` 的开关与删除按钮，`Hop.<序号>` 的上下移动与移除 |
 | `RuleOverride.*` | 新增、更多、保存；`Row.<序号>` 是规则行（序号从 1 起），`.Toggle` 是开关；`Menu.<序号>` 是更多菜单项；编辑页的内容、位置输入与删除按钮 |
@@ -51,7 +51,7 @@ testTag 挂在最外层节点，按钮文字在子节点，`get` 返回整棵子
 | `AppProxy.Mode.<模式名>` | 分应用代理三种模式（`AllowAll` / `AllowSelected` / `DenySelected`） |
 | `AppProxy.AppList` | 当前筛选列表的已选数与总数 |
 | `AppProxy.App.<包名>` | 应用项，点一下切换勾选 |
-| `Log.*` | 清空 `Log.ClearButton`、导出 `Log.ExportButton`、等级筛选 `Log.LevelFilter` 与选项 `Log.Level.<Debug/Info/Warning/Error>`、列表 `Log.List`、空列表连接提示 `Log.Status` |
+| `Log.*` | 来源切换 `Log.SourceTabs`（应用 / 核心）、清空 `Log.ClearButton`、导出 `Log.ExportButton`、等级筛选 `Log.LevelFilter` 与选项 `Log.Level.<Debug/Info/Warning/Error>`、列表 `Log.List`、空列表连接提示 `Log.Status` |
 | `Connection.CloseAllButton` | 关闭全部连接；`Connection.Close.<连接 id>` 是单条 |
 | `Nav.Tab.<0-3>` | 底栏四个 Tab；`Nav.BackButton` 是返回 |
 
@@ -88,7 +88,7 @@ URL、age 密钥这类标点密集的值优先用业务指令（`subscription.ad
 - URLTest / Fallback 组的 `unfix`（恢复自动选择）
 - 编辑已有订阅的 age 密钥、自定义 User-Agent
 - 备份恢复的 SAF 文件选择器（系统 UI，无测试 ID；备份内容本身用 `backup.*` 验证）
-- 网络设置页里归 `override.user.json` 的项（mixed-port、DNS）
+- 「Clash 特性」各页里归 `override.user.json` 的项（端口、DNS 等）
 - 分应用代理的模式与勾选：`settings.set` 可写 `app_proxy_mode` / `app_proxy_packages`，验证界面联动时点 `AppProxy.*`
 
 ## 新增控件

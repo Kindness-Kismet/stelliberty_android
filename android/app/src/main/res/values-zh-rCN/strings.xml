@@ -56,7 +56,8 @@
     <string name="error_fork_failed">fork+exec 失败</string>
     <string name="error_root_start_failed">root 启动失败</string>
     <string name="error_mihomo_exited">mihomo 进程启动后立即退出</string>
-    <string name="error_api_not_ready">mihomo 进程运行中但 API 无响应</string>
+    <string name="error_mihomo_not_ready">mihomo 启动未完成或控制接口身份校验失败</string>
+    <string name="error_root_stop_failed">无法停止已有的 mihomo 进程，请检查 Root 权限后重试</string>
     <string name="error_mihomo_start_failed">mihomo 启动失败:\n%1$s</string>
     <string name="error_generic_start_failed">启动失败: %1$s</string>
     <string name="error_foreground_failed">前台服务启动失败: %1$s</string>
@@ -86,7 +87,6 @@
     <string name="common_not_modified">不修改</string>
     <string name="common_enabled">启用</string>
     <string name="common_disabled">禁用</string>
-    <string name="common_cleared">已清除</string>
     <plurals name="common_items_count">
         <item quantity="one">%1$d 条</item>
         <item quantity="other">%1$d 条</item>
@@ -271,7 +271,6 @@
     <string name="log_export">导出日志</string>
     <string name="log_export_done">日志已保存</string>
     <string name="log_level_filter">最低日志等级：%1$s</string>
-    <string name="log_level_and_above">%1$s及以上</string>
     <string name="log_level_debug">调试</string>
     <string name="log_level_info">信息</string>
     <string name="log_level_warning">警告</string>
@@ -306,10 +305,28 @@
 
     <!-- Settings -->
     <string name="settings_title">设置</string>
-    <string name="settings_group_proxy">代理</string>
-    <string name="settings_group_core">内核</string>
-    <string name="settings_group_subscription">订阅</string>
     <string name="settings_group_automation">自动化</string>
+    <string name="settings_group_personalization">个性化</string>
+    <string name="settings_group_clash">Clash</string>
+    <string name="settings_group_application">应用</string>
+    <string name="settings_group_maintenance">维护</string>
+    <string name="clash_features_title">Clash 特性</string>
+    <string name="clash_features_summary">网络、端口、系统集成、DNS 与核心参数</string>
+    <string name="network_settings_summary">统一延迟、局域网、IPv6 与嗅探器</string>
+    <string name="port_control_title">端口控制</string>
+    <string name="port_control_summary">代理端口与外部控制器</string>
+    <string name="system_integration_title">系统集成</string>
+    <string name="system_integration_summary">隧道模式、VPN 或 ROOT 设置与分应用代理</string>
+    <string name="dns_settings_title">DNS 配置</string>
+    <string name="dns_settings_summary">Nameserver、增强模式与 FakeIP 过滤</string>
+    <string name="performance_settings_title">性能优化</string>
+    <string name="performance_settings_summary">Geodata 模式与进程匹配</string>
+    <string name="settings_core_log_summary">核心输出的最低等级，重启代理后生效</string>
+    <string name="app_behavior_title">应用行为</string>
+    <string name="app_behavior_summary">自动连接、开机重启、Wi-Fi 切换、通知与日志</string>
+    <string name="data_management_title">数据管理</string>
+    <string name="age_key_title">Age 密钥</string>
+    <string name="age_key_summary">为加密订阅生成密钥对</string>
     <string name="settings_general">通用</string>
     <string name="settings_tun_mode">隧道模式</string>
     <string name="settings_tun_vpn_summary">通过 VpnService</string>
@@ -321,10 +338,6 @@
     <string name="settings_vpn_settings">VPN 设置</string>
     <string name="settings_vpn_summary">绕过私有网络、DNS 劫持、IPv6</string>
     <string name="settings_tun_device">TUN 设备名称</string>
-    <string name="settings_override_settings">覆写设置</string>
-    <string name="settings_override_summary">端口、DNS、网络选项覆写</string>
-    <string name="settings_meta_settings">Meta 设置</string>
-    <string name="settings_meta_summary">统一延迟、嗅探器等</string>
     <string name="settings_app_proxy">分应用代理</string>
     <string name="settings_app_proxy_summary">选择需要代理的应用</string>
     <string name="settings_wifi_policy">Wi-Fi 自动切换</string>
@@ -396,6 +409,7 @@
     <string name="settings_swipe_dismiss_summary">在页面任意位置横移即可返回上一页</string>
     <string name="settings_hide_task_card">后台卡片隐藏</string>
     <string name="settings_hide_task_card_summary">在最近任务中隐藏任务卡片</string>
+    <string name="settings_app_log_summary">写入应用日志的最低等级</string>
     <string name="settings_about">关于</string>
 
     <!-- VPN Settings -->
@@ -434,7 +448,7 @@
     <string name="root_attach_force_reapply_summary">诊断开关：每次应用重新连接到正在运行的 mihomo 时强制重建 iptables 规则。仅当重连后热点规则丢失时开启。</string>
 
     <!-- Network Settings -->
-    <string name="network_settings_title">覆写设置</string>
+    <string name="network_settings_title">网络设置</string>
     <string name="network_proxy_ports">代理端口</string>
     <string name="network_http_port">HTTP 端口</string>
     <string name="network_socks_port">SOCKS 端口</string>
@@ -443,10 +457,7 @@
     <string name="network_mixed_port">Mixed 端口</string>
     <string name="network_options">网络选项</string>
     <string name="network_allow_lan">允许局域网</string>
-    <string name="network_external_controller">外部控制器</string>
     <string name="network_bind_address">绑定地址</string>
-    <string name="network_log_level">日志等级</string>
-    <string name="network_dns">DNS</string>
     <string name="network_dns_enable">启用 DNS</string>
     <string name="network_dns_listen">监听地址</string>
     <string name="network_dns_listen_title">DNS 监听地址</string>
@@ -460,9 +471,10 @@
     <string name="network_dns_default_nameserver">默认 Nameserver</string>
     <string name="network_dns_fakeip_filter">FakeIP 过滤</string>
     <string name="network_port_label">端口号 (0-65535)</string>
-    <string name="network_port_zero_hint">填写 0 表示禁用该端口</string>
+    <string name="network_port_zero_hint">留空使用默认值，填 0 禁用该端口</string>
     <string name="network_input_value">输入值</string>
     <string name="network_one_per_line">每行一条</string>
+    <string name="override_empty_hint">留空使用默认值</string>
     <string name="settings_override_restart_hint">此页设置修改后需重启代理服务生效</string>
 
     <!-- Wi-Fi 策略 -->
@@ -494,19 +506,17 @@
     <string name="wifi_policy_permission_required">需要附近设备和定位权限才能读取当前 SSID</string>
 
     <!-- Meta Settings -->
-    <string name="meta_settings_title">Meta 设置</string>
-    <string name="meta_basic">基本</string>
-    <string name="meta_unified_delay">统一延迟</string>
-    <string name="meta_geodata_mode">Geodata 模式</string>
-    <string name="meta_tcp_concurrent">TCP 并发</string>
-    <string name="meta_find_process_mode">进程匹配模式</string>
-    <string name="meta_sniffer">嗅探器</string>
-    <string name="meta_sniffer_enable">启用嗅探器</string>
-    <string name="meta_sniffer_force_dns_mapping">强制 DNS 映射</string>
-    <string name="meta_sniffer_parse_pure_ip">解析纯 IP</string>
-    <string name="meta_sniffer_override_dest">覆写目标地址</string>
-    <string name="meta_sniffer_force_domain">强制嗅探域名</string>
-    <string name="meta_sniffer_skip_domain">跳过嗅探域名</string>
+    <string name="network_unified_delay">统一延迟</string>
+    <string name="performance_geodata_mode">Geodata 模式</string>
+    <string name="network_tcp_concurrent">TCP 并发</string>
+    <string name="performance_find_process_mode">进程匹配模式</string>
+    <string name="network_sniffer">嗅探器</string>
+    <string name="network_sniffer_enable">启用嗅探器</string>
+    <string name="network_sniffer_force_dns_mapping">强制 DNS 映射</string>
+    <string name="network_sniffer_parse_pure_ip">解析纯 IP</string>
+    <string name="network_sniffer_override_dest">覆写目标地址</string>
+    <string name="network_sniffer_force_domain">强制嗅探域名</string>
+    <string name="network_sniffer_skip_domain">跳过嗅探域名</string>
 
     <!-- App Proxy -->
     <string name="app_proxy_title">分应用代理</string>
@@ -527,7 +537,6 @@
     <string name="app_proxy_deny_selected_summary">选中的应用不经过代理</string>
     <string name="app_proxy_app_list">应用列表 (%1$d/%2$d)</string>
     <string name="app_proxy_applied">已应用分应用代理</string>
-    <string name="dialog_reset_done">已恢复默认值</string>
 
     <!-- External Control -->
     <string name="external_control_title">外部控制器</string>
@@ -535,7 +544,6 @@
     <string name="external_control_controller_hint">HTTP API 的监听地址（例如 127.0.0.1:9090）。0.0.0.0 将被自动覆写为 127.0.0.1。</string>
     <string name="external_control_secret">API 密钥</string>
     <string name="external_control_secret_hint">HTTP API 的 Bearer 鉴权令牌。留空时优先使用订阅配置中的 secret；若订阅未设置则随机生成。</string>
-    <string name="settings_external_control_summary">覆写外部控制器配置</string>
 
     <!-- File Manager -->
     <string name="file_manager_title">文件管理</string>
@@ -548,9 +556,7 @@
     <string name="settings_file_manager_summary">浏览并编辑已导入订阅的文件</string>
 
     <!-- WebDAV Backup & Restore -->
-    <string name="settings_backup">备份与恢复</string>
-    <string name="settings_backup_summary">本地文件或 WebDAV 备份与恢复</string>
-    <string name="backup_title">备份与恢复</string>
+    <string name="data_management_summary">本地文件或 WebDAV 备份与恢复</string>
     <string name="backup_hint">将订阅、覆写与偏好设置打包备份到文件或 WebDAV 服务器；恢复时可以选择合并或覆盖本地数据。</string>
     <string name="backup_server_url">服务器地址</string>
     <string name="backup_username">用户名</string>
@@ -595,17 +601,16 @@
     <string name="common_copied">已复制</string>
     <string name="subscription_age_secret_key">Age 解密密钥</string>
     <string name="subscription_age_secret_key_placeholder">用于 age 加密订阅，未使用则留空</string>
-    <string name="meta_age">Age 加密</string>
-    <string name="meta_age_generate">生成密钥对</string>
-    <string name="meta_age_generate_summary">为加密订阅生成 age x25519 密钥对</string>
-    <string name="meta_age_generate_hybrid">生成抗量子密钥对</string>
-    <string name="meta_age_generate_hybrid_summary">mlkem768-x25519 抗量子密钥对</string>
-    <string name="meta_age_keypair_title">Age 密钥对</string>
-    <string name="meta_age_secret_key">私钥</string>
-    <string name="meta_age_public_key">公钥</string>
-    <string name="meta_age_copy_secret">复制私钥</string>
-    <string name="meta_age_copy_public">复制公钥</string>
-    <string name="meta_age_keygen_failed">生成密钥对失败</string>
+    <string name="age_key_generate">生成密钥对</string>
+    <string name="age_key_generate_summary">为加密订阅生成 age x25519 密钥对</string>
+    <string name="age_key_generate_hybrid">生成抗量子密钥对</string>
+    <string name="age_key_generate_hybrid_summary">mlkem768-x25519 抗量子密钥对</string>
+    <string name="age_key_pair_title">Age 密钥对</string>
+    <string name="age_key_secret">私钥</string>
+    <string name="age_key_public">公钥</string>
+    <string name="age_key_copy_secret">复制私钥</string>
+    <string name="age_key_copy_public">复制公钥</string>
+    <string name="age_key_generate_failed">生成密钥对失败</string>
 
     <!-- Overrides -->
     <string name="override_title">覆写</string>
@@ -709,4 +714,8 @@
     <string name="rule_override_error_duplicate_custom">已有相同匹配条件的自定义规则</string>
     <string name="rule_override_error_duplicate_builtin">该匹配条件已存在于启用的订阅规则中，请先禁用对应的订阅规则</string>
     <string name="rule_override_error_position">请输入 1 到 %1$d 之间的位置</string>
+    <string name="log_source_application">应用日志</string>
+    <string name="log_source_core">核心日志</string>
+    <string name="log_empty">暂无符合条件的日志</string>
+    <string name="error_clear_failed">清空日志失败：%1$s</string>
 </resources>

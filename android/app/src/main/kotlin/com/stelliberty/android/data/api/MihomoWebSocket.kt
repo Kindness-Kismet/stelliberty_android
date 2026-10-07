@@ -2,10 +2,10 @@ package com.stelliberty.android.data.api
 
 import com.stelliberty.android.domain.model.ConnectionsResponse
 import com.stelliberty.android.domain.model.LogEvent
-import com.stelliberty.android.domain.model.LogLevel
 import com.stelliberty.android.domain.model.LogMessage
 import com.stelliberty.android.domain.model.MemoryData
 import com.stelliberty.android.domain.model.TrafficData
+import com.stelliberty.android.util.AppLogger
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.client.plugins.websocket.webSocket
@@ -56,8 +56,8 @@ class MihomoWebSocket(
         apiClient.getWebSocketUrl("/traffic"),
     ) { text -> json.decodeFromString<TrafficData>(text) }
 
-    fun logsFlow(level: LogLevel): Flow<LogEvent> = webSocketFlow(
-        apiClient.getWebSocketUrl("/logs?level=${level.name.lowercase()}"),
+    fun logsFlow(level: String): Flow<LogEvent> = webSocketFlow(
+        apiClient.getWebSocketUrl("/logs?level=$level"),
         connectedEvent = LogEvent.Connected,
         disconnectedEvent = LogEvent.Disconnected,
     ) { text -> LogEvent.Message(json.decodeFromString<LogMessage>(text)) }
@@ -78,6 +78,7 @@ class MihomoWebSocket(
         disconnectedEvent: T? = null,
         parser: (String) -> T,
     ): Flow<T> = flow {
+        val channel = url.substringBefore('?').substringAfterLast('/')
         var backoffMs = INITIAL_BACKOFF_MS
         while (currentCoroutineContext().isActive) {
             var counted = false
@@ -85,21 +86,26 @@ class MihomoWebSocket(
                 wsClient.webSocket(url) {
                     counted = true
                     addLiveConnection(1)
+                    AppLogger.debug("MihomoWebSocket", "$channel channel connected")
                     backoffMs = INITIAL_BACKOFF_MS
                     connectedEvent?.let { emit(it) }
                     for (frame in incoming) {
                         if (frame !is Frame.Text) continue
-                        val parsed = runCatching { parser(frame.readText()) }.getOrNull() ?: continue
+                        val parsed = runCatching { parser(frame.readText()) }
+                            .onFailure { AppLogger.warn("MihomoWebSocket", "Invalid $channel frame (${it.javaClass.simpleName})") }
+                            .getOrNull() ?: continue
                         emit(parsed)
                     }
                 }
             } catch (ce: CancellationException) {
                 throw ce
-            } catch (_: Exception) {
+            } catch (error: Exception) {
+                AppLogger.warn("MihomoWebSocket", "$channel channel failed (${error.javaClass.simpleName}); retry in ${backoffMs}ms")
             } finally {
                 if (counted) addLiveConnection(-1)
             }
             disconnectedEvent?.let { emit(it) }
+            AppLogger.debug("MihomoWebSocket", "$channel channel disconnected; retry in ${backoffMs}ms")
             delay(backoffMs)
             backoffMs = (backoffMs * 2).coerceAtMost(MAX_BACKOFF_MS)
         }
