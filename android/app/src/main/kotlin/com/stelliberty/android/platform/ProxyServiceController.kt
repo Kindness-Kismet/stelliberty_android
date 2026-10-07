@@ -58,7 +58,7 @@ class ProxyServiceController(
         context.startService(intent)
     }
 
-    // 判据只能用服务真实状态，启动头十来秒界面仍显示未运行。启动中先挂起等稳定再补一次重启，
+    // 判据只能用服务真实状态，启动期间界面仍显示未运行。启动中先挂起等稳定再补一次重启，
     // 停了就放弃——用户手动停的不该被这次重启拉起来。
     @Synchronized
     fun restartWhenReady(subscriptionId: String? = null) {
