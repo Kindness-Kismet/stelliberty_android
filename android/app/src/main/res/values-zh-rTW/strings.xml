@@ -306,10 +306,28 @@
 
     <!-- Settings -->
     <string name="settings_title">設定</string>
-    <string name="settings_group_proxy">代理</string>
-    <string name="settings_group_core">核心</string>
-    <string name="settings_group_subscription">訂閱</string>
     <string name="settings_group_automation">自動化</string>
+    <string name="settings_group_personalization">個人化</string>
+    <string name="settings_group_clash">Clash</string>
+    <string name="settings_group_application">應用程式</string>
+    <string name="settings_group_maintenance">維護</string>
+    <string name="clash_features_title">Clash 特性</string>
+    <string name="clash_features_summary">網路、連接埠、系統整合、DNS 與核心參數</string>
+    <string name="network_settings_summary">統一延遲、區域網路、IPv6 與嗅探器</string>
+    <string name="port_control_title">連接埠控制</string>
+    <string name="port_control_summary">代理連接埠與外部控制器</string>
+    <string name="system_integration_title">系統整合</string>
+    <string name="system_integration_summary">通道模式、VPN 或 ROOT 設定與分應用程式代理</string>
+    <string name="dns_settings_title">DNS 設定</string>
+    <string name="dns_settings_summary">Nameserver、增強模式與 FakeIP 過濾</string>
+    <string name="performance_settings_title">效能最佳化</string>
+    <string name="performance_settings_summary">Geodata 模式與處理程序比對</string>
+    <string name="settings_core_log_summary">核心輸出的最低等級，重新啟動代理後生效</string>
+    <string name="app_behavior_title">應用程式行為</string>
+    <string name="app_behavior_summary">自動連線、開機重啟、Wi-Fi 切換、通知與日誌</string>
+    <string name="data_management_title">資料管理</string>
+    <string name="age_key_title">Age 金鑰</string>
+    <string name="age_key_summary">為加密訂閱產生金鑰組</string>
     <string name="settings_general">一般</string>
     <string name="settings_tun_mode">通道模式</string>
     <string name="settings_tun_vpn_summary">透過 VpnService</string>
@@ -321,10 +339,6 @@
     <string name="settings_vpn_settings">VPN 設定</string>
     <string name="settings_vpn_summary">繞過私人網路、DNS 攔截、IPv6</string>
     <string name="settings_tun_device">TUN 裝置名稱</string>
-    <string name="settings_override_settings">覆寫設定</string>
-    <string name="settings_override_summary">連接埠、DNS、網路選項覆寫</string>
-    <string name="settings_meta_settings">Meta 設定</string>
-    <string name="settings_meta_summary">統一延遲、嗅探器等</string>
     <string name="settings_app_proxy">分應用程式代理</string>
     <string name="settings_app_proxy_summary">選擇需要代理的應用程式</string>
     <string name="settings_wifi_policy">Wi-Fi 自動切換</string>
@@ -435,7 +449,7 @@
     <string name="root_attach_force_reapply_summary">診斷開關：每次應用程式重新連線到執行中的 mihomo 時強制重建 iptables 規則。僅在重連後熱點規則遺失時開啟。</string>
 
     <!-- Network Settings -->
-    <string name="network_settings_title">覆寫設定</string>
+    <string name="network_settings_title">網路設定</string>
     <string name="network_proxy_ports">代理連接埠</string>
     <string name="network_http_port">HTTP 連接埠</string>
     <string name="network_socks_port">SOCKS 連接埠</string>
@@ -444,9 +458,7 @@
     <string name="network_mixed_port">Mixed 連接埠</string>
     <string name="network_options">網路選項</string>
     <string name="network_allow_lan">允許區域網路</string>
-    <string name="network_external_controller">外部控制器</string>
     <string name="network_bind_address">繫結位址</string>
-    <string name="network_dns">DNS</string>
     <string name="network_dns_enable">啟用 DNS</string>
     <string name="network_dns_listen">監聽位址</string>
     <string name="network_dns_listen_title">DNS 監聽位址</string>
@@ -494,19 +506,17 @@
     <string name="wifi_policy_permission_required">需要附近裝置與位置權限才能讀取目前 SSID</string>
 
     <!-- Meta Settings -->
-    <string name="meta_settings_title">Meta 設定</string>
-    <string name="meta_basic">基本</string>
-    <string name="meta_unified_delay">統一延遲</string>
-    <string name="meta_geodata_mode">Geodata 模式</string>
-    <string name="meta_tcp_concurrent">TCP 並行</string>
-    <string name="meta_find_process_mode">處理程序比對模式</string>
-    <string name="meta_sniffer">嗅探器</string>
-    <string name="meta_sniffer_enable">啟用嗅探器</string>
-    <string name="meta_sniffer_force_dns_mapping">強制 DNS 對應</string>
-    <string name="meta_sniffer_parse_pure_ip">解析純 IP</string>
-    <string name="meta_sniffer_override_dest">覆寫目標位址</string>
-    <string name="meta_sniffer_force_domain">強制嗅探網域</string>
-    <string name="meta_sniffer_skip_domain">跳過嗅探網域</string>
+    <string name="network_unified_delay">統一延遲</string>
+    <string name="performance_geodata_mode">Geodata 模式</string>
+    <string name="network_tcp_concurrent">TCP 並行</string>
+    <string name="performance_find_process_mode">處理程序比對模式</string>
+    <string name="network_sniffer">嗅探器</string>
+    <string name="network_sniffer_enable">啟用嗅探器</string>
+    <string name="network_sniffer_force_dns_mapping">強制 DNS 對應</string>
+    <string name="network_sniffer_parse_pure_ip">解析純 IP</string>
+    <string name="network_sniffer_override_dest">覆寫目標位址</string>
+    <string name="network_sniffer_force_domain">強制嗅探網域</string>
+    <string name="network_sniffer_skip_domain">跳過嗅探網域</string>
 
     <!-- App Proxy -->
     <string name="app_proxy_title">分應用程式代理</string>
@@ -535,7 +545,6 @@
     <string name="external_control_controller_hint">HTTP API 的監聽位址（例如 127.0.0.1:9090）。0.0.0.0 將自動覆寫為 127.0.0.1。</string>
     <string name="external_control_secret">API 金鑰</string>
     <string name="external_control_secret_hint">HTTP API 的 Bearer 驗證權杖。留空時優先使用訂閱設定檔中的 secret；若訂閱未設定則隨機產生。</string>
-    <string name="settings_external_control_summary">覆寫外部控制器設定</string>
 
     <!-- File Manager -->
     <string name="file_manager_title">檔案管理</string>
@@ -548,9 +557,7 @@
     <string name="settings_file_manager_summary">瀏覽並編輯已匯入訂閱的檔案</string>
 
     <!-- WebDAV Backup & Restore -->
-    <string name="settings_backup">備份與還原</string>
-    <string name="settings_backup_summary">透過本機檔案或 WebDAV 備份與還原</string>
-    <string name="backup_title">備份與還原</string>
+    <string name="data_management_summary">透過本機檔案或 WebDAV 備份與還原</string>
     <string name="backup_hint">將訂閱、覆寫與偏好設定打包備份至檔案或 WebDAV 伺服器；還原時可選擇合併或覆蓋本機資料。</string>
     <string name="backup_server_url">伺服器位址</string>
     <string name="backup_username">使用者名稱</string>
@@ -595,17 +602,16 @@
     <string name="common_copied">已複製</string>
     <string name="subscription_age_secret_key">Age 解密金鑰</string>
     <string name="subscription_age_secret_key_placeholder">用於 age 加密訂閱，未使用則留空</string>
-    <string name="meta_age">Age 加密</string>
-    <string name="meta_age_generate">產生金鑰組</string>
-    <string name="meta_age_generate_summary">為加密訂閱產生 age x25519 金鑰組</string>
-    <string name="meta_age_generate_hybrid">產生後量子金鑰組</string>
-    <string name="meta_age_generate_hybrid_summary">mlkem768-x25519 後量子金鑰組</string>
-    <string name="meta_age_keypair_title">Age 金鑰組</string>
-    <string name="meta_age_secret_key">私鑰</string>
-    <string name="meta_age_public_key">公鑰</string>
-    <string name="meta_age_copy_secret">複製私鑰</string>
-    <string name="meta_age_copy_public">複製公鑰</string>
-    <string name="meta_age_keygen_failed">產生金鑰組失敗</string>
+    <string name="age_key_generate">產生金鑰組</string>
+    <string name="age_key_generate_summary">為加密訂閱產生 age x25519 金鑰組</string>
+    <string name="age_key_generate_hybrid">產生後量子金鑰組</string>
+    <string name="age_key_generate_hybrid_summary">mlkem768-x25519 後量子金鑰組</string>
+    <string name="age_key_pair_title">Age 金鑰組</string>
+    <string name="age_key_secret">私鑰</string>
+    <string name="age_key_public">公鑰</string>
+    <string name="age_key_copy_secret">複製私鑰</string>
+    <string name="age_key_copy_public">複製公鑰</string>
+    <string name="age_key_generate_failed">產生金鑰組失敗</string>
 
     <!-- Overrides -->
     <string name="override_title">覆寫</string>

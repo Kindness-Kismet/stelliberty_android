@@ -1,6 +1,6 @@
 # 备份与恢复
 
-WebDAV / 本地备份恢复（设置 →「备份与恢复」）。包结构与 PC `FileDataBackupService` 一致，两端的包可互相恢复。见 [BackupManager](../../../../android/app/src/main/kotlin/com/stelliberty/android/data/backup/BackupManager.kt) / [PortableSettings](../../../../android/app/src/main/kotlin/com/stelliberty/android/data/backup/PortableSettings.kt) / [WebDavClient](../../../../android/app/src/main/kotlin/com/stelliberty/android/data/backup/WebDavClient.kt)。
+WebDAV / 本地备份恢复（设置 →「数据管理」）。包结构与 PC `FileDataBackupService` 一致，两端的包可互相恢复。见 [BackupManager](../../../../android/app/src/main/kotlin/com/stelliberty/android/data/backup/BackupManager.kt) / [PortableSettings](../../../../android/app/src/main/kotlin/com/stelliberty/android/data/backup/PortableSettings.kt) / [WebDavClient](../../../../android/app/src/main/kotlin/com/stelliberty/android/data/backup/WebDavClient.kt)。
 
 | 包内路径 | 内容 |
 |---|---|

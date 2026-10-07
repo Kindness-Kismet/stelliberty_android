@@ -20,7 +20,7 @@
 
 **停止态一律走 `ProxyServiceBridge.markStopped(tunMode)` / `markStoppedUnlessError(tunMode)`**，终态带着刚才运行的模式（storage 存的是「用户当前选择」）。onDestroy 保留 Error：失败路径是 `updateState(Error) + stopSelf()`，随后进入 onDestroy，`markStoppedUnlessError`（CAS）让 errorMessage 保留下来，两个 Service 共用这一实现。`HomeViewModel` 的 Error 分支弹 toast（首页不渲染 errorMessage，Error 与 Stopped 外观一致），同一条只弹一次，回到 Stopped 时清除标记；发布方已经 toast 过的（如 `resolveStartSubscriptionId`，它覆盖 Tile / 通知这类无 HomeViewModel 的入口）置 `errorNotified = true`，UI 据此跳过。
 
-**「用户选的模式」也写入桥**：`markStopped` 覆盖「运行后停止」；冷启动尚未启动过代理、或用户在停止态改模式时，走 **`ProxyServiceBridge.setSelectedTunMode(mode)`**。调用点：`StellibertyApplication.onCreate` 在 startKoin 之后立即填一次（唯一既能拿到 storage 又早于全部读取方的位置）；设置页选择器、`settings.set_tun_mode`、MainActivity 的 ROOT 不可用回退各同步一次。它只改 `tunMode` 一个字段（Error 与 errorMessage 保持原样），且只在非运行态生效（运行中的 `tunMode` 表示正在跑的模式）。`HomeViewModel` 的 Stopped / Error 分支整体重建 `HomeUiState` 以清空运行期数据，要保留的字段（含 `tunMode`）逐个显式带上。
+**「用户选的模式」也写入桥**：`markStopped` 覆盖「运行后停止」；冷启动尚未启动过代理、或用户在停止态改模式时，走 **`ProxyServiceBridge.setSelectedTunMode(mode)`**。调用点：`StellibertyApplication.onCreate` 在 startKoin 之后立即填一次（唯一既能拿到 storage 又早于全部读取方的位置）；系统集成页选择器、`settings.set_tun_mode`、MainActivity 的 ROOT 不可用回退各同步一次。它只改 `tunMode` 一个字段（Error 与 errorMessage 保持原样），且只在非运行态生效（运行中的 `tunMode` 表示正在跑的模式）。`HomeViewModel` 的 Stopped / Error 分支整体重建 `HomeUiState` 以清空运行期数据，要保留的字段（含 `tunMode`）逐个显式带上。
 
 ## 打开应用时自动连接
 

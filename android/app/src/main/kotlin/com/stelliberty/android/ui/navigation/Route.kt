@@ -33,22 +33,40 @@ sealed interface Route : NavKey {
     data object Connection : Route
 
     @Serializable
+    data object ClashFeatures : Route
+
+    @Serializable
+    data object NetworkSettings : Route
+
+    @Serializable
+    data object PortControl : Route
+
+    @Serializable
+    data object SystemIntegration : Route
+
+    @Serializable
+    data object DnsSettings : Route
+
+    @Serializable
+    data object PerformanceSettings : Route
+
+    @Serializable
     data object VpnSettings : Route
 
     @Serializable
     data object RootSettings : Route
 
     @Serializable
-    data object NetworkSettings : Route
-
-    @Serializable
-    data object ExternalControl : Route
+    data object AppBehavior : Route
 
     @Serializable
     data object FileManager : Route
 
     @Serializable
-    data object BackupRestore : Route
+    data object DataManagement : Route
+
+    @Serializable
+    data object AgeKey : Route
 
     @Serializable
     data class FileManagerEditor(val uuid: String, val relativePath: String) : Route
@@ -61,9 +79,6 @@ sealed interface Route : NavKey {
 
     @Serializable
     data object ThemeSettings : Route
-
-    @Serializable
-    data object MetaSettings : Route
 
     @Serializable
     data class SubscriptionEdit(val uuid: String) : Route

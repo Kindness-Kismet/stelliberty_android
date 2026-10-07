@@ -88,7 +88,7 @@ URL、age 密钥这类标点密集的值优先用业务指令（`subscription.ad
 - URLTest / Fallback 组的 `unfix`（恢复自动选择）
 - 编辑已有订阅的 age 密钥、自定义 User-Agent
 - 备份恢复的 SAF 文件选择器（系统 UI，无测试 ID；备份内容本身用 `backup.*` 验证）
-- 网络设置页里归 `override.user.json` 的项（mixed-port、DNS）
+- 「Clash 特性」各页里归 `override.user.json` 的项（端口、DNS 等）
 - 分应用代理的模式与勾选：`settings.set` 可写 `app_proxy_mode` / `app_proxy_packages`，验证界面联动时点 `AppProxy.*`
 
 ## 新增控件

@@ -28,14 +28,12 @@ import com.stelliberty.android.ui.theme.resolveIsDark
 import com.stelliberty.android.viewmodel.AppProxyViewModel
 import com.stelliberty.android.viewmodel.BackupViewModel
 import com.stelliberty.android.viewmodel.ChainProxyViewModel
+import com.stelliberty.android.viewmodel.ClashFeaturesViewModel
 import com.stelliberty.android.viewmodel.RuleOverrideViewModel
 import com.stelliberty.android.viewmodel.ConnectionViewModel
 import com.stelliberty.android.viewmodel.DnsQueryViewModel
-import com.stelliberty.android.viewmodel.ExternalControlViewModel
 import com.stelliberty.android.viewmodel.HomeViewModel
 import com.stelliberty.android.viewmodel.LogViewModel
-import com.stelliberty.android.viewmodel.MetaSettingsViewModel
-import com.stelliberty.android.viewmodel.NetworkSettingsViewModel
 import com.stelliberty.android.viewmodel.OverrideProfileViewModel
 import com.stelliberty.android.viewmodel.ProviderViewModel
 import com.stelliberty.android.viewmodel.ProxyViewModel
@@ -58,9 +56,7 @@ fun App(
     providerViewModel: ProviderViewModel? = null,
     connectionViewModel: ConnectionViewModel? = null,
     dnsQueryViewModel: DnsQueryViewModel? = null,
-    networkSettingsViewModel: NetworkSettingsViewModel? = null,
-    metaSettingsViewModel: MetaSettingsViewModel? = null,
-    externalControlViewModel: ExternalControlViewModel? = null,
+    clashFeaturesViewModel: ClashFeaturesViewModel? = null,
     appProxyViewModel: AppProxyViewModel? = null,
     filePicker: FilePicker? = null,
     storage: PlatformStorage? = null,
@@ -158,9 +154,7 @@ fun App(
                     providerViewModel = providerViewModel,
                     connectionViewModel = connectionViewModel,
                     dnsQueryViewModel = dnsQueryViewModel,
-                    networkSettingsViewModel = networkSettingsViewModel,
-                    metaSettingsViewModel = metaSettingsViewModel,
-                    externalControlViewModel = externalControlViewModel,
+                    clashFeaturesViewModel = clashFeaturesViewModel,
                     appProxyViewModel = appProxyViewModel,
                     filePicker = filePicker,
                     storage = storage,

@@ -115,8 +115,6 @@ object TestTags {
     }
 
     object Settings {
-        const val TUN_MODE = "Settings.TunModeEntry"
-
         fun entry(key: String) = "Settings.Entry.$key"
     }
 

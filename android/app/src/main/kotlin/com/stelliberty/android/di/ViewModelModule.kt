@@ -5,14 +5,12 @@ import com.stelliberty.android.data.api.AutoDelayTester
 import com.stelliberty.android.viewmodel.AppProxyViewModel
 import com.stelliberty.android.viewmodel.BackupViewModel
 import com.stelliberty.android.viewmodel.ChainProxyViewModel
+import com.stelliberty.android.viewmodel.ClashFeaturesViewModel
 import com.stelliberty.android.viewmodel.RuleOverrideViewModel
 import com.stelliberty.android.viewmodel.ConnectionViewModel
 import com.stelliberty.android.viewmodel.DnsQueryViewModel
-import com.stelliberty.android.viewmodel.ExternalControlViewModel
 import com.stelliberty.android.viewmodel.HomeViewModel
 import com.stelliberty.android.viewmodel.LogViewModel
-import com.stelliberty.android.viewmodel.MetaSettingsViewModel
-import com.stelliberty.android.viewmodel.NetworkSettingsViewModel
 import com.stelliberty.android.viewmodel.OverrideProfileViewModel
 import com.stelliberty.android.viewmodel.ProviderViewModel
 import com.stelliberty.android.viewmodel.ProxyViewModel
@@ -56,9 +54,7 @@ val viewModelModule = module {
             serviceController = get(),
         )
     }
-    single { NetworkSettingsViewModel(get()) }
-    single { MetaSettingsViewModel(get()) }
-    single { ExternalControlViewModel(get()) }
+    single { ClashFeaturesViewModel(get()) }
     single { LogViewModel() }
     single { ProviderViewModel() }
     single { ConnectionViewModel() }

@@ -308,10 +308,28 @@
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
-    <string name="settings_group_proxy">Proxy</string>
-    <string name="settings_group_core">Core</string>
-    <string name="settings_group_subscription">Subscriptions</string>
     <string name="settings_group_automation">Automation</string>
+    <string name="settings_group_personalization">Personalization</string>
+    <string name="settings_group_clash">Clash</string>
+    <string name="settings_group_application">Application</string>
+    <string name="settings_group_maintenance">Maintenance</string>
+    <string name="clash_features_title">Clash Features</string>
+    <string name="clash_features_summary">Network, ports, system integration, DNS, and core options</string>
+    <string name="network_settings_summary">Unified delay, LAN, IPv6, and sniffer</string>
+    <string name="port_control_title">Port Control</string>
+    <string name="port_control_summary">Proxy ports and external controller</string>
+    <string name="system_integration_title">System Integration</string>
+    <string name="system_integration_summary">Tunnel mode, VPN or ROOT settings, and per-app proxy</string>
+    <string name="dns_settings_title">DNS</string>
+    <string name="dns_settings_summary">Nameservers, enhanced mode, and FakeIP filter</string>
+    <string name="performance_settings_title">Performance</string>
+    <string name="performance_settings_summary">Geodata mode and process matching</string>
+    <string name="settings_core_log_summary">Minimum level output by the core; takes effect after restarting the proxy</string>
+    <string name="app_behavior_title">App Behavior</string>
+    <string name="app_behavior_summary">Auto connect, boot restore, Wi-Fi switching, notifications, and logs</string>
+    <string name="data_management_title">Data Management</string>
+    <string name="age_key_title">Age Keys</string>
+    <string name="age_key_summary">Generate key pairs for encrypted subscriptions</string>
     <string name="settings_general">General</string>
     <string name="settings_tun_mode">Tunnel Mode</string>
     <string name="settings_tun_vpn_summary">via VpnService</string>
@@ -323,10 +341,6 @@
     <string name="settings_vpn_settings">VPN Settings</string>
     <string name="settings_vpn_summary">Bypass private network, DNS hijacking, IPv6</string>
     <string name="settings_tun_device">TUN Device Name</string>
-    <string name="settings_override_settings">Override Settings</string>
-    <string name="settings_override_summary">Ports, DNS, network overrides</string>
-    <string name="settings_meta_settings">Meta Settings</string>
-    <string name="settings_meta_summary">Unified delay, sniffer, etc.</string>
     <string name="settings_app_proxy">Per-App Proxy</string>
     <string name="settings_app_proxy_summary">Select apps to proxy</string>
     <string name="settings_wifi_policy">Wi-Fi Auto Switch</string>
@@ -437,7 +451,7 @@
     <string name="root_attach_force_reapply_summary">Diagnostic: re-apply iptables rules every time the app reattaches to a running mihomo. Leave off unless tether rules disappear after reconnect.</string>
 
     <!-- Network Settings -->
-    <string name="network_settings_title">Override Settings</string>
+    <string name="network_settings_title">Network</string>
     <string name="network_proxy_ports">Proxy Ports</string>
     <string name="network_http_port">HTTP Port</string>
     <string name="network_socks_port">SOCKS Port</string>
@@ -446,9 +460,7 @@
     <string name="network_mixed_port">Mixed Port</string>
     <string name="network_options">Network Options</string>
     <string name="network_allow_lan">Allow LAN</string>
-    <string name="network_external_controller">External Controller</string>
     <string name="network_bind_address">Bind Address</string>
-    <string name="network_dns">DNS</string>
     <string name="network_dns_enable">Enable DNS</string>
     <string name="network_dns_listen">Listen Address</string>
     <string name="network_dns_listen_title">DNS Listen Address</string>
@@ -496,19 +508,17 @@
     <string name="wifi_policy_permission_required">Nearby devices and location permissions are required to read the current SSID</string>
 
     <!-- Meta Settings -->
-    <string name="meta_settings_title">Meta Settings</string>
-    <string name="meta_basic">Basic</string>
-    <string name="meta_unified_delay">Unified Delay</string>
-    <string name="meta_geodata_mode">Geodata Mode</string>
-    <string name="meta_tcp_concurrent">TCP Concurrent</string>
-    <string name="meta_find_process_mode">Process Match Mode</string>
-    <string name="meta_sniffer">Sniffer</string>
-    <string name="meta_sniffer_enable">Enable Sniffer</string>
-    <string name="meta_sniffer_force_dns_mapping">Force DNS Mapping</string>
-    <string name="meta_sniffer_parse_pure_ip">Parse Pure IP</string>
-    <string name="meta_sniffer_override_dest">Override Destination</string>
-    <string name="meta_sniffer_force_domain">Force Sniff Domain</string>
-    <string name="meta_sniffer_skip_domain">Skip Sniff Domain</string>
+    <string name="network_unified_delay">Unified Delay</string>
+    <string name="performance_geodata_mode">Geodata Mode</string>
+    <string name="network_tcp_concurrent">TCP Concurrent</string>
+    <string name="performance_find_process_mode">Process Match Mode</string>
+    <string name="network_sniffer">Sniffer</string>
+    <string name="network_sniffer_enable">Enable Sniffer</string>
+    <string name="network_sniffer_force_dns_mapping">Force DNS Mapping</string>
+    <string name="network_sniffer_parse_pure_ip">Parse Pure IP</string>
+    <string name="network_sniffer_override_dest">Override Destination</string>
+    <string name="network_sniffer_force_domain">Force Sniff Domain</string>
+    <string name="network_sniffer_skip_domain">Skip Sniff Domain</string>
 
     <!-- App Proxy -->
     <string name="app_proxy_title">Per-App Proxy</string>
@@ -537,7 +547,6 @@
     <string name="external_control_controller_hint">Bind address for the HTTP API (e.g. 127.0.0.1:9090). 0.0.0.0 will be automatically overwritten with 127.0.0.1.</string>
     <string name="external_control_secret">API Secret</string>
     <string name="external_control_secret_hint">Bearer token for the HTTP API. When empty, falls back to the secret defined in the subscription config, or a random one if the subscription does not set it.</string>
-    <string name="settings_external_control_summary">Overwrite external controller configuration</string>
 
     <!-- File Manager -->
     <string name="file_manager_title">File Manager</string>
@@ -550,9 +559,7 @@
     <string name="settings_file_manager_summary">Browse and edit imported subscription files</string>
 
     <!-- WebDAV Backup & Restore -->
-    <string name="settings_backup">Backup &amp; Restore</string>
-    <string name="settings_backup_summary">Back up and restore via local file or WebDAV</string>
-    <string name="backup_title">Backup &amp; Restore</string>
+    <string name="data_management_summary">Back up and restore via local file or WebDAV</string>
     <string name="backup_hint">Back up subscriptions, overrides and preferences as a single archive, to a file or a WebDAV server. Restoring can merge into or overwrite local data.</string>
     <string name="backup_server_url">Server URL</string>
     <string name="backup_username">Username</string>
@@ -597,17 +604,16 @@
     <string name="common_copied">Copied</string>
     <string name="subscription_age_secret_key">Age Secret Key</string>
     <string name="subscription_age_secret_key_placeholder">For age-encrypted profiles, leave blank if unused</string>
-    <string name="meta_age">Age Encryption</string>
-    <string name="meta_age_generate">Generate Key Pair</string>
-    <string name="meta_age_generate_summary">Create an age x25519 key pair for encrypted subscriptions</string>
-    <string name="meta_age_generate_hybrid">Generate Hybrid Key Pair</string>
-    <string name="meta_age_generate_hybrid_summary">Post-quantum mlkem768-x25519 key pair</string>
-    <string name="meta_age_keypair_title">Age Key Pair</string>
-    <string name="meta_age_secret_key">Secret Key</string>
-    <string name="meta_age_public_key">Public Key</string>
-    <string name="meta_age_copy_secret">Copy Secret Key</string>
-    <string name="meta_age_copy_public">Copy Public Key</string>
-    <string name="meta_age_keygen_failed">Failed to generate key pair</string>
+    <string name="age_key_generate">Generate Key Pair</string>
+    <string name="age_key_generate_summary">Create an age x25519 key pair for encrypted subscriptions</string>
+    <string name="age_key_generate_hybrid">Generate Hybrid Key Pair</string>
+    <string name="age_key_generate_hybrid_summary">Post-quantum mlkem768-x25519 key pair</string>
+    <string name="age_key_pair_title">Age Key Pair</string>
+    <string name="age_key_secret">Secret Key</string>
+    <string name="age_key_public">Public Key</string>
+    <string name="age_key_copy_secret">Copy Secret Key</string>
+    <string name="age_key_copy_public">Copy Public Key</string>
+    <string name="age_key_generate_failed">Failed to generate key pair</string>
 
     <!-- Overrides -->
     <string name="override_title">Overrides</string>
