@@ -1,7 +1,21 @@
-- Fixed incorrect app proxy selection counts when selected apps are hidden or no longer installed
-- Improved app proxy lists to refresh when opening the page or returning to the foreground, reflecting newly installed and removed apps
+- Changed how settings are grouped; it now matches the desktop client, with Personalization, Clash, Application, and Maintenance on the main page and Clash options split into Network, Port Control, System Integration, DNS, and Performance pages
+- Changed how override fields are edited; leaving a field empty now uses the default, and the clear button in the list editor's top-right corner only empties the input
+- Added separate log levels for the app and the core, so you can now control application and core logs independently
+- Improved the log page, which now separates application and core logs, shows the newest entries first, and follows new entries at the top
+- Improved log export, which now saves the complete log file with subscription tokens and node links masked, and records startup, runtime, and profile fetch details
+- Fixed an issue with the ROOT mode core after app updates that previously left the old core running and made the next start fail with its ports still in use
+- Improved ROOT mode core management, which now stops only cores started by this app and reports when a stop fails
+- Fixed an issue with the subscription add and edit pages that previously let the software keyboard cover the focused field
+- Changed how the About page and Quick Settings tile icons look; they now match the app icon
 
 ---
 
-- 修复分应用代理已选数量不准确的问题，隐藏或已卸载的应用不再计入当前列表
-- 改善分应用代理列表刷新，打开页面或返回前台时重新获取应用，及时显示安装和卸载的变化
+- 调整了设置的分类方式，现在与桌面版一致：主页分为个性化、Clash、应用和维护四组，Clash 选项拆分为网络设置、端口控制、系统集成、DNS 配置和性能优化等页面
+- 调整了覆写字段的编辑方式，现在留空即使用默认值，列表编辑框右上角的清除按钮只清空输入内容
+- 新增了应用与核心各自的日志级别，现在可以分别控制应用日志和核心日志
+- 对日志页面进行了改善，现在分开显示应用日志和核心日志，最新的日志排在最前，并在顶部跟随新日志
+- 对日志导出进行了改善，现在导出完整的日志文件并遮蔽订阅令牌和节点链接，同时记录启动、运行和订阅获取的详细信息
+- 修复了应用更新后 ROOT 模式核心的问题，该问题曾导致旧核心无法停止，下次启动时端口仍被占用
+- 对 ROOT 模式的核心管理进行了改善，现在只停止本应用启动的核心，停止失败时会如实提示
+- 修复了添加和编辑订阅页面的问题，该问题曾导致软键盘遮挡正在输入的字段
+- 调整了关于页面和快捷设置磁贴的图标，现在与应用图标一致
