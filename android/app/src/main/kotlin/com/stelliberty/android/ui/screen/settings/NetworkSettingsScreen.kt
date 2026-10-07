@@ -407,7 +407,7 @@ private fun LogLevelPreference(
     val selectedIndex = values.indexOf(value).coerceAtLeast(0)
 
     OverlayDropdownPreference(
-        title = stringResource(R.string.network_log_level),
+        title = stringResource(R.string.log_source_core),
         items = items,
         selectedIndex = selectedIndex,
         onSelectedIndexChange = { index -> onValueChange(values[index]) },

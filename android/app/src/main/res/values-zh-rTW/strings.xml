@@ -396,6 +396,7 @@
     <string name="settings_swipe_dismiss_summary">在頁面任意位置橫移即可返回上一頁</string>
     <string name="settings_hide_task_card">從最近使用清單隱藏</string>
     <string name="settings_hide_task_card_summary">在最近使用清單中隱藏任務卡片</string>
+    <string name="settings_app_log_summary">寫入應用程式日誌的最低等級</string>
     <string name="settings_about">關於</string>
 
     <!-- VPN Settings -->
@@ -445,7 +446,6 @@
     <string name="network_allow_lan">允許區域網路</string>
     <string name="network_external_controller">外部控制器</string>
     <string name="network_bind_address">繫結位址</string>
-    <string name="network_log_level">日誌等級</string>
     <string name="network_dns">DNS</string>
     <string name="network_dns_enable">啟用 DNS</string>
     <string name="network_dns_listen">監聽位址</string>

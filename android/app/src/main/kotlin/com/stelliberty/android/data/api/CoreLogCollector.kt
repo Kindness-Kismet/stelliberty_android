@@ -1,7 +1,6 @@
 package com.stelliberty.android.data.api
 
 import com.stelliberty.android.domain.model.LogEvent
-import com.stelliberty.android.domain.model.LogLevel
 import com.stelliberty.android.domain.model.LogSource
 import com.stelliberty.android.domain.repository.MihomoRepository
 import com.stelliberty.android.util.AppLogger
@@ -28,7 +27,12 @@ class CoreLogCollector(
         logs.setCoreConnected(false)
         job = repo?.let {
             scope.launch(dispatcher) {
-                repo.logsFlow(LogLevel.Debug).collect { event ->
+                // 内核向 /logs 推送时不看 log-level，只按订阅参数过滤；按实际生效的等级订阅，
+                // 「核心日志」设置才能同时管住 mihomo.log 与这里。
+                val level = repo.getConfig()
+                    .onFailure { AppLogger.warn("CoreLogCollector", "Failed to read core log level, using info", it) }
+                    .getOrNull()?.logLevel ?: "info"
+                repo.logsFlow(level).collect { event ->
                     synchronized(this@CoreLogCollector) {
                         if (repository !== repo) return@collect
                         when (event) {

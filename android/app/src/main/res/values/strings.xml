@@ -398,6 +398,7 @@
     <string name="settings_swipe_dismiss_summary">Swipe sideways anywhere on the page to go back</string>
     <string name="settings_hide_task_card">Hide from recents</string>
     <string name="settings_hide_task_card_summary">Hide task card in recent tasks</string>
+    <string name="settings_app_log_summary">Minimum level written to application logs</string>
     <string name="settings_about">About</string>
 
     <!-- VPN Settings -->
@@ -447,7 +448,6 @@
     <string name="network_allow_lan">Allow LAN</string>
     <string name="network_external_controller">External Controller</string>
     <string name="network_bind_address">Bind Address</string>
-    <string name="network_log_level">Log Level</string>
     <string name="network_dns">DNS</string>
     <string name="network_dns_enable">Enable DNS</string>
     <string name="network_dns_listen">Listen Address</string>

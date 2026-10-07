@@ -31,6 +31,7 @@ import com.stelliberty.android.ui.component.blur.rememberBlurBackdrop
 import com.stelliberty.android.ui.component.groupedCardItems
 import com.stelliberty.android.ui.util.WideContentBox
 import com.stelliberty.android.ui.util.label
+import com.stelliberty.android.util.AppLogger
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SmallTitle
@@ -41,6 +42,10 @@ import top.yukonga.miuix.kmp.preference.SwitchPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
+
+// 与「核心日志」的选项和顺序保持一致。
+private val APP_LOG_LEVELS = listOf("info", "warning", "error", "debug", "silent")
+private val APP_LOG_LEVEL_LABELS = listOf("Info", "Warning", "Error", "Debug", "Silent")
 
 private fun LazyListScope.settingsGroup(
     keyPrefix: String,
@@ -90,6 +95,9 @@ fun SettingsScreen(
     }
     var isHideTaskCardEnabled by remember {
         mutableStateOf(storage?.getString(StorageKeys.HIDE_TASK_CARD, "false") == "true")
+    }
+    var appLogLevel by remember {
+        mutableStateOf(storage?.getString(StorageKeys.APP_LOG_LEVEL, AppLogger.DEFAULT_LEVEL) ?: AppLogger.DEFAULT_LEVEL)
     }
     var tunModeIndex by remember {
         mutableIntStateOf(TunMode.fromStorage(storage?.getString(StorageKeys.TUN_MODE, TunMode.Vpn.storageValue)).ordinal)
@@ -304,6 +312,20 @@ fun SettingsScreen(
                             )
                         })
                     }
+                    add(CardItem("appLogLevel") {
+                        OverlayDropdownPreference(
+                            title = stringResource(R.string.log_source_application),
+                            summary = stringResource(R.string.settings_app_log_summary),
+                            items = APP_LOG_LEVEL_LABELS,
+                            selectedIndex = APP_LOG_LEVELS.indexOf(appLogLevel).coerceAtLeast(0),
+                            onSelectedIndexChange = { index ->
+                                val level = APP_LOG_LEVELS[index]
+                                storage?.putString(StorageKeys.APP_LOG_LEVEL, level)
+                                AppLogger.setLevel(level)
+                                appLogLevel = level
+                            },
+                        )
+                    })
                     add(CardItem("backup") {
                         ArrowPreference(
                             title = stringResource(R.string.settings_backup),

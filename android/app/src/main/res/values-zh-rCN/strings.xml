@@ -396,6 +396,7 @@
     <string name="settings_swipe_dismiss_summary">在页面任意位置横移即可返回上一页</string>
     <string name="settings_hide_task_card">后台卡片隐藏</string>
     <string name="settings_hide_task_card_summary">在最近任务中隐藏任务卡片</string>
+    <string name="settings_app_log_summary">写入应用日志的最低等级</string>
     <string name="settings_about">关于</string>
 
     <!-- VPN Settings -->
@@ -445,7 +446,6 @@
     <string name="network_allow_lan">允许局域网</string>
     <string name="network_external_controller">外部控制器</string>
     <string name="network_bind_address">绑定地址</string>
-    <string name="network_log_level">日志等级</string>
     <string name="network_dns">DNS</string>
     <string name="network_dns_enable">启用 DNS</string>
     <string name="network_dns_listen">监听地址</string>
