@@ -10,11 +10,13 @@ import com.stelliberty.android.platform.PlatformStorage
 import com.stelliberty.android.platform.StorageKeys
 import com.stelliberty.android.platform.TunMode
 import com.stelliberty.android.service.RuntimeOverrideBuilder.DEFAULT_MIXED_PORT
+import com.stelliberty.android.util.AppLogger
 import java.io.File
 import kotlinx.serialization.json.Json
 
 object RuntimeOverrideBuilder {
 
+    private const val TAG = "RuntimeOverride"
     private const val FILE_NAME = "override.run.json"
     internal const val DEFAULT_TUN_DEVICE = "Stelliberty"
 
@@ -71,6 +73,14 @@ object RuntimeOverrideBuilder {
         )
         val file = File(ConfigGenerator.getWorkDir(context), FILE_NAME)
         ProfileFileOps.writeAtomically(file, json.encodeToString(merged))
+        // 分应用包名可能上百个，日志只记数量。
+        val tun = merged.tun
+        val logged = merged.copy(tun = tun?.copy(includePackage = null, excludePackage = null))
+        AppLogger.info(
+            TAG,
+            "Runtime override for $tunMode: ${json.encodeToString(logged)}; " +
+                "includePackages=${tun?.includePackage?.size ?: 0}, excludePackages=${tun?.excludePackage?.size ?: 0}",
+        )
         return file
     }
 

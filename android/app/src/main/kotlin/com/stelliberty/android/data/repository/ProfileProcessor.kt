@@ -11,6 +11,7 @@ import com.stelliberty.android.util.AppLogger
 import com.stelliberty.android.util.describe
 import java.net.URI
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.time.TimeSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.sync.Mutex
@@ -85,8 +86,15 @@ class ProfileProcessor(
             }
 
             try {
+                val started = TimeSource.Monotonic.markNow()
                 val proxyUrl = if (snapshot.isLocalFile) null
                 else proxyResolver.resolveForSubscription(snapshot.updateProxyMode)
+                AppLogger.info(
+                    TAG,
+                    "Fetching profile $uuid: update=$isUpdate, source=${if (snapshot.isLocalFile) "file" else "url"}, " +
+                        "updateProxyMode=${snapshot.updateProxyMode}, proxy=${proxyUrl ?: "direct"}, " +
+                        "customUserAgent=${snapshot.userAgent.isNotBlank()}, encrypted=${snapshot.ageSecretKey.isNotBlank()}",
+                )
 
                 val result = try {
                     StellibertyCoreBridge.fetchAndValid(
@@ -128,6 +136,11 @@ class ProfileProcessor(
                         }
                     }
                 }
+                AppLogger.info(
+                    TAG,
+                    "Profile $uuid committed in ${started.elapsedNow().inWholeMilliseconds}ms: " +
+                        "traffic=${trafficInfo != null}, builtinChains=${result.builtinChainProxyNames.size}",
+                )
             } catch (t: Throwable) {
                 if (t !is CancellationException) {
                     AppLogger.error(TAG, "Profile pipeline failed for $uuid (update=$isUpdate)", t)

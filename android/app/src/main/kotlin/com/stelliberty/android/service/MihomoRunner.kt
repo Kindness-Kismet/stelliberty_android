@@ -3,10 +3,14 @@ package com.stelliberty.android.service
 import android.content.Context
 import android.os.SystemClock
 import com.stelliberty.android.R
+import com.stelliberty.android.domain.model.LogLevel
+import com.stelliberty.android.domain.model.LogSource
 import com.stelliberty.android.platform.PlatformStorage
 import com.stelliberty.android.platform.StorageKeys
 import com.stelliberty.android.util.AppLogger
 import java.io.File
+import java.time.Instant
+import java.time.OffsetDateTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
@@ -182,14 +186,15 @@ class MihomoRunner(private val context: Context) {
         while (SystemClock.elapsedRealtime() < deadline) {
             if (MihomoApiProbe.isReady(childPid, secret, externalController)) {
                 val log = readStartupLog(useRoot, workDir)
+                recordStartupLog(log)
                 return scanLogForTunError(log)
             }
             if (SystemClock.elapsedRealtime() >= nextLivenessCheck) {
                 val alive = if (useRoot) RootHelper.isAliveAsRoot(childPid) else isProcessAlive(childPid)
                 if (!alive) {
                     val logContent = readStartupLog(useRoot, workDir)
+                    recordStartupLog(logContent)
                     return if (logContent.isNotBlank()) {
-                        AppLogger.error(TAG, "mihomo log:\n$logContent")
                         context.getString(R.string.error_mihomo_start_failed, extractErrorMessage(logContent))
                     } else {
                         context.getString(R.string.error_mihomo_exited)
@@ -200,8 +205,8 @@ class MihomoRunner(private val context: Context) {
             delay(READY_POLL_INTERVAL_MS)
         }
         val logContent = readStartupLog(useRoot, workDir)
+        recordStartupLog(logContent)
         return if (logContent.isNotBlank()) {
-            AppLogger.warn(TAG, "API timeout, mihomo log:\n$logContent")
             context.getString(R.string.error_mihomo_not_ready) + "\n" + extractErrorMessage(logContent)
         } else {
             context.getString(R.string.error_mihomo_not_ready)
@@ -231,6 +236,59 @@ class MihomoRunner(private val context: Context) {
         } else {
             logFile.readLastLines(STARTUP_LOG_LINES)
         }
+    }
+
+    // API 就绪前 WebSocket 还没连上，这段内核日志只能从启动日志文件补进核心日志。
+    // 不是 logrus 格式的连续行（崩溃调用栈）合并成一条错误。
+    private fun recordStartupLog(log: String) {
+        val raw = mutableListOf<String>()
+        fun flushRaw() {
+            if (raw.isEmpty()) return
+            AppLogger.logs.append(LogSource.Core, LogLevel.Error, CORE_LOG_TAG, raw.joinToString("\n"))
+            raw.clear()
+        }
+        log.lineSequence().filter { it.isNotBlank() }.forEach { line ->
+            val match = STARTUP_LOG_LINE.find(line)
+            if (match == null) {
+                raw += line
+                return@forEach
+            }
+            flushRaw()
+            val (time, level, quoted, bare) = match.destructured
+            AppLogger.logs.append(
+                source = LogSource.Core,
+                level = when (level) {
+                    "trace", "debug" -> LogLevel.Debug
+                    "info" -> LogLevel.Info
+                    "warning" -> LogLevel.Warning
+                    else -> LogLevel.Error
+                },
+                tag = CORE_LOG_TAG,
+                message = bare.ifEmpty { unquoteGo(quoted) },
+                receivedAt = runCatching { OffsetDateTime.parse(time).toInstant() }.getOrElse { Instant.now() },
+            )
+        }
+        flushRaw()
+    }
+
+    // logrus 用 Go 的 %q 引用含空格的值，这里只还原日志里会出现的转义。
+    private fun unquoteGo(text: String): String {
+        if ('\\' !in text) return text
+        val out = StringBuilder(text.length)
+        var i = 0
+        while (i < text.length) {
+            val c = text[i++]
+            if (c != '\\' || i == text.length) {
+                out.append(c)
+                continue
+            }
+            when (val escaped = text[i++]) {
+                'n' -> out.append('\n')
+                't' -> out.append('\t')
+                else -> out.append(escaped)
+            }
+        }
+        return out.toString()
     }
 
     private fun extractErrorMessage(logContent: String): String {
@@ -264,5 +322,7 @@ class MihomoRunner(private val context: Context) {
         private const val FORCE_STOP_TIMEOUT_MS = 500
 
         private const val STARTUP_LOG_LINES = 200
+        private const val CORE_LOG_TAG = "mihomo"
+        private val STARTUP_LOG_LINE = Regex("""^time="([^"]*)" level=(\w+) msg=(?:"((?:[^"\\]|\\.)*)"|(\S*))""")
     }
 }
