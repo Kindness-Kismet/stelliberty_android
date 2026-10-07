@@ -23,6 +23,12 @@ fetch + provider prefetch + Parse 三步经 `StellibertyCoreBridge.fetchAndValid
 - 订阅 HTTP 走 mihomo `component/http.HttpRequest`（进程内 cgo），超时 60s。UA 默认 `ClashMetaForAndroid/{version}`；用户可在 Add / Edit 页填自定义 UA，存入 `Subscription.userAgent`，经 PendingSnapshot 传到 Go `runFetchAndValid`：`effectiveUA = trim(userAgent) ?: currentUserAgent()`。非 2xx 或空 body 返回 `StellibertyCoreError`。订阅内容原样交给 mihomo 解析，app 侧不做 base64 / V2Ray 转换。
 - **名字留空时自动命名**：Url 型允许名字留空（`enforceFieldValid` 放行）。fetch 响应的 `Content-Disposition` filename（Go 侧 `mime.ParseMediaType` 解析 RFC 5987，去掉 .yaml / .yml 后缀）经 `FetchResult.FileName` 回传；`commitPending(fallbackName)` 只在 commit 时 `pending.name` 仍为空时采用。用户输入（含深链 `name` 参数）优先，兜底链为 disposition > URL host > 调用方注入的默认名。更新订阅（isUpdate）保留原名。
 
+## provider 缓存路径
+
+http provider 的缓存一律放在工作目录的 `providers/` 下（`provider_paths.go`）：配置写了 `path` 时以 `/` 为根清理后保留其相对结构，`../` 与绝对路径都收进该目录；没写时用 `{proxies|rules}/<URL 哈希>`。导入预取、`validateTransform` 与运行时共用这一规则，运行时直接读到预取的文件，就绪前不必再下载。cmfa 构建跳过了 mihomo 的安全路径检查，这一步也把 ROOT 内核的写入限制在工作目录内。
+
+运行时只能把配置文本交给内核：`runtime.go` 在套用 `--transform` 之后调用 `patchProviderPathsYAML`，按解析后的值（合并键、锚点已展开）算路径，再写回 YAML 节点。合并键带来的 provider 补成显式条目；别名指向的节点先复制再改，带锚点的原节点就地改。
+
 ## age 加密订阅
 
 per-profile `ageSecretKey` 经 `PendingSnapshot` 传到 `fetchAndValid`。磁盘上保持加密，运行时解密：
