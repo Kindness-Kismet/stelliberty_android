@@ -474,9 +474,10 @@
     <string name="network_dns_default_nameserver">Default Nameserver</string>
     <string name="network_dns_fakeip_filter">FakeIP Filter</string>
     <string name="network_port_label">Port (0-65535)</string>
-    <string name="network_port_zero_hint">0 disables this listener</string>
+    <string name="network_port_zero_hint">Leave empty to use the default; 0 disables this listener</string>
     <string name="network_input_value">Input value</string>
     <string name="network_one_per_line">One per line</string>
+    <string name="override_empty_hint">Leave empty to use the default</string>
     <string name="settings_override_restart_hint">Changes to these settings take effect after restarting the proxy service.</string>
 
     <!-- Wi-Fi Policy -->
@@ -539,7 +540,6 @@
     <string name="app_proxy_deny_selected_summary">Selected apps bypass proxy</string>
     <string name="app_proxy_app_list">App List (%1$d/%2$d)</string>
     <string name="app_proxy_applied">Per-app proxy applied</string>
-    <string name="dialog_reset_done">Reset to default</string>
 
     <!-- External Control -->
     <string name="external_control_title">External Controller</string>

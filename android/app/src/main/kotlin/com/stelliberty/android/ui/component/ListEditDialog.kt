@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -17,6 +16,7 @@ import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.window.WindowDialog
 
+// 留空确定写回 null（使用默认值）；「清除」写回空列表，二者在覆写里含义不同。
 @Composable
 fun ListEditDialog(
     show: Boolean,
@@ -24,11 +24,11 @@ fun ListEditDialog(
     textState: TextFieldState,
     onDismiss: () -> Unit,
     onConfirm: (List<String>?) -> Unit,
-    onReset: () -> Unit,
 ) {
     WindowDialog(
         show = show,
         title = title,
+        summary = stringResource(R.string.override_empty_hint),
         onDismissRequest = onDismiss,
     ) {
         TextField(
@@ -39,7 +39,7 @@ fun ListEditDialog(
         Spacer(Modifier.height(12.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             TextButton(
                 text = stringResource(R.string.common_clear),
@@ -50,26 +50,20 @@ fun ListEditDialog(
                 },
             )
             TextButton(
+                text = stringResource(R.string.common_cancel),
+                modifier = Modifier.weight(1f),
+                onClick = onDismiss,
+            )
+            TextButton(
                 text = stringResource(R.string.common_confirm),
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.textButtonColorsPrimary(),
                 onClick = {
-                    val text = textState.text.toString()
-                    val list = text.lines().map { it.trim() }.filter { it.isNotEmpty() }
-                    onConfirm(list)
+                    val list = textState.text.lines().map { it.trim() }.filter { it.isNotEmpty() }
+                    onConfirm(list.ifEmpty { null })
                     onDismiss()
                 },
             )
         }
-        TextButton(
-            text = stringResource(R.string.common_not_modified),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp),
-            onClick = {
-                onReset()
-                onDismiss()
-            },
-        )
     }
 }

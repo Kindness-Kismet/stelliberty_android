@@ -472,9 +472,10 @@
     <string name="network_dns_default_nameserver">默认 Nameserver</string>
     <string name="network_dns_fakeip_filter">FakeIP 过滤</string>
     <string name="network_port_label">端口号 (0-65535)</string>
-    <string name="network_port_zero_hint">填写 0 表示禁用该端口</string>
+    <string name="network_port_zero_hint">留空使用默认值，填 0 禁用该端口</string>
     <string name="network_input_value">输入值</string>
     <string name="network_one_per_line">每行一条</string>
+    <string name="override_empty_hint">留空使用默认值</string>
     <string name="settings_override_restart_hint">此页设置修改后需重启代理服务生效</string>
 
     <!-- Wi-Fi 策略 -->
@@ -537,7 +538,6 @@
     <string name="app_proxy_deny_selected_summary">选中的应用不经过代理</string>
     <string name="app_proxy_app_list">应用列表 (%1$d/%2$d)</string>
     <string name="app_proxy_applied">已应用分应用代理</string>
-    <string name="dialog_reset_done">已恢复默认值</string>
 
     <!-- External Control -->
     <string name="external_control_title">外部控制器</string>

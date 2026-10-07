@@ -20,7 +20,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.stelliberty.android.R
-import com.stelliberty.android.platform.showToast
 import com.stelliberty.android.ui.component.ListEditDialog
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.TextButton
@@ -77,19 +76,15 @@ internal class OverrideEditorState {
 @Composable
 internal fun rememberOverrideEditorState(): OverrideEditorState = remember { OverrideEditorState() }
 
+// 三种弹窗都以留空表示使用默认值，写回 null 后该字段不进入覆写。
 @Composable
 internal fun OverrideEditorDialogs(state: OverrideEditorState) {
-    val resetDoneMsg = stringResource(R.string.dialog_reset_done)
     PortEditDialog(
         show = state.kind == OverrideEditorKind.Port,
         title = state.title,
         textState = state.textState,
         onDismiss = state::dismiss,
         onConfirm = state::applyPort,
-        onReset = {
-            state.applyPort(null)
-            showToast(resetDoneMsg)
-        },
     )
     TextEditDialog(
         show = state.kind == OverrideEditorKind.Text,
@@ -97,10 +92,6 @@ internal fun OverrideEditorDialogs(state: OverrideEditorState) {
         textState = state.textState,
         onDismiss = state::dismiss,
         onConfirm = state::applyText,
-        onReset = {
-            state.applyText(null)
-            showToast(resetDoneMsg)
-        },
     )
     ListEditDialog(
         show = state.kind == OverrideEditorKind.List,
@@ -108,10 +99,6 @@ internal fun OverrideEditorDialogs(state: OverrideEditorState) {
         textState = state.textState,
         onDismiss = state::dismiss,
         onConfirm = state::applyList,
-        onReset = {
-            state.applyList(null)
-            showToast(resetDoneMsg)
-        },
     )
 }
 
@@ -171,7 +158,6 @@ private fun PortEditDialog(
     textState: TextFieldState,
     onDismiss: () -> Unit,
     onConfirm: (Int?) -> Unit,
-    onReset: () -> Unit,
 ) {
     WindowDialog(
         show = show,
@@ -187,11 +173,14 @@ private fun PortEditDialog(
         )
         Spacer(Modifier.height(12.dp))
         EditDialogButtons(
-            onReset = onReset,
             onDismiss = onDismiss,
             onConfirm = {
-                val port = textState.text.toString().toIntOrNull()
-                if (port != null && port in 0..65535) onConfirm(port)
+                val text = textState.text.toString().trim()
+                val port = text.toIntOrNull()
+                when {
+                    text.isEmpty() -> onConfirm(null)
+                    port != null && port in 0..65535 -> onConfirm(port)
+                }
             },
         )
     }
@@ -204,11 +193,11 @@ private fun TextEditDialog(
     textState: TextFieldState,
     onDismiss: () -> Unit,
     onConfirm: (String?) -> Unit,
-    onReset: () -> Unit,
 ) {
     WindowDialog(
         show = show,
         title = title,
+        summary = stringResource(R.string.override_empty_hint),
         onDismissRequest = onDismiss,
     ) {
         TextField(
@@ -218,17 +207,14 @@ private fun TextEditDialog(
         )
         Spacer(Modifier.height(12.dp))
         EditDialogButtons(
-            onReset = onReset,
             onDismiss = onDismiss,
             onConfirm = { onConfirm(textState.text.toString().trim().ifEmpty { null }) },
         )
     }
 }
 
-// 「未修改」写回 null，「确定」先提交再关闭。
 @Composable
 private fun EditDialogButtons(
-    onReset: () -> Unit,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
 ) {
@@ -236,14 +222,6 @@ private fun EditDialogButtons(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        TextButton(
-            text = stringResource(R.string.common_not_modified),
-            modifier = Modifier.weight(1f),
-            onClick = {
-                onReset()
-                onDismiss()
-            },
-        )
         TextButton(
             text = stringResource(R.string.common_cancel),
             modifier = Modifier.weight(1f),

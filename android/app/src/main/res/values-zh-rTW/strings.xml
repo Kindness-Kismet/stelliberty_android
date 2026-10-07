@@ -472,9 +472,10 @@
     <string name="network_dns_default_nameserver">預設 Nameserver</string>
     <string name="network_dns_fakeip_filter">FakeIP 過濾</string>
     <string name="network_port_label">連接埠（0-65535）</string>
-    <string name="network_port_zero_hint">填 0 表示停用該連接埠</string>
+    <string name="network_port_zero_hint">留空使用預設值，填 0 停用該連接埠</string>
     <string name="network_input_value">輸入值</string>
     <string name="network_one_per_line">每行一筆</string>
+    <string name="override_empty_hint">留空使用預設值</string>
     <string name="settings_override_restart_hint">此頁設定修改後需重新啟動代理服務才會生效</string>
 
     <!-- Wi-Fi Policy -->
@@ -537,7 +538,6 @@
     <string name="app_proxy_deny_selected_summary">選取的應用程式不經過代理</string>
     <string name="app_proxy_app_list">應用程式清單（%1$d/%2$d）</string>
     <string name="app_proxy_applied">已套用分應用程式代理</string>
-    <string name="dialog_reset_done">已還原預設值</string>
 
     <!-- External Control -->
     <string name="external_control_title">外部控制器</string>
