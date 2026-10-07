@@ -263,6 +263,7 @@ class MainActivity : ComponentActivity() {
                 overrideViewModel = get(),
                 chainProxyViewModel = get(),
                 ruleOverrideViewModel = get(),
+                appUpdateViewModel = get(),
                 onRestartApp = { restartApplication() },
             )
             SideEffect { contentReady = true }

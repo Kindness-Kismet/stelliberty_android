@@ -589,6 +589,24 @@
     <string name="backup_webdav_row_summary">Back up to or restore from a WebDAV server</string>
 
     <!-- About -->
+    <string name="app_update_title">App Updates</string>
+    <string name="app_update_check">Check for updates</string>
+    <string name="app_update_idle">Check for a newer version</string>
+    <string name="app_update_checking">Checking for updates…</string>
+    <string name="app_update_available">Version %1$s is available</string>
+    <string name="app_update_up_to_date">You are up to date</string>
+    <string name="app_update_failed">Could not check for updates. Tap to retry</string>
+    <string name="app_update_channel">Update channel</string>
+    <string name="app_update_channel_stable">Stable</string>
+    <string name="app_update_channel_test">Test</string>
+    <string name="app_update_on_startup">Check on startup</string>
+    <string name="app_update_on_startup_summary">Notify me when a newer version is available</string>
+    <string name="app_update_dialog_title">New version %1$s</string>
+    <string name="app_update_no_notes">No release notes provided</string>
+    <string name="app_update_not_now">Not now</string>
+    <string name="app_update_download">Download</string>
+    <string name="app_update_open_failed">Could not open the download page</string>
+
     <string name="about_title">About</string>
     <string name="about_open_source">Open Source Licenses</string>
 

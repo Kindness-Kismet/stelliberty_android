@@ -26,6 +26,7 @@ import com.stelliberty.android.ui.theme.ThemeColorMode
 import com.stelliberty.android.ui.theme.ThemeConfig
 import com.stelliberty.android.ui.theme.resolveIsDark
 import com.stelliberty.android.viewmodel.AppProxyViewModel
+import com.stelliberty.android.viewmodel.AppUpdateViewModel
 import com.stelliberty.android.viewmodel.BackupViewModel
 import com.stelliberty.android.viewmodel.ChainProxyViewModel
 import com.stelliberty.android.viewmodel.ClashFeaturesViewModel
@@ -74,6 +75,7 @@ fun App(
     overrideViewModel: OverrideProfileViewModel? = null,
     chainProxyViewModel: ChainProxyViewModel? = null,
     ruleOverrideViewModel: RuleOverrideViewModel? = null,
+    appUpdateViewModel: AppUpdateViewModel? = null,
     onRestartApp: () -> Unit = {},
 ) {
     val colorSchemeMode = if (themeConfig.useMonet) {
@@ -172,6 +174,7 @@ fun App(
                     overrideViewModel = overrideViewModel,
                     chainProxyViewModel = chainProxyViewModel,
                     ruleOverrideViewModel = ruleOverrideViewModel,
+                    appUpdateViewModel = appUpdateViewModel,
                     onRestartApp = onRestartApp,
                 )
             }

@@ -12,7 +12,7 @@ miuix + mihomo 的 Android 代理客户端。单模块 `:app`（`com.android.app
 - 编译一律走 `python scripts/build.py`。脚本默认编译 release，`--dev` 编译 debug；助手未指定构建类型时始终加 `--dev`。
 - 改 Kotlin：`python scripts/build.py compile --dev`。验证 native / 打包：`python scripts/build.py --dev`。架构 `--abi`，默认 `arm64-v8a`。
 - 默认不新增任何单元测试，已有单元测试保持不动；仅在用户明确要求时新增、修改或移除。验证使用与变更匹配的编译检查和实机 / 模拟器测试。
-- 新增 composable 后临时加 `composeCompiler { reportsDestination.set(layout.buildDirectory.dir("compose_reports")) }`，再 `python scripts/build.py gradle :app:compileDebugKotlin --rerun-tasks` 跑报告，确认 restartable 全部 skippable、0 unstable 参数（当前 142 个），验完删掉临时配置。
+- 新增 composable 后临时加 `composeCompiler { reportsDestination.set(layout.buildDirectory.dir("compose_reports")) }`，再 `python scripts/build.py gradle :app:compileDebugKotlin --rerun-tasks` 跑报告，确认 restartable 全部 skippable、0 unstable 参数（当前 144 个），验完删掉临时配置。
 - `third_party/mihomo` 是 submodule、`third_party/scripta` 是 includeBuild 复合构建，改前先确认确需触及。
 - 保留用户已有的未提交改动；不用破坏性 reset/checkout；不修改或输出 `local.properties`。
 - 当前任务目标完成且所需验证通过后，**主动按改动目的创建原子化本地提交，无需再次确认**；只暂存和提交本次任务的修改，保留用户已有的无关改动。用户明确要求不提交或只要求撰写文案时，不执行暂存和提交。完成后报告提交、变更和验证结果。
@@ -65,7 +65,7 @@ StellibertyApplication.startKoin ─ Koin（dataModule + androidPlatformModule +
         └→ SubscriptionStore / ProxySelectionStore（files/mihomo/ 下的 JSON 文件）
 ```
 
-**Koin**（4 模块按职责拆分，均在 `di/`）：`dataModule` = appScope、SubscriptionStore、ProxySelectionStore、OverrideJsonStore、SubscriptionProxyResolver、RuleLatencyTester、MihomoConnectionManager、AutoDelayTester、OverrideProfileStore、RuleOverrideStore、ProfileTransformWriter、`SubscriptionRepositoryImpl` / `OverrideProfileRepositoryImpl` / `ChainProxyRepositoryImpl` / `RuleOverrideRepositoryImpl` + 接口绑定、`factory { ProfileProcessor }`；`androidPlatformModule`（绑 `androidContext()`）= PlatformStorage、ProxyServiceController、AppListProvider、WifiPolicyController、BootStartManager、BackupManager、ProfileUpdateScheduler；`androidAppModule` = `single<ProfileFileManager>`；`viewModelModule` = 13 个 ViewModel（单 Activity 用 `single`）。**组合根注入**：MainActivity `get()` 取图后透传给 `App(...)`，屏幕保持参数化、不用 koinViewModel；仅需 Activity 上下文的 FilePicker / VPN 授权 launcher 不入 Koin。**repo 实现必配接口**，ViewModel 依赖接口；`ProfileProcessor` 需实体级方法故依赖具体类。
+**Koin**（4 模块按职责拆分，均在 `di/`）：`dataModule` = appScope、SubscriptionStore、ProxySelectionStore、OverrideJsonStore、SubscriptionProxyResolver、RuleLatencyTester、MihomoConnectionManager、AutoDelayTester、OverrideProfileStore、RuleOverrideStore、ProfileTransformWriter、`SubscriptionRepositoryImpl` / `OverrideProfileRepositoryImpl` / `ChainProxyRepositoryImpl` / `RuleOverrideRepositoryImpl` / `AppUpdateRepositoryImpl` + 接口绑定、`factory { ProfileProcessor }`；`androidPlatformModule`（绑 `androidContext()`）= PlatformStorage、ProxyServiceController、AppListProvider、WifiPolicyController、BootStartManager、BackupManager、ProfileUpdateScheduler；`androidAppModule` = `single<ProfileFileManager>`；`viewModelModule` = 14 个 ViewModel（单 Activity 用 `single`）。**组合根注入**：MainActivity `get()` 取图后透传给 `App(...)`，屏幕保持参数化、不用 koinViewModel；仅需 Activity 上下文的 FilePicker / VPN 授权 launcher 不入 Koin。**repo 实现必配接口**，ViewModel 依赖接口；`ProfileProcessor` 需实体级方法故依赖具体类。
 
 - **通信方案**：runtime（traffic/logs/connections/proxy select/provider 刷新）走 subprocess + Ktor REST + WS，三模式共用；订阅导入（fetch + provider prefetch + Parse）走 JNI in-process，由 [StellibertyCoreBridge](android/app/src/main/kotlin/com/stelliberty/android/data/bridge/StellibertyCoreBridge.kt) 调 libmihomo.so 的 cgo 导出。
 - **状态桥接**：ProxyServiceBridge（全局 StateFlow + TunMode），Service 写、ViewModel 读。**进程模型**：单进程（VpnService 与 UI 同进程），ROOT 模式 mihomo 为独立 root 进程。

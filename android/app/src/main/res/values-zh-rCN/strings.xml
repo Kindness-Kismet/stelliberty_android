@@ -587,6 +587,24 @@
     <string name="backup_webdav_row_summary">备份到 WebDAV 服务器或从中恢复</string>
 
     <!-- About -->
+    <string name="app_update_title">应用更新</string>
+    <string name="app_update_check">检查更新</string>
+    <string name="app_update_idle">检查是否有新版本</string>
+    <string name="app_update_checking">正在检查更新…</string>
+    <string name="app_update_available">发现新版本 %1$s</string>
+    <string name="app_update_up_to_date">当前已是最新版本</string>
+    <string name="app_update_failed">检查更新失败，点击重试</string>
+    <string name="app_update_channel">更新渠道</string>
+    <string name="app_update_channel_stable">稳定版</string>
+    <string name="app_update_channel_test">测试版</string>
+    <string name="app_update_on_startup">启动时检查更新</string>
+    <string name="app_update_on_startup_summary">发现新版本时提醒</string>
+    <string name="app_update_dialog_title">发现新版本 %1$s</string>
+    <string name="app_update_no_notes">此版本未提供更新日志</string>
+    <string name="app_update_not_now">暂不更新</string>
+    <string name="app_update_download">前往下载</string>
+    <string name="app_update_open_failed">无法打开下载页面</string>
+
     <string name="about_title">关于</string>
     <string name="about_open_source">开放源代码许可</string>
 
