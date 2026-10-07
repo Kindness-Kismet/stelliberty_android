@@ -14,7 +14,7 @@
 
 ## runtime/ 沙箱
 
-ROOT mihomo 的工作目录是独立的 `runtime/{uuid}/`（从 imported/ 复制，跳过地理数据、随后重新链接，否则会顺着链接整份拷贝），imported/ 始终属于 app UID。启停钩子：`startProxy` 全新启动前 `prepareRootRuntime`；stop / restart / 进程监控三条死亡路径在 `clearPersistedState` 之前 `cleanupRootRuntime`；attach 分支沿用现有目录。
+ROOT mihomo 的工作目录是独立的 `runtime/{uuid}/`（从 imported/ 复制，跳过地理数据、随后重新链接，否则会顺着链接整份拷贝），imported/ 始终属于 app UID。`providers/` 跨启动保留，否则每次启动都要在就绪前同步重下全部 provider：准备与清理只删其余内容；更新订阅会重下全部 provider，准备时 imported/ 里较新的文件替换运行目录里的（与 VPN 模式直接读 imported/ 一致）并保留修改时间，内核自建的 root 目录写不进去就沿用其中的文件；删除订阅或切到 VPN 模式时随整个目录删除。启停钩子：`startProxy` 全新启动前 `prepareRootRuntime`；stop / restart / 进程监控三条死亡路径在 `clearPersistedState` 之前 `cleanupRootRuntime`；attach 分支沿用现有目录。
 
 ## su 转义
 
