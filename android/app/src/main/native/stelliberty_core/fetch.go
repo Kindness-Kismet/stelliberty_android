@@ -94,7 +94,7 @@ func runFetchAndValid(
 	}
 	effectiveUA := strings.TrimSpace(userAgent)
 	if effectiveUA == "" {
-		effectiveUA = currentUserAgent()
+		effectiveUA = clashHttp.UA()
 	}
 
 	var options []clashHttp.Option
@@ -456,12 +456,4 @@ func destroyProviders(cfg *config.Config) {
 			_ = c.Close()
 		}
 	}
-}
-
-func currentUserAgent() string {
-	v := stellibertyUserAgent.Load()
-	if s, ok := v.(string); ok && s != "" {
-		return s
-	}
-	return "Stelliberty/dev"
 }

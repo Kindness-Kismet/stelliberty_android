@@ -10,7 +10,6 @@ import (
 	"os"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"unsafe"
 
 	"github.com/metacubex/mihomo/component/age"
@@ -30,22 +29,19 @@ func guardString(fn func() string) (ret *C.char) {
 }
 
 var (
-	cancelRegistry       sync.Map
-	progressStore        sync.Map
-	initOnce             sync.Once
-	stellibertyUserAgent atomic.Value
+	cancelRegistry sync.Map
+	progressStore  sync.Map
+	initOnce       sync.Once
 )
 
 //export stellibertyCoreInit
-func stellibertyCoreInit(homeDir *C.char, userAgent *C.char) {
+func stellibertyCoreInit(homeDir *C.char) {
 	initOnce.Do(func() {
 		constant.SetHomeDir(C.GoString(homeDir))
+		// 面板按 UA 里的客户端名与版本裁剪节点（如 CMFA < 2.9.0 不下发 Hysteria2），版本必须如实；
+		// 取内核 global-ua 默认值，与运行时刷新 provider 一致。
+		http.SetUA("clash.meta/" + constant.Version)
 	})
-	ua := C.GoString(userAgent)
-	if ua != "" {
-		stellibertyUserAgent.Store(ua)
-		http.SetUA(ua)
-	}
 }
 
 // Go 分配并返回的 C 字符串必须由 Go 这边释放，C 那边调 free 会破坏 Go 运行时的内存管理。
