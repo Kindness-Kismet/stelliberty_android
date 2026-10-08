@@ -58,7 +58,9 @@
     <string name="error_fork_failed">fork+exec failed</string>
     <string name="error_root_start_failed">root start failed</string>
     <string name="error_mihomo_exited">mihomo process exited immediately</string>
-    <string name="error_mihomo_not_ready">mihomo startup is incomplete or its API identity could not be verified</string>
+    <string name="error_mihomo_not_ready">mihomo API did not respond</string>
+    <string name="error_mihomo_init_timeout">mihomo initialization timed out while loading providers</string>
+    <string name="error_controller_port_in_use">External controller %1$s is in use by another program</string>
     <string name="error_root_stop_failed">Could not stop the existing mihomo process. Please check Root permission and try again.</string>
     <string name="error_mihomo_start_failed">mihomo start failed:\n%1$s</string>
     <string name="error_generic_start_failed">Start failed: %1$s</string>
@@ -589,6 +591,24 @@
     <string name="backup_webdav_row_summary">Back up to or restore from a WebDAV server</string>
 
     <!-- About -->
+    <string name="app_update_title">App Updates</string>
+    <string name="app_update_check">Check for updates</string>
+    <string name="app_update_idle">Check for a newer version</string>
+    <string name="app_update_checking">Checking for updates…</string>
+    <string name="app_update_available">Version %1$s is available</string>
+    <string name="app_update_up_to_date">You are up to date</string>
+    <string name="app_update_failed">Could not check for updates. Tap to retry</string>
+    <string name="app_update_channel">Update channel</string>
+    <string name="app_update_channel_stable">Stable</string>
+    <string name="app_update_channel_test">Test</string>
+    <string name="app_update_on_startup">Check on startup</string>
+    <string name="app_update_on_startup_summary">Notify me when a newer version is available</string>
+    <string name="app_update_dialog_title">New version %1$s</string>
+    <string name="app_update_no_notes">No release notes provided</string>
+    <string name="app_update_not_now">Not now</string>
+    <string name="app_update_download">Download</string>
+    <string name="app_update_open_failed">Could not open the download page</string>
+
     <string name="about_title">About</string>
     <string name="about_open_source">Open Source Licenses</string>
 

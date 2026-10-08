@@ -3,6 +3,7 @@ package com.stelliberty.android.di
 import com.stelliberty.android.domain.repository.SubscriptionRepository
 import com.stelliberty.android.data.api.AutoDelayTester
 import com.stelliberty.android.viewmodel.AppProxyViewModel
+import com.stelliberty.android.viewmodel.AppUpdateViewModel
 import com.stelliberty.android.viewmodel.BackupViewModel
 import com.stelliberty.android.viewmodel.ChainProxyViewModel
 import com.stelliberty.android.viewmodel.ClashFeaturesViewModel
@@ -19,6 +20,7 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
 val viewModelModule = module {
+    single { AppUpdateViewModel(get(), get()) }
     single {
         HomeViewModel(
             serviceController = get(),

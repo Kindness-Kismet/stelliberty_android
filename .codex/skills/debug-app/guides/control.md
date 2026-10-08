@@ -48,6 +48,7 @@ testTag 挂在最外层节点，按钮文字在子节点，`get` 返回整棵子
 | `ChainProxy.*` | 新增、保存、名称输入；`Custom.<id>` 的开关与删除按钮，`Hop.<序号>` 的上下移动与移除 |
 | `RuleOverride.*` | 新增、更多、保存；`Row.<序号>` 是规则行（序号从 1 起），`.Toggle` 是开关；`Menu.<序号>` 是更多菜单项；编辑页的内容、位置输入与删除按钮 |
 | `Settings.Entry.<key>` | 设置项，由 `groupedCardItems` 按 `CardItem.key` 自动生成，key 与 `settings.dump` 的键名一致 |
+| `About.*` | 更新检查 `CheckUpdate`、渠道入口 `UpdateChannel` 与选项 `Channel.STABLE/TEST`、启动检查 `UpdateStartup`、新版弹窗 `UpdateDialog`、日志 `ReleaseNotes`、稍后更新 `UpdateDismiss`、下载 `UpdateDownload` |
 | `AppProxy.Mode.<模式名>` | 分应用代理三种模式（`AllowAll` / `AllowSelected` / `DenySelected`） |
 | `AppProxy.AppList` | 当前筛选列表的已选数与总数 |
 | `AppProxy.App.<包名>` | 应用项，点一下切换勾选 |

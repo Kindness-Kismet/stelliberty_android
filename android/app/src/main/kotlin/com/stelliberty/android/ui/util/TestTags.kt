@@ -4,6 +4,18 @@ package com.stelliberty.android.ui.util
 // debug-app skill 里的引用；写进无障碍树仅 debug 包（见 App.kt 的 testTagsAsResourceId）。
 object TestTags {
 
+    object About {
+        const val CHECK_UPDATE = "About.CheckUpdate"
+        const val UPDATE_CHANNEL = "About.UpdateChannel"
+        const val UPDATE_STARTUP = "About.UpdateStartup"
+        const val UPDATE_DIALOG = "About.UpdateDialog"
+        const val RELEASE_NOTES = "About.ReleaseNotes"
+        const val UPDATE_DISMISS = "About.UpdateDismiss"
+        const val UPDATE_DOWNLOAD = "About.UpdateDownload"
+
+        fun channel(name: String) = "About.Channel.$name"
+    }
+
     object Home {
         const val START = "Home.StartButton"
         const val STOP = "Home.StopButton"

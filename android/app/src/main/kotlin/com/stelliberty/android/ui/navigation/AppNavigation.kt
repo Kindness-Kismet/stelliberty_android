@@ -74,6 +74,7 @@ import com.stelliberty.android.platform.FilePicker
 import com.stelliberty.android.platform.PlatformStorage
 import com.stelliberty.android.platform.StorageKeys
 import com.stelliberty.android.platform.WifiPolicyController
+import com.stelliberty.android.ui.component.AppUpdateDialog
 import com.stelliberty.android.ui.component.blur.BlurredBar
 import com.stelliberty.android.ui.component.blur.rememberBlurBackdrop
 import com.stelliberty.android.ui.component.liquid.IosLiquidGlassNavigationBar
@@ -124,6 +125,7 @@ import com.stelliberty.android.ui.theme.TopBarBlurStyle
 import com.stelliberty.android.ui.util.TestTags
 import com.stelliberty.android.ui.util.rememberIsWideScreen
 import com.stelliberty.android.viewmodel.AppProxyViewModel
+import com.stelliberty.android.viewmodel.AppUpdateViewModel
 import com.stelliberty.android.viewmodel.BackupViewModel
 import com.stelliberty.android.viewmodel.ClashFeaturesViewModel
 import com.stelliberty.android.viewmodel.ConnectionViewModel
@@ -223,6 +225,7 @@ fun AppNavigation(
     overrideViewModel: OverrideProfileViewModel? = null,
     chainProxyViewModel: ChainProxyViewModel? = null,
     ruleOverrideViewModel: RuleOverrideViewModel? = null,
+    appUpdateViewModel: AppUpdateViewModel? = null,
     onRestartApp: () -> Unit = {},
 ) {
     val backStack = rememberSaveable(saver = NavBackStackSaver) { mutableStateListOf(Route.Main) }
@@ -646,6 +649,7 @@ fun AppNavigation(
             entry<Route.About>(swipeDismiss = swipeDismiss) {
                 val uriHandler = LocalUriHandler.current
                 AboutScreen(
+                    appUpdateViewModel = appUpdateViewModel,
                     onBack = { navigator.pop() },
                     mihomoVersion = mihomoVersion,
                     onOpenUrl = { url -> uriHandler.openUri(url) },
@@ -655,6 +659,7 @@ fun AppNavigation(
     }
 
     subscriptionViewModel?.let { SubscriptionUpdateProgressDialog(it) }
+    appUpdateViewModel?.let { AppUpdateDialog(it) }
 }
 
 @Composable

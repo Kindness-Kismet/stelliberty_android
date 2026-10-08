@@ -82,6 +82,8 @@ object StorageKeys {
     const val SWIPE_DISMISS = "swipe_dismiss"
     const val HIDE_TASK_CARD = "hide_task_card"
     const val APP_LOG_LEVEL = "app_log_level"
+    const val APP_UPDATE_CHANNEL = "app_update_channel"
+    const val APP_UPDATE_ON_STARTUP = "app_update_on_startup"
 
     const val WEBDAV_URL = "webdav_url"
     const val WEBDAV_USERNAME = "webdav_username"

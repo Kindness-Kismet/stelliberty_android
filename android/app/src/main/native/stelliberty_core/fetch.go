@@ -6,27 +6,29 @@ package main
 import "C"
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"mime"
+	"net"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"os"
 	"path"
 	P "path"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/metacubex/mihomo/common/utils"
 	clashHttp "github.com/metacubex/mihomo/component/http"
 	"github.com/metacubex/mihomo/config"
+	Const "github.com/metacubex/mihomo/constant"
 )
 
 const fetchTimeout = 60 * time.Second
@@ -92,14 +94,16 @@ func runFetchAndValid(
 	}
 	effectiveUA := strings.TrimSpace(userAgent)
 	if effectiveUA == "" {
-		effectiveUA = currentUserAgent()
+		effectiveUA = clashHttp.UA()
 	}
 
+	var options []clashHttp.Option
 	if httpProxy != "" {
-		_ = os.Setenv("HTTPS_PROXY", httpProxy)
-		_ = os.Setenv("HTTP_PROXY", httpProxy)
-		defer os.Unsetenv("HTTPS_PROXY")
-		defer os.Unsetenv("HTTP_PROXY")
+		proxyURL, err := url.Parse(httpProxy)
+		if err != nil {
+			return nil, fmt.Errorf("parse http proxy: %w", err)
+		}
+		options = append(options, clashHttp.WithDialer(connectDialer{proxyAddr: proxyURL.Host}))
 	}
 
 	configPath := P.Join(workDir, "config.yaml")
@@ -119,7 +123,7 @@ func runFetchAndValid(
 			Progress:    -1,
 			MaxProgress: -1,
 		})
-		if err := fetchURL(ctx, u, configPath, result, effectiveUA); err != nil {
+		if err := fetchURL(ctx, u, configPath, result, effectiveUA, options); err != nil {
 			return nil, err
 		}
 	}
@@ -140,7 +144,7 @@ func runFetchAndValid(
 	patchProvidersPath(rawCfg, providersDir)
 	result.BuiltinChainProxyNames = builtinChainProxyNames(rawCfg.Proxy)
 
-	prefetchProviders(ctx, token, rawCfg, effectiveUA)
+	prefetchProviders(ctx, token, rawCfg, effectiveUA, options)
 
 	if ctx.Err() != nil {
 		return nil, ctx.Err()
@@ -183,7 +187,7 @@ func setProgress(token int32, p FetchProgress) {
 	}
 }
 
-func fetchURL(ctx context.Context, u *url.URL, dest string, result *FetchResult, userAgent string) error {
+func fetchURL(ctx context.Context, u *url.URL, dest string, result *FetchResult, userAgent string, options []clashHttp.Option) error {
 	scheme := strings.ToLower(u.Scheme)
 	if scheme != "http" && scheme != "https" {
 		return fmt.Errorf("unsupported scheme %s", u.Scheme)
@@ -193,7 +197,7 @@ func fetchURL(ctx context.Context, u *url.URL, dest string, result *FetchResult,
 	defer cancel()
 
 	header := http.Header{"User-Agent": []string{userAgent}}
-	resp, err := clashHttp.HttpRequest(subCtx, u.String(), http.MethodGet, header, nil)
+	resp, err := clashHttp.HttpRequest(subCtx, u.String(), http.MethodGet, header, nil, options...)
 	if err != nil {
 		return fmt.Errorf("http request: %w", err)
 	}
@@ -277,22 +281,7 @@ func parseUserinfo(header string, result *FetchResult) {
 	}
 }
 
-func patchProvidersPath(cfg *config.RawConfig, providersDir string) {
-	forEachProviders(cfg, func(_, _ int, _ string, provider map[string]any, _ string) {
-		urlStr, _ := provider["url"].(string)
-		pathStr, _ := provider["path"].(string)
-		if urlStr == "" && pathStr == "" {
-			return
-		}
-		fileName := utils.MakeHash([]byte(urlStr)).String()
-		if pathStr != "" {
-			fileName = filepath.Base(pathStr)
-		}
-		provider["path"] = P.Join(providersDir, fileName)
-	})
-}
-
-func prefetchProviders(ctx context.Context, token int32, cfg *config.RawConfig, userAgent string) {
+func prefetchProviders(ctx context.Context, token int32, cfg *config.RawConfig, userAgent string, options []clashHttp.Option) {
 	type item struct {
 		key  string
 		url  string
@@ -300,9 +289,10 @@ func prefetchProviders(ctx context.Context, token int32, cfg *config.RawConfig, 
 	}
 	var items []item
 	forEachProviders(cfg, func(_, _ int, key string, provider map[string]any, _ string) {
+		vehicle, _ := provider["type"].(string)
 		urlStr, _ := provider["url"].(string)
 		dest, _ := provider["path"].(string)
-		if urlStr == "" || dest == "" {
+		if vehicle != "http" || urlStr == "" || dest == "" {
 			return
 		}
 		if _, err := os.Stat(dest); err == nil {
@@ -338,7 +328,7 @@ func prefetchProviders(ctx context.Context, token int32, cfg *config.RawConfig, 
 				return
 			}
 			if u, err := url.Parse(it.url); err == nil {
-				_ = fetchProvider(ctx, u, it.dest, userAgent)
+				_ = fetchProvider(ctx, u, it.dest, userAgent, options)
 			}
 			setProgress(token, FetchProgress{
 				Action:      "FetchProviders",
@@ -384,11 +374,11 @@ func writeFileAtomic(dest string, src io.Reader) (int64, error) {
 	return n, nil
 }
 
-func fetchProvider(ctx context.Context, u *url.URL, dest string, userAgent string) error {
+func fetchProvider(ctx context.Context, u *url.URL, dest string, userAgent string, options []clashHttp.Option) error {
 	subCtx, cancel := context.WithTimeout(ctx, fetchTimeout)
 	defer cancel()
 	header := http.Header{"User-Agent": []string{userAgent}}
-	resp, err := clashHttp.HttpRequest(subCtx, u.String(), http.MethodGet, header, nil)
+	resp, err := clashHttp.HttpRequest(subCtx, u.String(), http.MethodGet, header, nil, options...)
 	if err != nil {
 		return err
 	}
@@ -403,17 +393,56 @@ func fetchProvider(ctx context.Context, u *url.URL, dest string, userAgent strin
 	return err
 }
 
-func forEachProviders(cfg *config.RawConfig, fn func(index, total int, key string, provider map[string]any, kind string)) {
-	total := len(cfg.ProxyProvider) + len(cfg.RuleProvider)
-	idx := 0
-	for k, v := range cfg.ProxyProvider {
-		fn(idx, total, k, v, "proxies")
-		idx++
+// HttpRequest 的 Transport 不读代理环境变量，所以经 mixed-port 下载只能换拨号器，用 HTTP CONNECT 建隧道。
+type connectDialer struct {
+	proxyAddr string
+}
+
+func (d connectDialer) DialContext(ctx context.Context, _, address string) (net.Conn, error) {
+	var dialer net.Dialer
+	conn, err := dialer.DialContext(ctx, "tcp", d.proxyAddr)
+	if err != nil {
+		return nil, err
 	}
-	for k, v := range cfg.RuleProvider {
-		fn(idx, total, k, v, "rules")
-		idx++
+	// 握手期间取消或超时就关闭连接，阻塞的读写随之返回。
+	stop := context.AfterFunc(ctx, func() { _ = conn.Close() })
+	err = connectHandshake(conn, address)
+	if !stop() {
+		return nil, ctx.Err()
 	}
+	if err != nil {
+		_ = conn.Close()
+		return nil, err
+	}
+	return conn, nil
+}
+
+func (connectDialer) ListenPacket(context.Context, string, string, netip.AddrPort) (net.PacketConn, error) {
+	return nil, errors.New("udp is not supported by http proxy")
+}
+
+var _ Const.Dialer = connectDialer{}
+
+func connectHandshake(conn net.Conn, address string) error {
+	req := &http.Request{
+		Method: http.MethodConnect,
+		URL:    &url.URL{Opaque: address},
+		Host:   address,
+		Header: http.Header{},
+	}
+	if err := req.Write(conn); err != nil {
+		return err
+	}
+	// 隧道建立前对端不会先发数据，读取缓冲里不会多出属于隧道的字节。
+	resp, err := http.ReadResponse(bufio.NewReader(conn), req)
+	if err != nil {
+		return err
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("proxy connect: %s", resp.Status)
+	}
+	return nil
 }
 
 func destroyProviders(cfg *config.Config) {
@@ -427,12 +456,4 @@ func destroyProviders(cfg *config.Config) {
 			_ = c.Close()
 		}
 	}
-}
-
-func currentUserAgent() string {
-	v := stellibertyUserAgent.Load()
-	if s, ok := v.(string); ok && s != "" {
-		return s
-	}
-	return "Stelliberty/dev"
 }

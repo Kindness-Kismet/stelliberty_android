@@ -4,6 +4,7 @@ import com.stelliberty.android.R
 import com.stelliberty.android.data.api.AutoDelayTester
 import com.stelliberty.android.data.api.MihomoConnectionManager
 import com.stelliberty.android.data.api.RuleLatencyTester
+import com.stelliberty.android.data.repository.AppUpdateRepositoryImpl
 import com.stelliberty.android.data.repository.ChainProxyRepositoryImpl
 import com.stelliberty.android.data.repository.OverrideJsonStore
 import com.stelliberty.android.data.repository.OverrideProfileRepositoryImpl
@@ -16,6 +17,7 @@ import com.stelliberty.android.data.store.ProfileTransformWriter
 import com.stelliberty.android.data.store.ProxySelectionStore
 import com.stelliberty.android.data.store.RuleOverrideStore
 import com.stelliberty.android.data.store.SubscriptionStore
+import com.stelliberty.android.domain.repository.AppUpdateRepository
 import com.stelliberty.android.domain.repository.ChainProxyRepository
 import com.stelliberty.android.domain.repository.OverrideProfileRepository
 import com.stelliberty.android.domain.repository.RuleOverrideRepository
@@ -44,6 +46,7 @@ val dataModule = module {
 
     single { OverrideJsonStore(get(), get()) }
     single { SubscriptionProxyResolver(get()) }
+    single<AppUpdateRepository> { AppUpdateRepositoryImpl(get()) }
     single { RuleLatencyTester(get()) }
     single { MihomoConnectionManager(get()) }
     single { AutoDelayTester(get(), get(), get()) }

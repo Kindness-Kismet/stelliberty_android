@@ -70,10 +70,22 @@ object RootHelper {
         }
     }
 
-    fun readLogFile(logFile: String, maxLines: Int = 20): String {
+    fun readLogFile(logFile: String, maxLines: Int = 20): String =
+        readAsRoot("tail -n $maxLines ${escapeShellSingleQuoted(logFile)} 2>/dev/null")
+
+    // 与 File.readEndLines 相同：开头与末尾各取一段，总行数不超过两段之和时返回全文。
+    fun readLogEnds(logFile: String, headLines: Int, tailLines: Int): String {
+        val path = escapeShellSingleQuoted(logFile)
+        return readAsRoot(
+            "n=\$(wc -l < $path 2>/dev/null) || exit 0; " +
+                "if [ \"\$n\" -le ${headLines + tailLines} ]; then cat $path; " +
+                "else head -n $headLines $path; tail -n $tailLines $path; fi"
+        )
+    }
+
+    private fun readAsRoot(command: String): String {
         return try {
-            val path = escapeShellSingleQuoted(logFile)
-            val process = ProcessBuilder("su", "-c", "tail -n $maxLines $path 2>/dev/null")
+            val process = ProcessBuilder("su", "-c", command)
                 .redirectErrorStream(true)
                 .start()
             val output = process.inputStream.bufferedReader().readText()

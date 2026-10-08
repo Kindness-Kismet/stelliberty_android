@@ -3,7 +3,7 @@
 `TunMode { Vpn, RootTun, RootTproxy }`：
 
 - **VPN**：VpnService 创建 TUN fd，mihomo 写 `tun.file-descriptor` + `auto-route=false`，工作目录 `imported/{uuid}/`（app UID）。
-- **ROOT TUN**：mihomo 以 root 自建 TUN，`auto-route=true` + `auto-detect-interface=true`，工作目录为独立的 `runtime/{uuid}/`（启动前从 imported/ 复制，停止时 `su rm -rf`）；imported/ 始终属于 app UID。
+- **ROOT TUN**：mihomo 以 root 自建 TUN，`auto-route=true` + `auto-detect-interface=true`，工作目录为独立的 `runtime/{uuid}/`（启动前从 imported/ 复制，停止时删除 provider 缓存以外的内容）；imported/ 始终属于 app UID。
 - **ROOT TPROXY**：`tun.enable=false`，`tproxy-port=7895` 入站 + `dns.listen=0.0.0.0:1053`；`RootTproxyApplier` 装 mangle / nat 规则与 fwmark 策略路由，劫持本机与热点流量，常量与 chain 结构见 [root-mode.md](root-mode.md)。
 - **分应用代理**：VPN 用 VpnService API；ROOT TUN 用 mihomo `include/exclude-package`（sing-tun 翻译为 uidrange）；ROOT TPROXY 用 iptables `-m owner --uid-owner`（`AppListProvider.resolveUids` 解析包名）。自绕统一按 UID / 包名排除：Netd 用 fwmark 低 16 位编码 netId，自定义 SO_MARK（`routing-mark`）会让路由命中没有默认路由的 legacy_system 表，出站全部 `network unreachable`。
 - ROOT 两个子模式共享 StellibertyRootService，Intent 经 `EXTRA_SUBMODE = "tun"/"tproxy"` 区分；attach 前比对 `ROOT_SUBMODE_ACTIVE` 与请求的 submode，不一致时 fresh restart。ROOT 进程在 app 被杀后继续存活，重开 app 靠持久化的 PID / secret 做 **attach-only** 重连。ROOT 不可用时自动回退 VPN。

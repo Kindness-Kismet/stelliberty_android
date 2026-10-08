@@ -58,6 +58,7 @@ import com.stelliberty.android.ui.component.effect.BgEffectBackground
 import com.stelliberty.android.ui.icon.AppIcons
 import com.stelliberty.android.ui.theme.LocalAppDarkMode
 import com.stelliberty.android.ui.util.horizontalCutoutPadding
+import com.stelliberty.android.viewmodel.AppUpdateViewModel
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.Icon
@@ -80,6 +81,7 @@ import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
 @Composable
 fun AboutScreen(
+    appUpdateViewModel: AppUpdateViewModel? = null,
     onBack: () -> Unit = {},
     mihomoVersion: String = "",
     onOpenUrl: (String) -> Unit = {},
@@ -150,6 +152,7 @@ fun AboutScreen(
                 scrollProgress = { scrollProgressState.value },
                 mihomoVersion = mihomoVersion,
                 onOpenUrl = onOpenUrl,
+                appUpdateViewModel = appUpdateViewModel,
             )
         }
     }
@@ -157,6 +160,7 @@ fun AboutScreen(
 
 @Composable
 private fun AboutContent(
+    appUpdateViewModel: AppUpdateViewModel?,
     innerPadding: PaddingValues,
     scrollBehavior: ScrollBehavior,
     lazyListState: LazyListState,
@@ -325,27 +329,35 @@ private fun AboutContent(
                     Column(
                         modifier = Modifier.padding(bottom = 12.dp),
                     ) {
+                        val cardModifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp)
+                            .padding(bottom = 12.dp)
+                            .then(
+                                if (blurEnabled) {
+                                    Modifier.textureBlur(
+                                        backdrop = backdrop,
+                                        shape = RoundedCornerShape(16.dp),
+                                        blurRadius = 60f,
+                                        colors = BlurColors(blendColors = cardBlendColors),
+                                        enabled = true,
+                                    )
+                                } else Modifier
+                            )
+                        val cardColors = CardDefaults.defaultColors(
+                            if (blurEnabled) Color.Transparent else colorScheme.surfaceContainer,
+                            Color.Transparent,
+                        )
+                        appUpdateViewModel?.let { viewModel ->
+                            SmallTitle(text = stringResource(R.string.app_update_title))
+                            Card(modifier = cardModifier, colors = cardColors) {
+                                AboutUpdatePreferences(viewModel)
+                            }
+                        }
                         SmallTitle(text = stringResource(R.string.about_open_source))
                         Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp)
-                                .padding(bottom = 12.dp)
-                                .then(
-                                    if (blurEnabled) {
-                                        Modifier.textureBlur(
-                                            backdrop = backdrop,
-                                            shape = RoundedCornerShape(16.dp),
-                                            blurRadius = 60f,
-                                            colors = BlurColors(blendColors = cardBlendColors),
-                                            enabled = true,
-                                        )
-                                    } else Modifier
-                                ),
-                            colors = CardDefaults.defaultColors(
-                                if (blurEnabled) Color.Transparent else colorScheme.surfaceContainer,
-                                Color.Transparent,
-                            ),
+                            modifier = cardModifier,
+                            colors = cardColors,
                         ) {
                             val ossProjects = remember(mihomoVersion) {
                                 listOf(

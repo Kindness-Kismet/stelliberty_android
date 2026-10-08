@@ -30,5 +30,5 @@ Android `ProcessBuilder` fork 后会关闭全部非标准 fd，VPN 模式因此�
 
 ## 启动就绪契约
 
-- `runtime_probe.go` 通过 `route.Register` 注册 `/stelliberty/runtime`，沿用控制器 secret 鉴权。初始化期间返回 503，完成后返回 200 与 `{"pid":<pid>}`；应用仅接受目标进程的响应。
+- `runtime_probe.go` 通过 `route.Register` 注册 `/stelliberty/runtime`，沿用控制器 secret 鉴权。初始化期间返回 503、完成后返回 200，响应体都是 `{"pid":<pid>}`：应用只把目标进程的 200 当作就绪，凭 503 里的进程号确认仍在加载的是自己，其他进程的应答按端口被占用处理。
 - `hub.Parse` 返回、启用的 TUN 确认创建成功并注册退出信号后，才发布就绪状态；配置重载与退出期间撤销就绪。状态使用原子变量，与 HTTP 协程同步。TUN 初始化失败时按启动失败处理。

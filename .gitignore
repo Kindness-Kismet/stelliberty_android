@@ -11,7 +11,7 @@
 !/README.md
 !/LICENSE
 !/.github/CHANGELOG.md
-!/.github/docs/*.md
+!/.github/docs/README.zh-CN.md
 !/.github/workflows/*.yml
 
 # 只保留技能正文、指引和可执行脚本，排除会话、备份与私人配置。

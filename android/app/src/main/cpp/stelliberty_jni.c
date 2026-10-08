@@ -22,12 +22,10 @@ static jstring go_cstr_to_jstring(JNIEnv *env, char *s) {
 
 JNIEXPORT void JNICALL
 Java_com_stelliberty_android_data_bridge_StellibertyCoreBridge_nativeCoreInit(
-        JNIEnv *env, jclass clazz, jstring jHomeDir, jstring jUserAgent) {
+        JNIEnv *env, jclass clazz, jstring jHomeDir) {
     char *homeDir = jstring_to_cstr(env, jHomeDir);
-    char *userAgent = jstring_to_cstr(env, jUserAgent);
-    stellibertyCoreInit(homeDir ? homeDir : "", userAgent ? userAgent : "");
+    stellibertyCoreInit(homeDir ? homeDir : "");
     free(homeDir);
-    free(userAgent);
 }
 
 JNIEXPORT jstring JNICALL

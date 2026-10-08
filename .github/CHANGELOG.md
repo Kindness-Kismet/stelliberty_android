@@ -1,21 +1,15 @@
-- Changed how settings are grouped; it now matches the desktop client, with Personalization, Clash, Application, and Maintenance on the main page and Clash options split into Network, Port Control, System Integration, DNS, and Performance pages
-- Changed how override fields are edited; leaving a field empty now uses the default, and the clear button in the list editor's top-right corner only empties the input
-- Added separate log levels for the app and the core, so you can now control application and core logs independently
-- Improved the log page, which now separates application and core logs, shows the newest entries first, and follows new entries at the top
-- Improved log export, which now saves the complete log file with subscription tokens and node links masked, and records startup, runtime, and profile fetch details
-- Fixed an issue with the ROOT mode core after app updates that previously left the old core running and made the next start fail with its ports still in use
-- Improved ROOT mode core management, which now stops only cores started by this app and reports when a stop fails
-- Fixed an issue with the subscription add and edit pages that previously let the software keyboard cover the focused field
-- Changed how the About page and Quick Settings tile icons look; they now match the app icon
+- Added app update checks with stable and test channels, so you can now check for new versions on the About page and get notified at startup
+- Fixed an issue with the default subscription User-Agent that previously made some panels drop nodes such as Hysteria2 and fail to import with a missing proxy group error
+- Fixed an issue with updating subscriptions through the proxy that previously still downloaded subscriptions and providers directly
+- Fixed an issue with provider caches that previously made the core download providers again before every start, especially in ROOT mode, and let files with the same name overwrite each other
+- Fixed an issue with proxy startup that previously failed while the core was still downloading providers
+- Improved startup error reports, which now keep the beginning of the core log so config parsing errors still show when there are many providers
 
 ---
 
-- 调整了设置的分类方式，现在与桌面版一致：主页分为个性化、Clash、应用和维护四组，Clash 选项拆分为网络设置、端口控制、系统集成、DNS 配置和性能优化等页面
-- 调整了覆写字段的编辑方式，现在留空即使用默认值，列表编辑框右上角的清除按钮只清空输入内容
-- 新增了应用与核心各自的日志级别，现在可以分别控制应用日志和核心日志
-- 对日志页面进行了改善，现在分开显示应用日志和核心日志，最新的日志排在最前，并在顶部跟随新日志
-- 对日志导出进行了改善，现在导出完整的日志文件并遮蔽订阅令牌和节点链接，同时记录启动、运行和订阅获取的详细信息
-- 修复了应用更新后 ROOT 模式核心的问题，该问题曾导致旧核心无法停止，下次启动时端口仍被占用
-- 对 ROOT 模式的核心管理进行了改善，现在只停止本应用启动的核心，停止失败时会如实提示
-- 修复了添加和编辑订阅页面的问题，该问题曾导致软键盘遮挡正在输入的字段
-- 调整了关于页面和快捷设置磁贴的图标，现在与应用图标一致
+- 新增了应用更新检查，现在可以在关于页面按稳定版或测试版渠道检查新版本，并在启动时收到新版本提醒
+- 修复了订阅默认 User-Agent 的问题，该问题曾导致部分面板过滤掉 Hysteria2 等节点，导入时报代理组不存在
+- 修复了通过代理更新订阅的问题，该问题曾导致订阅和 provider 实际上仍然直连下载
+- 修复了 provider 缓存的问题，该问题曾导致每次启动前核心都要重新下载 provider（ROOT 模式尤为明显），同名文件还会相互覆盖
+- 修复了启动代理的问题，该问题曾导致核心还在下载 provider 时就被判定启动失败
+- 对启动失败的错误信息进行了改善，现在会保留核心日志的开头部分，provider 较多时也能看到配置解析阶段的错误

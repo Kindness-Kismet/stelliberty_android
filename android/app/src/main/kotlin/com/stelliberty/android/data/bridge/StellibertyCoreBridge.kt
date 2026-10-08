@@ -54,8 +54,8 @@ object StellibertyCoreBridge {
         System.loadLibrary("stelliberty_jni")
     }
 
-    fun init(homeDir: String, userAgent: String) {
-        nativeCoreInit(homeDir, userAgent)
+    fun init(homeDir: String) {
+        nativeCoreInit(homeDir)
     }
 
     // 取消钩子必须在阻塞调用之前挂好：这个原生调用不响应协程取消，等它返回时下层已经清掉了取消登记表，
@@ -115,7 +115,7 @@ object StellibertyCoreBridge {
     }
 
     @JvmStatic
-    private external fun nativeCoreInit(homeDir: String, userAgent: String)
+    private external fun nativeCoreInit(homeDir: String)
 
     @JvmStatic
     private external fun nativeFetchAndValid(

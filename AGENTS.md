@@ -12,7 +12,7 @@ miuix + mihomo 的 Android 代理客户端。单模块 `:app`（`com.android.app
 - 编译一律走 `python scripts/build.py`。脚本默认编译 release，`--dev` 编译 debug；助手未指定构建类型时始终加 `--dev`。
 - 改 Kotlin：`python scripts/build.py compile --dev`。验证 native / 打包：`python scripts/build.py --dev`。架构 `--abi`，默认 `arm64-v8a`。
 - 默认不新增任何单元测试，已有单元测试保持不动；仅在用户明确要求时新增、修改或移除。验证使用与变更匹配的编译检查和实机 / 模拟器测试。
-- 新增 composable 后临时加 `composeCompiler { reportsDestination.set(layout.buildDirectory.dir("compose_reports")) }`，再 `python scripts/build.py gradle :app:compileDebugKotlin --rerun-tasks` 跑报告，确认 restartable 全部 skippable、0 unstable 参数（当前 142 个），验完删掉临时配置。
+- 新增 composable 后临时加 `composeCompiler { reportsDestination.set(layout.buildDirectory.dir("compose_reports")) }`，再 `python scripts/build.py gradle :app:compileDebugKotlin --rerun-tasks` 跑报告，确认 restartable 全部 skippable、0 unstable 参数（当前 144 个），验完删掉临时配置。
 - `third_party/mihomo` 是 submodule、`third_party/scripta` 是 includeBuild 复合构建，改前先确认确需触及。
 - 保留用户已有的未提交改动；不用破坏性 reset/checkout；不修改或输出 `local.properties`。
 - 当前任务目标完成且所需验证通过后，**主动按改动目的创建原子化本地提交，无需再次确认**；只暂存和提交本次任务的修改，保留用户已有的无关改动。用户明确要求不提交或只要求撰写文案时，不执行暂存和提交。完成后报告提交、变更和验证结果。
@@ -20,6 +20,21 @@ miuix + mihomo 的 Android 代理客户端。单模块 `:app`（`com.android.app
 - **禁止擅自 `git push`**：先说明全部待推送提交、验证结果、远端和目标分支，再取得明确确认。提交或创建 PR 的授权不包含推送，也不能借 `gh pr create` 隐式推送；会话中已确认且范围、目标未变的推送无需重复询问。
 - **Commit 主题与正文、PR 标题与正文一律使用英文**。撰写或执行提交先阅读 `commit`，准备或创建、更新 PR 先阅读 `pr`；格式、范围与验证规则由对应技能维护。
 - Git 使用目录与后缀白名单。新增编译输入须核对 `.gitignore`；可下载产物不跟踪，Baseline Profile 必须保留。
+
+## 本地方案与过程记录
+
+方案、记录与附件都在 `build/` 下，已忽略、不进提交。
+
+- 按需生成，不把写文档作为每次任务的固定步骤；提交说明和最终回复足以说明的普通修改，不另写方案或过程记录。
+- 用户要求方案，或需要保留实现路线的取舍、迁移步骤、跨阶段依赖时，才在 `build/docs/<任务标识>.md` 保存方案；同一任务只维护一份。
+- 需要保留复现依据、验收结果或交接进度时，过程记录保存在 `build/record/<任务标识>-<阶段号>.md`，不另建总结、复核、收尾等重复文档。
+- 任务标识采用 `YYYYMMDD-主题`，日期取任务开始日，跨天、跨会话沿用；阶段号从 `1` 连续递增，如 `20261008-订阅导入-1.md`。
+- 一个阶段对应 1 个可独立验收的目标、至少 1 项可复核的验收条件。全部条件通过或明确终止并记录原因后，进入下一个目标才增加阶段号；同一目标下的重试、审查修正、补编与暂停后继续都更新原阶段，未完成或终止的阶段标明状态，不写成已通过。
+- 记录顶部写明任务目标、阶段状态（进行中 / 受阻 / 已完成 / 已终止）、更新时间、分支与提交号、未提交改动摘要、下一步动作，没有的项写「无」；结论变化、暂停或交接前更新。
+- 验收项逐项标记未执行、通过或失败，并附证据路径；关键决定、用户约束和未完成事项只保留当前有效内容；动过测试订阅、设备设置或备份时写清现场与恢复要求。
+- 接手时先读同一任务阶段号最大的记录，再核对当前分支、提交和工作区差异，不凭文件编号推断完成状态。
+- 每份记录最多 200 行（含空行），超出先合并重复内容，不按时间或篇幅增加阶段号。
+- 临时脚本、模拟服务器与验证附件放在 `build/record/<任务标识>-<阶段号>/`，不写记录时也用这个目录，不放系统临时目录。`build/tmp/` 下的截图、控件树等工具固定输出保留原位置，记录中引用路径，不复制原始输出或完整对话。
 
 ## 技术栈
 
@@ -65,13 +80,13 @@ StellibertyApplication.startKoin ─ Koin（dataModule + androidPlatformModule +
         └→ SubscriptionStore / ProxySelectionStore（files/mihomo/ 下的 JSON 文件）
 ```
 
-**Koin**（4 模块按职责拆分，均在 `di/`）：`dataModule` = appScope、SubscriptionStore、ProxySelectionStore、OverrideJsonStore、SubscriptionProxyResolver、RuleLatencyTester、MihomoConnectionManager、AutoDelayTester、OverrideProfileStore、RuleOverrideStore、ProfileTransformWriter、`SubscriptionRepositoryImpl` / `OverrideProfileRepositoryImpl` / `ChainProxyRepositoryImpl` / `RuleOverrideRepositoryImpl` + 接口绑定、`factory { ProfileProcessor }`；`androidPlatformModule`（绑 `androidContext()`）= PlatformStorage、ProxyServiceController、AppListProvider、WifiPolicyController、BootStartManager、BackupManager、ProfileUpdateScheduler；`androidAppModule` = `single<ProfileFileManager>`；`viewModelModule` = 13 个 ViewModel（单 Activity 用 `single`）。**组合根注入**：MainActivity `get()` 取图后透传给 `App(...)`，屏幕保持参数化、不用 koinViewModel；仅需 Activity 上下文的 FilePicker / VPN 授权 launcher 不入 Koin。**repo 实现必配接口**，ViewModel 依赖接口；`ProfileProcessor` 需实体级方法故依赖具体类。
+**Koin**（4 模块按职责拆分，均在 `di/`）：`dataModule` = appScope、SubscriptionStore、ProxySelectionStore、OverrideJsonStore、SubscriptionProxyResolver、RuleLatencyTester、MihomoConnectionManager、AutoDelayTester、OverrideProfileStore、RuleOverrideStore、ProfileTransformWriter、`SubscriptionRepositoryImpl` / `OverrideProfileRepositoryImpl` / `ChainProxyRepositoryImpl` / `RuleOverrideRepositoryImpl` / `AppUpdateRepositoryImpl` + 接口绑定、`factory { ProfileProcessor }`；`androidPlatformModule`（绑 `androidContext()`）= PlatformStorage、ProxyServiceController、AppListProvider、WifiPolicyController、BootStartManager、BackupManager、ProfileUpdateScheduler；`androidAppModule` = `single<ProfileFileManager>`；`viewModelModule` = 14 个 ViewModel（单 Activity 用 `single`）。**组合根注入**：MainActivity `get()` 取图后透传给 `App(...)`，屏幕保持参数化、不用 koinViewModel；仅需 Activity 上下文的 FilePicker / VPN 授权 launcher 不入 Koin。**repo 实现必配接口**，ViewModel 依赖接口；`ProfileProcessor` 需实体级方法故依赖具体类。
 
 - **通信方案**：runtime（traffic/logs/connections/proxy select/provider 刷新）走 subprocess + Ktor REST + WS，三模式共用；订阅导入（fetch + provider prefetch + Parse）走 JNI in-process，由 [StellibertyCoreBridge](android/app/src/main/kotlin/com/stelliberty/android/data/bridge/StellibertyCoreBridge.kt) 调 libmihomo.so 的 cgo 导出。
 - **状态桥接**：ProxyServiceBridge（全局 StateFlow + TunMode），Service 写、ViewModel 读。**进程模型**：单进程（VpnService 与 UI 同进程），ROOT 模式 mihomo 为独立 root 进程。
 - **数据持久化**：订阅 JSON 文件（见「订阅数据」）+ PlatformStorage（简单偏好）+ StorageKeys（key 常量）+ OverrideJsonStore（`override.user.json` + `ConfigurationOverride`）；store 自带 `state: StateFlow` + `update(transform)`，「Clash 特性」各页共用 `ClashFeaturesViewModel` 读写。**OverrideJsonStore 的内存 state 是权威值**：`load()` 返回内存值不读盘，写入磁盘由 appScope 串行异步完成（排队期间被新值取代的快照直接放弃）。SubscriptionStore / ProxySelectionStore 同理：当前订阅与节点选择先发布、后异步写盘。因此 **Service / ProfileWorker / 各入口的 ProxyServiceController 必须用 Koin 单例，各自 `new` 会读到盘上旧值**——用户改完设置立刻启动就会用到改前的配置。
 - **订阅管理**：Pending → Processing → Imported 三阶段沙箱，`ProfileProcessor` 编排 snapshot → fetchAndValid（JNI 一次完成 fetch + provider prefetch + Parse）→ commit；processLock 串行，profileLock 守护订阅列表与目录一致。
-- **app 内下载一律走 mixed-port**：Stelliberty 自身永远绕过 TUN，直连境外资源极慢——这是「图标加载慢」的根因模式，**任何新增的外网下载都要走 mixed-port**。`SubscriptionProxyResolver.resolve()` 按「代理运行中 + 可解析 mixed-port」返回 proxy URL 或 null；订阅下载走 `resolveForSubscription(mode)`，由该订阅的 `UpdateProxyMode` 决定（Direct 直连，Core / SystemProxy 经 mixed-port，Android 没有系统代理）。订阅侧由 native glue 在 fetchAndValid 入口 `os.Setenv("HTTPS_PROXY"/"HTTP_PROXY")` defer Unsetenv，覆盖 fetch + provider prefetch + GeoIP 自动下载，processLock 串行保证 set/unset 并发安全。[IconLoader](android/app/src/main/kotlin/com/stelliberty/android/ui/platform/IconLoader.kt)：内存 LRU(64) → 磁盘缓存 → 网络（限流 3 并发 + 5s/15s 超时），失败 URL 负缓存 60s，磁盘读取/解码在 `Dispatchers.IO`，proxy 解析结果缓存 10s、随 URL 变化 close 旧建新。
+- **app 内下载一律走 mixed-port**：Stelliberty 自身永远绕过 TUN，直连境外资源极慢——这是「图标加载慢」的根因模式，**任何新增的外网下载都要走 mixed-port**。`SubscriptionProxyResolver.resolve()` 按「代理运行中 + 可解析 mixed-port」返回 proxy URL 或 null；订阅下载走 `resolveForSubscription(mode)`，由该订阅的 `UpdateProxyMode` 决定（Direct 直连，Core / SystemProxy 经 mixed-port，Android 没有系统代理）。订阅侧由 native glue 把 proxy URL 换成 HTTP CONNECT 拨号器，经 `clashHttp.WithDialer` 传给订阅 fetch 与 provider prefetch（mihomo 的 HttpRequest 不读代理环境变量）；Parse 校验时内核现场补下的 provider 与 GeoIP 仍直连。[IconLoader](android/app/src/main/kotlin/com/stelliberty/android/ui/platform/IconLoader.kt)：内存 LRU(64) → 磁盘缓存 → 网络（限流 3 并发 + 5s/15s 超时），失败 URL 负缓存 60s，磁盘读取/解码在 `Dispatchers.IO`，proxy 解析结果缓存 10s、随 URL 变化 close 旧建新。
 - **GeoIP 预制**：构建时 DownloadGeoFilesTask 下载 geoip.metadb / GeoIP.dat / geosite.dat / ASN.mmdb 并压成 xz 存进 assets；缺哪份 mihomo 就会在加载配置时同步下载，API 起不来直到启动超时（Geodata 模式用的是 GeoIP.dat）。安装或升级后首次启动由后台线程经 `stellibertyExtractXzAsset` 并行解到 `files/mihomo/geodata/`，JNI 解析与 mihomo 启动前先 `ProfileFileOps.awaitGeodata()`。JNI 路径用 `stellibertyCoreInit(geodataDir)` 把 mihomo 全局 homeDir 指到这里；subprocess runtime 按 `-d workDir` + symlink 复用同一份，`ensureGeodataLinks` 把工作目录里的实体文件换回链接。
 - **国际化**：英文 + 简体中文（zh-rCN）+ 繁体中文（zh-rTW，台湾用语：設定/檔案/匯入/連線/連接埠/快取/伺服器/金鑰/還原/套用/群組/逾時，非简转繁），Composable 用 `stringResource`、非 Composable 用 `context.getString`；日志英文，代码注释中文。**data 层拿不到资源**：会被用户看见的兜底值（如订阅自动命名的最后一环）由调用方按 locale 注入。data 层写字面量会丢掉 locale；为此把 Context 拉进去会打破分层。
 
@@ -99,7 +114,7 @@ UPDATE（手动/自动）→ 等价 APPLY，snapshot 取自 Imported
 DELETE → 列表、草稿与节点选择清理 + imported/{uuid}/ + pending/{uuid}/ 删除
 ```
 
-**目录**：`files/mihomo/` 下 `subscriptions/`、`proxies/`（见上）、`geodata/`（共享 GeoIP + 符号链接）、`imported/{uuid}/`、`pending/{uuid}/`、`processing/`（临时校验沙箱，单例）、`runtime/{uuid}/`（ROOT 运行时沙箱）、`overrides/`（覆写列表与内容）、`rules/`（规则覆写与模板）、`profile.transform.json`（当前订阅的覆写、链式代理与规则覆写，启动前生成）、`override.user.json`（用户设置）、`override.run.json`（启动时合并 TUN fd + AppProxy + rootMode）。换入用的临时目录：`commit.new` / `commit.old.{uuid}`、`.restore` / `.restore-old`。
+**目录**：`files/mihomo/` 下 `subscriptions/`、`proxies/`（见上）、`geodata/`（共享 GeoIP + 符号链接）、`imported/{uuid}/`、`pending/{uuid}/`、`processing/`（临时校验沙箱，单例）、`runtime/{uuid}/`（ROOT 运行时沙箱；这四类目录下的 `providers/` 存 http provider 缓存）、`overrides/`（覆写列表与内容）、`rules/`（规则覆写与模板）、`profile.transform.json`（当前订阅的覆写、链式代理与规则覆写，启动前生成）、`override.user.json`（用户设置）、`override.run.json`（启动时合并 TUN fd + AppProxy + rootMode）。换入用的临时目录：`commit.new` / `commit.old.{uuid}`、`.restore` / `.restore-old`。
 
 ## 构建
 

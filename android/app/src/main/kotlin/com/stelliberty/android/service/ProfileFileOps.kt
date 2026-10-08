@@ -16,6 +16,7 @@ object ProfileFileOps {
     private const val TAG = "ProfileFileOps"
     private const val COMMIT_STAGING = "commit.new"
     private const val COMMIT_OLD_PREFIX = "commit.old."
+    private const val PROVIDERS_DIR = "providers"
 
     private fun getWorkDir(context: Context): File {
         val dir = File(context.filesDir, "mihomo")
@@ -184,25 +185,36 @@ object ProfileFileOps {
     fun prepareRootRuntime(context: Context, uuid: String): File {
         val imported = File(getWorkDir(context), "imported/$uuid")
         val runtime = getRuntimeDir(context, uuid)
-        if (runtime.exists()) {
-            if (!runtime.deleteRecursively()) {
-                RootHelper.rmRfAsRoot(runtime.absolutePath)
-            }
-        }
+        clearRootRuntime(runtime)
         runtime.mkdirs()
         // 地理数据随后重新链接，复制会顺着链接白拷几十 MB。
-        imported.listFiles()?.filter { it.name !in GEODATA_FILES }?.forEach {
+        imported.listFiles()?.filter { it.name !in GEODATA_FILES && it.name != PROVIDERS_DIR }?.forEach {
             it.copyRecursively(File(runtime, it.name), overwrite = true)
         }
+        seedRootProviders(File(imported, PROVIDERS_DIR), File(runtime, PROVIDERS_DIR))
         ensureGeodataLinks(context, runtime)
         return runtime
     }
 
+    // provider 缓存跨启动保留，否则每次启动都要在就绪前同步重新下载全部 provider。
     fun cleanupRootRuntime(context: Context, uuid: String) {
-        val runtime = getRuntimeDir(context, uuid)
-        if (!runtime.exists()) return
-        if (!runtime.deleteRecursively()) {
-            RootHelper.rmRfAsRoot(runtime.absolutePath)
+        clearRootRuntime(getRuntimeDir(context, uuid))
+    }
+
+    private fun clearRootRuntime(runtime: File) {
+        runtime.listFiles()?.filter { it.name != PROVIDERS_DIR }?.forEach(::removeMaybeRootOwned)
+    }
+
+    // 更新订阅会重下全部 provider，导入文件较新时替换，与 VPN 模式直接读导入目录一致；保留修改时间供内核判断过期。
+    // 内核自建的子目录归 root 所有、应用写不进去，这时沿用运行目录里的文件。
+    private fun seedRootProviders(source: File, target: File) {
+        source.walkTopDown().filter { it.isFile }.forEach { file ->
+            val dest = File(target, file.relativeTo(source).path)
+            if (dest.exists() && dest.lastModified() >= file.lastModified()) return@forEach
+            runCatching {
+                file.copyTo(dest, overwrite = true)
+                dest.setLastModified(file.lastModified())
+            }
         }
     }
 
