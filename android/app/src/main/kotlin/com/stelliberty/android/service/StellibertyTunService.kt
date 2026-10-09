@@ -303,7 +303,7 @@ class StellibertyTunService : VpnService() {
                 userOverride = userOverride,
                 tunFd = fd,
                 tunMode = TunMode.Vpn,
-                subscriptionUpdateViaProxy = subscriptionStore.anyUpdatesViaProxy(),
+                subscriptionUpdateViaCore = subscriptionStore.anyUpdatesViaCore(),
                 subscriptionMixedPort = subMixedPort,
             )
 

@@ -4,7 +4,6 @@ import android.os.Bundle
 import kotlinx.coroutines.runBlocking
 import com.stelliberty.android.data.repository.ProfileProcessor
 import com.stelliberty.android.domain.model.SubscriptionAutoUpdateMode
-import com.stelliberty.android.domain.model.SubscriptionUpdateProxyMode
 import com.stelliberty.android.domain.repository.SubscriptionRepository
 import com.stelliberty.android.platform.ProfileFileManager
 import com.stelliberty.android.platform.ProxyServiceController
@@ -26,6 +25,8 @@ internal fun runSubscriptionCommand(action: String, arg: String?, extras: Bundle
                     "interval" -> SubscriptionAutoUpdateMode.Interval
                     else -> return@runBlocking debugResult(false, "Unknown auto_update, use disabled, startup or interval", command, url)
                 }
+                val updateProxy = extras.updateProxyMode()
+                    ?: return@runBlocking debugResult(false, "Unknown update_proxy, use direct, system or core", command, url)
                 val created = repository.create(
                     name = name,
                     sourceLocation = url,
@@ -33,7 +34,7 @@ internal fun runSubscriptionCommand(action: String, arg: String?, extras: Bundle
                     autoUpdateMode = autoUpdate,
                     autoUpdateIntervalMinutes = interval,
                     ageSecretKey = extras.string(EXTRA_AGE_KEY).orEmpty(),
-                    updateProxyMode = SubscriptionUpdateProxyMode.Core,
+                    updateProxyMode = updateProxy,
                     autoTestDelayIntervalMinutes = extras.int(EXTRA_AUTO_DELAY) ?: 0,
                 )
                 runCatching { koin<ProfileProcessor>().apply(created.id) }.fold(

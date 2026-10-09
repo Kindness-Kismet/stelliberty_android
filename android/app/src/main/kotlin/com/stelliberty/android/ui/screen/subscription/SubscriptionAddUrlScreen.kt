@@ -33,6 +33,7 @@ import com.stelliberty.android.domain.model.SubscriptionAutoUpdateMode
 import com.stelliberty.android.domain.model.SubscriptionUpdateProxyMode
 import com.stelliberty.android.ui.component.AdaptiveTopAppBar
 import com.stelliberty.android.ui.component.CardItem
+import com.stelliberty.android.ui.component.UpdateProxyModePreference
 import com.stelliberty.android.ui.component.blur.BlurredBar
 import com.stelliberty.android.ui.component.blur.rememberBlurBackdrop
 import com.stelliberty.android.ui.component.groupedCardItems
@@ -51,7 +52,6 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.blur.layerBackdrop
-import top.yukonga.miuix.kmp.preference.SwitchPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
@@ -71,7 +71,7 @@ fun SubscriptionAddUrlScreen(
     var inputUrl by remember { mutableStateOf(initialUrl) }
     var userAgent by remember { mutableStateOf("") }
     var ageSecretKey by remember { mutableStateOf("") }
-    var updateViaProxy by remember { mutableStateOf(true) }
+    var updateProxyMode by remember { mutableStateOf(SubscriptionUpdateProxyMode.Core) }
     var autoDelayMinutes by remember { mutableStateOf("") }
     var autoUpdateMode by remember {
         mutableStateOf(
@@ -242,13 +242,8 @@ fun SubscriptionAddUrlScreen(
             groupedCardItems(
                 keyPrefix = "update_proxy",
                 items = listOf(
-                    CardItem("subscriptionUpdateViaProxy") {
-                        SwitchPreference(
-                            title = stringResource(R.string.subscription_update_via_proxy),
-                            summary = stringResource(R.string.subscription_update_via_proxy_summary),
-                            checked = updateViaProxy,
-                            onCheckedChange = { updateViaProxy = it },
-                        )
+                    CardItem("subscriptionUpdateProxyMode") {
+                        UpdateProxyModePreference(mode = updateProxyMode, onModeChange = { updateProxyMode = it })
                     },
                 ),
                 outerBottomPadding = 6.dp,
@@ -273,8 +268,7 @@ fun SubscriptionAddUrlScreen(
                             } else 0,
                             userAgent = userAgent.trim(),
                             ageSecretKey = ageSecretKey.trim(),
-                            updateProxyMode = if (updateViaProxy) SubscriptionUpdateProxyMode.Core
-                            else SubscriptionUpdateProxyMode.Direct,
+                            updateProxyMode = updateProxyMode,
                             autoTestDelayMinutes = autoDelayMinutes.toIntOrNull() ?: 0,
                             onComplete = onSaved,
                         )

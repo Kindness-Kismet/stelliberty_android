@@ -1,6 +1,7 @@
 package com.stelliberty.android.debug
 
 import android.os.Bundle
+import com.stelliberty.android.domain.model.SubscriptionUpdateProxyMode
 import org.koin.core.context.GlobalContext
 
 internal const val EXTRA_VALUE = "value"
@@ -22,6 +23,7 @@ internal const val EXTRA_HOPS = "hops"
 internal const val EXTRA_PAYLOAD = "payload"
 internal const val EXTRA_PROXY = "proxy"
 internal const val EXTRA_OPTIONS = "options"
+internal const val EXTRA_UPDATE_PROXY = "update_proxy"
 
 private const val KEY_OK = "ok"
 private const val KEY_MESSAGE = "message"
@@ -116,6 +118,14 @@ internal fun Bundle?.target(arg: String?): String? =
     arg?.takeIf { it.isNotBlank() } ?: this?.getString(EXTRA_VALUE)?.takeIf { it.isNotBlank() }
 
 internal fun Bundle?.string(key: String): String? = this?.getString(key)?.takeIf { it.isNotBlank() }
+
+// 缺省为核心代理，与添加页默认值一致；无法识别时返回 null。
+internal fun Bundle?.updateProxyMode(): SubscriptionUpdateProxyMode? = when (string(EXTRA_UPDATE_PROXY) ?: "core") {
+    "direct" -> SubscriptionUpdateProxyMode.Direct
+    "system" -> SubscriptionUpdateProxyMode.SystemProxy
+    "core" -> SubscriptionUpdateProxyMode.Core
+    else -> null
+}
 
 internal fun Bundle?.boolean(key: String): Boolean? {
     val bundle = this ?: return null

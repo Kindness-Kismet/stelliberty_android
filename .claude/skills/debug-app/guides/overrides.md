@@ -4,7 +4,7 @@
 
 | 方法 | 参数 | 作用 |
 |---|---|---|
-| `override.add` | 地址（arg）、`name`、`format`（extra，`yaml` / `js`） | 添加远程覆写，通过内核运行端口下载 |
+| `override.add` | 地址（arg）、`name`、`format`（extra，`yaml` / `js`）、`update_proxy`（extra，`direct` / `system` / `core`，缺省 `core`） | 添加远程覆写，按更新代理模式下载 |
 | `override.list` | 无 | 列出覆写，`*` 标记当前订阅使用的项 |
 | `override.update` | Id、Id 前缀或名称（arg） | 更新远程覆写 |
 | `override.save` | 完整内容（arg）、`uuid`（extra，Id、前缀或名称） | 校验并保存内容，空字符串可保存空文件 |

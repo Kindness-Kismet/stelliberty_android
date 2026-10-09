@@ -334,7 +334,7 @@ class StellibertyRootService : Service() {
                 userOverride = userOverride,
                 tunFd = -1,
                 tunMode = submode.tunMode,
-                subscriptionUpdateViaProxy = subscriptionStore.anyUpdatesViaProxy(),
+                subscriptionUpdateViaCore = subscriptionStore.anyUpdatesViaCore(),
                 subscriptionMixedPort = subMixedPort,
                 tproxyForTether = tproxyForTether,
             )

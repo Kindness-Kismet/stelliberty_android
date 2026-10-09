@@ -349,8 +349,13 @@
     <string name="settings_dynamic_notification">Dynamic Notification</string>
     <string name="settings_dynamic_notification_summary">Show real-time speed and traffic in notification</string>
     <string name="settings_dynamic_notification_summary_root_unsupported">VPN mode only</string>
-    <string name="subscription_update_via_proxy">Update via proxy</string>
-    <string name="subscription_update_via_proxy_summary">Download this subscription through the running proxy</string>
+    <string name="update_proxy_mode">Update Proxy</string>
+    <string name="update_proxy_direct">Direct</string>
+    <string name="update_proxy_system">System Proxy</string>
+    <string name="update_proxy_core">Core Proxy</string>
+    <string name="update_proxy_direct_summary">Connect directly without any proxy</string>
+    <string name="update_proxy_system_summary">Use the HTTP proxy set for Wi-Fi or the system; connect directly if none is set</string>
+    <string name="update_proxy_core_summary">Download through the running core; connect directly while the proxy is stopped</string>
     <string name="settings_restart_after_update">Restart after update</string>
     <string name="settings_restart_after_update_summary">Restart the proxy when the active profile is updated, so the new config takes effect (briefly interrupts connections)</string>
     <string name="settings_auto_connect">Connect on Launch</string>
@@ -654,7 +659,6 @@
     <string name="override_url_placeholder">Enter override address</string>
     <string name="override_local_file">Local File</string>
     <string name="override_format">File Format</string>
-    <string name="override_update_via_proxy_summary">Download this override through the running proxy</string>
     <string name="override_delete_title">Delete Override</string>
     <string name="override_delete_summary">Delete \"%1$s\"? Subscriptions using it will drop this override.</string>
     <string name="override_update_all_result">Update completed: %1$d succeeded, %2$d failed</string>

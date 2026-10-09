@@ -347,8 +347,13 @@
     <string name="settings_dynamic_notification">動態通知</string>
     <string name="settings_dynamic_notification_summary">在通知列顯示即時網速與流量</string>
     <string name="settings_dynamic_notification_summary_root_unsupported">僅限 VPN 模式</string>
-    <string name="subscription_update_via_proxy">透過代理更新</string>
-    <string name="subscription_update_via_proxy_summary">經由執行中的代理下載此訂閱</string>
+    <string name="update_proxy_mode">更新代理模式</string>
+    <string name="update_proxy_direct">直連</string>
+    <string name="update_proxy_system">系統代理</string>
+    <string name="update_proxy_core">核心代理</string>
+    <string name="update_proxy_direct_summary">不經任何代理，直接連線</string>
+    <string name="update_proxy_system_summary">使用 Wi-Fi 或系統設定的 HTTP 代理，未設定時直連</string>
+    <string name="update_proxy_core_summary">經執行中的核心下載，代理未啟動時直連</string>
     <string name="settings_restart_after_update">更新後重新啟動代理</string>
     <string name="settings_restart_after_update_summary">更新目前訂閱後重新啟動代理使新設定生效（會短暫中斷連線）</string>
     <string name="settings_auto_connect">啟動時自動連線</string>
@@ -652,7 +657,6 @@
     <string name="override_url_placeholder">輸入覆寫網址</string>
     <string name="override_local_file">本機檔案</string>
     <string name="override_format">檔案格式</string>
-    <string name="override_update_via_proxy_summary">經由執行中的代理下載此覆寫</string>
     <string name="override_delete_title">刪除覆寫</string>
     <string name="override_delete_summary">確定要刪除「%1$s」嗎？使用它的訂閱會同時移除這個覆寫。</string>
     <string name="override_update_all_result">更新完成，成功 %1$d 個，失敗 %2$d 個</string>

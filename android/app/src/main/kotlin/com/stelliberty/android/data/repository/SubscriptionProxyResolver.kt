@@ -5,13 +5,20 @@ import com.stelliberty.android.domain.model.SubscriptionUpdateProxyMode
 import com.stelliberty.android.platform.ProxyServiceBridge
 import com.stelliberty.android.platform.ProxyServiceStatus
 import com.stelliberty.android.platform.ProxyState
+import java.net.InetSocketAddress
+import java.net.Proxy
+import java.net.ProxySelector
+import java.net.URI
 
 class SubscriptionProxyResolver(
     private val overrideStore: OverrideJsonStore,
 ) {
-    // 订阅下载按该订阅的 UpdateProxyMode 决定；Direct 之外都经 mixed-port（Android 没有系统代理）。
-    suspend fun resolveForSubscription(mode: SubscriptionUpdateProxyMode): String? =
-        if (mode == SubscriptionUpdateProxyMode.Direct) null else resolve()
+    // 与 PC 相同按 UpdateProxyMode 选出口；系统代理与核心代理都不可用时直连。
+    suspend fun resolveForSubscription(mode: SubscriptionUpdateProxyMode, url: String): String? = when (mode) {
+        SubscriptionUpdateProxyMode.Direct -> null
+        SubscriptionUpdateProxyMode.SystemProxy -> systemProxy(url)
+        SubscriptionUpdateProxyMode.Core -> resolve()
+    }
 
     suspend fun resolve(): String? {
         val bridge = ProxyServiceBridge.state.value
@@ -21,6 +28,17 @@ class SubscriptionProxyResolver(
             ?: queryMixedPortFromApi(bridge)
         if (port == null || port <= 0) return null
         return "http://127.0.0.1:$port"
+    }
+
+    // 系统按本应用的默认网络下发代理（Wi-Fi 手动代理 / PAC / 全局代理）；本应用不走自己的 VPN，VPN 上的 HTTP 代理不在其中。
+    private fun systemProxy(url: String): String? {
+        val uri = runCatching { URI(url) }.getOrNull() ?: return null
+        val address = ProxySelector.getDefault()?.select(uri)
+            ?.firstOrNull { it.type() == Proxy.Type.HTTP }
+            ?.address() as? InetSocketAddress
+            ?: return null
+        val host = address.hostString.let { if (':' in it) "[$it]" else it }
+        return "http://$host:${address.port}"
     }
 
     private suspend fun queryMixedPortFromApi(bridge: ProxyServiceStatus): Int? {

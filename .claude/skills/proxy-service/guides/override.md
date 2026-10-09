@@ -8,7 +8,7 @@
 
 - `tcp-concurrent=true`、`find-process-mode=off`（分应用已由 sing-tun / VpnService / iptables uid-owner 处理）。
 - ROOT TUN 默认 `tun.mtu=9000 + gso=true + gso-max-size=65535`（大包聚合减少 read syscall），由 `ROOT_TUN_JUMBO_MTU`（默认 true）控制，关闭时回到 1500 / false。VPN 的 MTU 由 `VpnService.Builder` 管理。
-- mixed-port 优先级：① 用户 override 显式设置 → 用户值；② 订阅 yaml 自带（`ConfigGenerator.readSubscriptionMixedPort` 行扫描）→ 保留订阅值；③ 存在经内核更新的订阅（`UpdateProxyMode` 非 Direct）或还没有订阅 → 注入 7890；④ 其余情况留空。
+- mixed-port 优先级：① 用户 override 显式设置 → 用户值；② 订阅 yaml 自带（`ConfigGenerator.readSubscriptionMixedPort` 行扫描）→ 保留订阅值；③ 存在经内核更新的订阅（`UpdateProxyMode` 为 Core）或还没有订阅 → 注入 7890；④ 其余情况留空。
 
 ## 按模式硬编码覆盖
 

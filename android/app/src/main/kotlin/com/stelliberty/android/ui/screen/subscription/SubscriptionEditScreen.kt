@@ -30,6 +30,7 @@ import com.stelliberty.android.domain.model.SubscriptionAutoUpdateMode
 import com.stelliberty.android.domain.model.SubscriptionUpdateProxyMode
 import com.stelliberty.android.ui.component.AdaptiveTopAppBar
 import com.stelliberty.android.ui.component.CardItem
+import com.stelliberty.android.ui.component.UpdateProxyModePreference
 import com.stelliberty.android.ui.component.blur.BlurredBar
 import com.stelliberty.android.ui.component.blur.rememberBlurBackdrop
 import com.stelliberty.android.ui.component.groupedCardItems
@@ -49,7 +50,6 @@ import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.preference.ArrowPreference
-import top.yukonga.miuix.kmp.preference.SwitchPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
@@ -81,7 +81,9 @@ fun SubscriptionEditScreen(
         mutableStateOf(subscription?.autoUpdateMode ?: SubscriptionAutoUpdateMode.Disabled)
     }
     var intervalMinutes by rememberSaveable(uuid) { mutableStateOf(subscription?.intervalText().orEmpty()) }
-    var updateViaProxy by rememberSaveable(uuid) { mutableStateOf(subscription?.usesProxyForUpdate ?: true) }
+    var updateProxyMode by rememberSaveable(uuid) {
+        mutableStateOf(subscription?.updateProxyMode ?: SubscriptionUpdateProxyMode.Core)
+    }
     var autoDelayMinutes by rememberSaveable(uuid) { mutableStateOf(subscription?.autoDelayText().orEmpty()) }
 
     if (subscription == null) {
@@ -96,7 +98,7 @@ fun SubscriptionEditScreen(
             ageSecretKey.trim() != subscription.ageSecretKey ||
             autoUpdateMode != subscription.autoUpdateMode ||
             (autoUpdateMode == SubscriptionAutoUpdateMode.Interval && intervalMinutes != subscription.intervalText()) ||
-            (!isFile && updateViaProxy != subscription.usesProxyForUpdate) ||
+            updateProxyMode != subscription.updateProxyMode ||
             autoDelayMinutes != subscription.autoDelayText()
 
     val backdrop = rememberBlurBackdrop()
@@ -218,13 +220,8 @@ fun SubscriptionEditScreen(
                 groupedCardItems(
                     keyPrefix = "update_proxy",
                     items = listOf(
-                        CardItem("subscriptionUpdateViaProxy") {
-                            SwitchPreference(
-                                title = stringResource(R.string.subscription_update_via_proxy),
-                                summary = stringResource(R.string.subscription_update_via_proxy_summary),
-                                checked = updateViaProxy,
-                                onCheckedChange = { updateViaProxy = it },
-                            )
+                        CardItem("subscriptionUpdateProxyMode") {
+                            UpdateProxyModePreference(mode = updateProxyMode, onModeChange = { updateProxyMode = it })
                         },
                     ),
                     outerBottomPadding = 6.dp,
@@ -300,12 +297,6 @@ fun SubscriptionEditScreen(
                 TextButton(
                     text = stringResource(R.string.common_save),
                     onClick = {
-                        // 开关没动就原样写回，保留 PC 上设的 SystemProxy。
-                        val proxyMode = when {
-                            isFile || updateViaProxy == subscription.usesProxyForUpdate -> subscription.updateProxyMode
-                            updateViaProxy -> SubscriptionUpdateProxyMode.Core
-                            else -> SubscriptionUpdateProxyMode.Direct
-                        }
                         viewModel.editSubscription(
                             uuid = uuid,
                             name = name,
@@ -316,7 +307,7 @@ fun SubscriptionEditScreen(
                             } else 0,
                             userAgent = userAgent.trim(),
                             ageSecretKey = ageSecretKey.trim(),
-                            updateProxyMode = proxyMode,
+                            updateProxyMode = updateProxyMode,
                             autoTestDelayMinutes = autoDelayMinutes.toIntOrNull() ?: 0,
                             onComplete = onSaved,
                         )

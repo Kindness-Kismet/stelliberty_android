@@ -2,7 +2,6 @@ package com.stelliberty.android.debug
 
 import android.os.Bundle
 import com.stelliberty.android.domain.model.OverrideFormat
-import com.stelliberty.android.domain.model.SubscriptionUpdateProxyMode
 import com.stelliberty.android.domain.repository.OverrideProfileRepository
 import com.stelliberty.android.domain.repository.SubscriptionRepository
 import com.stelliberty.android.platform.ProxyServiceController
@@ -27,8 +26,10 @@ internal fun runOverrideCommand(action: String, arg: String?, extras: Bundle?): 
                     "js" -> OverrideFormat.JavaScript
                     else -> return@runBlocking debugResult(false, "Unknown format, use yaml or js", command, url)
                 }
+                val updateProxy = extras.updateProxyMode()
+                    ?: return@runBlocking debugResult(false, "Unknown update_proxy, use direct, system or core", command, url)
                 val name = extras.string(EXTRA_NAME) ?: url.substringAfterLast('/')
-                runCatching { repository.addRemote(name, url, format, SubscriptionUpdateProxyMode.Core) }.fold(
+                runCatching { repository.addRemote(name, url, format, updateProxy) }.fold(
                     onSuccess = { debugResult(true, "added ${it.id}", command, url, "id=${it.id}") },
                     onFailure = { debugResult(false, it.describeForDebug(), command, url) },
                 )

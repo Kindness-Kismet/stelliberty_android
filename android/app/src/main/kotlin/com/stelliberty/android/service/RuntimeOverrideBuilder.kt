@@ -39,7 +39,7 @@ object RuntimeOverrideBuilder {
         userOverride: ConfigurationOverride,
         tunFd: Int,
         tunMode: TunMode,
-        subscriptionUpdateViaProxy: Boolean,
+        subscriptionUpdateViaCore: Boolean,
         subscriptionMixedPort: Int?,
         tproxyForTether: Boolean = false,
     ): File {
@@ -55,7 +55,7 @@ object RuntimeOverrideBuilder {
             mixedPort = when {
                 userOverride.mixedPort != null -> userOverride.mixedPort
                 subscriptionMixedPort != null -> null
-                subscriptionUpdateViaProxy -> DEFAULT_MIXED_PORT
+                subscriptionUpdateViaCore -> DEFAULT_MIXED_PORT
                 else -> null
             },
             tproxyPort = when (tunMode) {

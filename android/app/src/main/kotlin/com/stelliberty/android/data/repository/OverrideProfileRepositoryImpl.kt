@@ -21,6 +21,7 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.Url
 import io.ktor.http.isSuccess
 import java.io.File
+import java.net.Proxy
 import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -195,12 +196,11 @@ class OverrideProfileRepositoryImpl(
         }
 
     private suspend fun download(url: String, mode: SubscriptionUpdateProxyMode): String {
-        val proxyUrl = proxyResolver.resolveForSubscription(mode)
+        val proxyUrl = proxyResolver.resolveForSubscription(mode, url)
         return HttpClient {
             install(HttpTimeout) { requestTimeoutMillis = DOWNLOAD_TIMEOUT_MS }
-            if (proxyUrl != null) {
-                engine { proxy = ProxyBuilder.http(Url(proxyUrl)) }
-            }
+            // 不指定时 OkHttp 会读系统代理，直连必须显式写 NO_PROXY。
+            engine { proxy = proxyUrl?.let { ProxyBuilder.http(Url(it)) } ?: Proxy.NO_PROXY }
         }.use { client ->
             val response = client.get(url)
             if (!response.status.isSuccess()) throw ImportError.HttpStatus(response.status.value)
