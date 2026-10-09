@@ -97,7 +97,7 @@ StellibertyApplication.startKoin ─ Koin（dataModule + androidPlatformModule +
 - `subscriptions/subscriptions_list.json`（`{"Subscriptions":[...]}`，已导入订阅）、`subscriptions/selection_state.json`（`CurrentSubscriptionId`）、`proxies/selection_state.json`（订阅 Id → 代理组 → 节点）与 PC 同名同格式；`subscriptions/pending_list.json`（编辑中草稿，提交后移入列表）是 Android 专有的。
 - [Subscription](android/app/src/main/kotlin/com/stelliberty/android/domain/model/Subscription.kt) 字段与 PC 一一对应。**PC 读取时拒绝未知键，新增字段前先确认 PC 已有同名字段**；Android 暂未实现的 PC 字段（覆写、链式代理等）原样读入、原样写回。
 - [JsonFileStore](android/app/src/main/kotlin/com/stelliberty/android/data/store/JsonFileStore.kt)：列表与草稿走 `update`（先写盘再发布，提交时 imported/{id}/ 已换入，列表没写盘就被杀会被启动清理当孤儿删掉）；当前订阅与节点选择走 `updateLater`。解析失败时原文件改名 `.bak` 并标记 `loadFailed`，启动清理据此跳过孤儿目录删除。
-- `LastUpdatedAt` 在每次获取成功后写入并清掉 `LastError` / `LastErrorAt`，更新失败时写入这两项（原因是英文技术描述）；自动更新闹钟以最近一次成功或失败（都缺失时取 `CreatedAt`）为起点，失败后顺延一个间隔再试；运行期只有存在经内核更新的订阅（或还没有订阅）时才补默认 mixed-port。
+- `LastUpdatedAt` 在每次获取成功后写入并清掉 `LastError` / `LastErrorAt`，更新失败时写入这两项（原因是英文技术描述）；自动更新闹钟以最近一次成功或失败（都缺失时取 `CreatedAt`）为起点，失败后顺延一个间隔再试；运行期只有存在经内核更新的订阅（或还没有订阅）或开启 VPN 系统代理时才补默认 mixed-port。
 
 **三阶段流程**（ProfileProcessor）：
 

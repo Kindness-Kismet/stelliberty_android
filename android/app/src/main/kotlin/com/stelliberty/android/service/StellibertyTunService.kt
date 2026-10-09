@@ -160,10 +160,17 @@ class StellibertyTunService : VpnService() {
             val systemProxy = storage.getString(StorageKeys.VPN_SYSTEM_PROXY, "true") == "true"
             val proxyMode = AppProxyMode.parse(storage.getString(StorageKeys.APP_PROXY_MODE, ""))
             val packages = storage.getStringSet(StorageKeys.APP_PROXY_PACKAGES, emptySet())
+            val subMixedPort = subscriptionId?.let {
+                ConfigGenerator.readSubscriptionMixedPort(this@StellibertyTunService, it)
+            }
+            // 系统代理指向 mixed-port，开启时内核必须监听它。
+            val mixedPortRequired = systemProxy || subscriptionStore.anyUpdatesViaCore()
+            val mixedPort = RuntimeOverrideBuilder.resolveMixedPort(userOverride, subMixedPort, mixedPortRequired)
             AppLogger.info(
                 TAG,
                 "VPN options: ipv6=$allowIpv6, bypassPrivate=$bypassPrivate, dnsHijacking=$dnsHijacking, " +
-                    "allowBypass=$allowBypass, systemProxy=$systemProxy, appProxy=$proxyMode(${packages.size})",
+                    "allowBypass=$allowBypass, systemProxy=$systemProxy, mixedPort=$mixedPort, " +
+                    "appProxy=$proxyMode(${packages.size})",
             )
 
             val fd = try {
@@ -233,12 +240,11 @@ class StellibertyTunService : VpnService() {
 
                     setMetered(false)
 
-                    if (systemProxy) {
-                        val port = userOverride.mixedPort ?: 7890
+                    if (systemProxy && mixedPort != null) {
                         setHttpProxy(
                             android.net.ProxyInfo.buildDirectProxy(
                                 "127.0.0.1",
-                                port,
+                                mixedPort,
                                 listOf(
                                     "localhost", "*.local", "127.*", "10.*", "172.16.*",
                                     "172.17.*", "172.18.*", "172.19.*", "172.20.*",
@@ -295,15 +301,12 @@ class StellibertyTunService : VpnService() {
 
             val secret = ConfigGenerator.resolveSecret(this@StellibertyTunService, userOverride, subscriptionId)
             val extCtl = userOverride.resolveExternalController()
-            val subMixedPort = subscriptionId?.let {
-                ConfigGenerator.readSubscriptionMixedPort(this@StellibertyTunService, it)
-            }
             val overrideFile = RuntimeOverrideBuilder.buildAndWriteForRun(
                 context = this@StellibertyTunService,
                 userOverride = userOverride,
                 tunFd = fd,
                 tunMode = TunMode.Vpn,
-                subscriptionUpdateViaCore = subscriptionStore.anyUpdatesViaCore(),
+                mixedPortRequired = mixedPortRequired,
                 subscriptionMixedPort = subMixedPort,
             )
 

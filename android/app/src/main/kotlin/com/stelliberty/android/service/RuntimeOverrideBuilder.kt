@@ -39,7 +39,7 @@ object RuntimeOverrideBuilder {
         userOverride: ConfigurationOverride,
         tunFd: Int,
         tunMode: TunMode,
-        subscriptionUpdateViaCore: Boolean,
+        mixedPortRequired: Boolean,
         subscriptionMixedPort: Int?,
         tproxyForTether: Boolean = false,
     ): File {
@@ -50,12 +50,11 @@ object RuntimeOverrideBuilder {
             externalController = null,
             secret = null,
             mode = wifiRuntimeMode ?: userOverride.mode,
-            // 端口取值顺序：用户设了就用用户的；订阅文件里自带就不动，免得用默认值盖掉订阅原本的设置；
-            // 只有存在经内核更新的订阅才补一个默认端口，否则不写。
+            // 取值顺序同 resolveMixedPort；订阅自带时不写，免得盖掉订阅原本的设置。
             mixedPort = when {
                 userOverride.mixedPort != null -> userOverride.mixedPort
                 subscriptionMixedPort != null -> null
-                subscriptionUpdateViaCore -> DEFAULT_MIXED_PORT
+                mixedPortRequired -> DEFAULT_MIXED_PORT
                 else -> null
             },
             tproxyPort = when (tunMode) {
@@ -83,6 +82,15 @@ object RuntimeOverrideBuilder {
         )
         return file
     }
+
+    // 内核实际监听的 mixed-port：用户设置 > 订阅自带 > 需要时补默认值；null 表示不监听（含用户设 0）。
+    // 订阅自带的值靠行扫描取得；覆写改了该端口时内核以覆写为准，这里取不到。
+    fun resolveMixedPort(
+        userOverride: ConfigurationOverride,
+        subscriptionMixedPort: Int?,
+        mixedPortRequired: Boolean,
+    ): Int? = (userOverride.mixedPort ?: subscriptionMixedPort ?: DEFAULT_MIXED_PORT.takeIf { mixedPortRequired })
+        ?.takeIf { it > 0 }
 
     private fun buildDnsOverride(tunMode: TunMode, userDns: DnsOverride?): DnsOverride? {
         if (tunMode != TunMode.RootTproxy) return userDns
