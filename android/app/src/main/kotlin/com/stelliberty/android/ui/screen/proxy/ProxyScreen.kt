@@ -497,6 +497,16 @@ fun ProxyScreen(
                                 )
                             }
                         }
+                        if (!isRunning && groups.isNotEmpty()) {
+                            item(key = "preview_hint", contentType = "hint") {
+                                Text(
+                                    text = stringResource(R.string.proxy_preview_hint),
+                                    fontSize = 12.sp,
+                                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+                                )
+                            }
+                        }
                         if (visibleGroups.isEmpty()) {
                             item(key = "empty") {
                                 Column(

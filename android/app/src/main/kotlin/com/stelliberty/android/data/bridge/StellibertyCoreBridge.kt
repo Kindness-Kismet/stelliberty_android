@@ -1,6 +1,7 @@
 package com.stelliberty.android.data.bridge
 
 import com.stelliberty.android.domain.model.ChainProxyContext
+import com.stelliberty.android.domain.model.ProxyPreview
 import com.stelliberty.android.domain.model.RuleOverrideContext
 import com.stelliberty.android.service.ProfileFileOps
 import java.io.File
@@ -187,6 +188,13 @@ object StellibertyCoreBridge {
             RuleOverrideContext.serializer(),
         )
 
+    // 内核未运行时代理页的静态预览，与 ruleContext 同一份配置口径，provider 成员从缓存文件补齐。
+    fun proxyPreview(workDir: File, transform: File?, ageSecretKey: String): ProxyPreview =
+        decodePayload(
+            nativeProxyPreview(workDir.path, transform?.path.orEmpty(), ageSecretKey),
+            ProxyPreview.serializer(),
+        )
+
     private fun <T> decodePayload(raw: String?, serializer: KSerializer<T>): T {
         if (raw.isNullOrEmpty()) throw StellibertyCoreError("native returned empty result")
         if (raw.startsWith("error:")) throw StellibertyCoreError(raw.removePrefix("error:").trim())
@@ -202,6 +210,9 @@ object StellibertyCoreBridge {
 
     @JvmStatic
     private external fun nativeRuleContext(workDir: String, transform: String, secretKey: String): String?
+
+    @JvmStatic
+    private external fun nativeProxyPreview(workDir: String, transform: String, secretKey: String): String?
 
     @JvmStatic
     private external fun nativeSetAgeSecretKey(key: String)

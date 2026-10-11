@@ -170,6 +170,7 @@
     <string name="proxy_no_matching_groups">沒有符合的代理群組</string>
     <string name="proxy_hide_unavailable">僅顯示可用節點</string>
     <string name="proxy_start_first">請先啟動代理服務</string>
+    <string name="proxy_preview_hint">代理未啟動，目前顯示所選訂閱的節點</string>
     <string name="proxy_mode_direct_hint">目前為直連模式，所有流量皆不經過代理。此處的選擇會被儲存，切回規則模式後生效。</string>
     <string name="proxy_mode_global_hint">目前為全域模式，僅由 GLOBAL 群組決定出口。其他代理群組的選擇將在切回規則模式後生效。</string>
     <string name="proxy_refresh_icon">重新整理圖示</string>

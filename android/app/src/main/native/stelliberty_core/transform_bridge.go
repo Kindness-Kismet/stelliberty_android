@@ -128,3 +128,46 @@ func stellibertyRuleContext(cWorkDir, cTransform, cKey *C.char) *C.char {
 		return string(data)
 	})
 }
+
+// 代理页预览与运行时同一份配置口径：套完覆写与链式代理；provider 成员从缓存文件补齐，读不到的跳过。
+//
+//export stellibertyProxyPreview
+func stellibertyProxyPreview(cWorkDir, cTransform, cKey *C.char) *C.char {
+	return guardString(func() string {
+		out, err := readTransformedConfig(C.GoString(cWorkDir), C.GoString(cTransform), C.GoString(cKey))
+		if err != nil {
+			return "error: " + err.Error()
+		}
+		preview, err := overrides.ProxyPreviewOf(out, proxyProviderCacheContents(C.GoString(cWorkDir), out))
+		if err != nil {
+			return "error: " + err.Error()
+		}
+		data, err := json.Marshal(preview)
+		if err != nil {
+			return "error: " + err.Error()
+		}
+		return string(data)
+	})
+}
+
+// provider 缓存路径的拼法只在 providerCachePath 一处成立，这里按名字把缓存内容交给 overrides。
+// 配置本身解析失败时放弃补齐：预览是尽力而为，覆写页面已有独立的报错通道。
+func proxyProviderCacheContents(workDir string, configBytes []byte) map[string][]byte {
+	rawCfg, err := config.UnmarshalRawConfig(configBytes)
+	if err != nil {
+		return nil
+	}
+	contents := make(map[string][]byte, len(rawCfg.ProxyProvider))
+	for name, provider := range rawCfg.ProxyProvider {
+		path := providerCachePath(filepath.Join(workDir, "providers"), "proxies", provider)
+		if path == "" {
+			continue
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+		contents[name] = data
+	}
+	return contents
+}

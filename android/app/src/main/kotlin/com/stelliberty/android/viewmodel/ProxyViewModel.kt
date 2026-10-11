@@ -4,7 +4,9 @@ import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.stelliberty.android.data.store.ProxySelectionStore
+import com.stelliberty.android.domain.model.ProxyPreview
 import com.stelliberty.android.domain.repository.MihomoRepository
+import com.stelliberty.android.domain.repository.ProxyPreviewRepository
 import com.stelliberty.android.platform.PlatformStorage
 import com.stelliberty.android.platform.StorageKeys
 import com.stelliberty.android.util.AppLogger
@@ -70,6 +72,8 @@ class ProxyViewModel(
     private val proxySelections: ProxySelectionStore? = null,
     private val getActiveUuid: () -> String? = { null },
     private val storage: PlatformStorage? = null,
+    private val previewRepository: ProxyPreviewRepository? = null,
+    activeUuid: Flow<String?> = emptyFlow(),
     autoDelayRuns: Flow<MihomoRepository> = emptyFlow(),
 ) : ViewModel() {
 
@@ -131,6 +135,7 @@ class ProxyViewModel(
 
     private var session: Session? = null
     private var loadJob: Job? = null
+    private var previewJob: Job? = null
     private val stateMutex = Mutex()
 
     private var nodeProviderMap: Map<String, String> = emptyMap()
@@ -171,12 +176,21 @@ class ProxyViewModel(
         viewModelScope.launch {
             autoDelayRuns.collect { repo -> if (session?.repository === repo) loadProxies() }
         }
+        viewModelScope.launch {
+            activeUuid.collect { uuid ->
+                // 无内核时切订阅直接换预览；运行中的列表由 setRepository 与 restoreSelections 接手。
+                if (session == null) loadPreview(uuid)
+            }
+        }
     }
 
     // 每个内核实例独占任务父节点；切换时取消请求和排队操作，响应再核对订阅归属。
     fun setRepository(repo: MihomoRepository?) {
-        if (session?.repository === repo) return
+        if (repo != null && session?.repository === repo) return
+        if (repo == null && session == null) return
         session?.scope?.cancel()
+        previewJob?.cancel()
+        previewJob = null
         session = repo?.let {
             Session(
                 it,
@@ -187,11 +201,15 @@ class ProxyViewModel(
         loadJob = null
         nodeProviderMap = emptyMap()
         _uiState.value = ProxyUiState(isProxyRunning = repo != null)
-        if (repo != null) loadProxies()
+        if (repo != null) loadProxies() else loadPreview()
     }
 
     fun loadProxies() {
-        val current = session ?: return
+        val current = session ?: run {
+            // 内核不在时的刷新请求按预览处理：进代理页时没有 repository 变更可依赖。
+            loadPreview()
+            return
+        }
 
         loadJob?.cancel()
         loadJob = current.scope.launch {
@@ -202,6 +220,46 @@ class ProxyViewModel(
                 loadProxies(current)
             }
         }
+    }
+
+    // 内核未运行时从当前订阅解析静态预览；选择沿用 ProxySelectionStore，内核启动后由 restoreSelections 落到内核。
+    private fun loadPreview(uuid: String? = null) {
+        val repository = previewRepository ?: return
+        val id = uuid ?: getActiveUuid() ?: return
+        previewJob?.cancel()
+        previewJob = viewModelScope.launch {
+            val preview = repository.load(id) ?: return@launch
+            stateMutex.withLock {
+                // 预览只服务「无内核 + 当前订阅」两个前提，任一变化都说明结果已过期。
+                if (session != null || getActiveUuid() != id) return@withLock
+                _uiState.value = ProxyUiState(groups = mapPreview(id, preview), isProxyRunning = false)
+            }
+        }
+    }
+
+    // 配置里的组类型是内核 CLI 写法（select / url-test），映射成运行时 API 的名字才能复用选中态判断。
+    private fun mapPreview(uuid: String, preview: ProxyPreview): ImmutableList<ProxyGroupUi> {
+        val selections = proxySelections?.selections(uuid).orEmpty()
+        val nodeTypes = mutableMapOf<String, String>()
+        preview.nodes.forEach { if (it.type.isNotEmpty()) nodeTypes[it.name] = it.type }
+        return preview.groups.map { group ->
+            val saved = selections[group.name]
+            val type = PREVIEW_GROUP_TYPES[group.type.lowercase()] ?: group.type
+            ProxyGroupUi(
+                name = group.name,
+                type = type,
+                // 选择器没有保存过选择时与内核默认一致：取首个成员；URLTest/Fallback 的当前值内核才知道。
+                now = when {
+                    saved != null -> saved
+                    type == "Selector" -> group.all.firstOrNull().orEmpty()
+                    else -> ""
+                },
+                all = group.all.toPersistentList(),
+                nodeTypes = nodeTypes.toPersistentMap(),
+                icon = group.icon,
+                fixed = if (saved != null && type != "Selector") saved else "",
+            )
+        }.toPersistentList()
     }
 
     private suspend fun loadProxies(current: Session) = coroutineScope {
@@ -296,7 +354,10 @@ class ProxyViewModel(
     }
 
     fun selectProxy(group: String, proxy: String) {
-        val current = session ?: return
+        val current = session ?: run {
+            selectPreviewProxy(group, proxy)
+            return
+        }
         current.scope.launch {
             stateMutex.withLock {
                 if (!isCurrent(current)) return@withLock
@@ -326,9 +387,36 @@ class ProxyViewModel(
         }
     }
 
+    // 预览态的选择不经过内核：只更新本地状态并落 ProxySelectionStore，内核启动后 restoreSelections 会应用同一份选择。
+    private fun selectPreviewProxy(group: String, proxy: String) {
+        val uuid = getActiveUuid() ?: return
+        viewModelScope.launch {
+            stateMutex.withLock {
+                if (session != null || getActiveUuid() != uuid) return@withLock
+                val target = groupOf(group) ?: return@withLock
+                if (!target.isSelectable || proxy !in target.all) return@withLock
+                _uiState.value = _uiState.value.copy(
+                    groups = _uiState.value.groups
+                        .map {
+                            when {
+                                it.name != group -> it
+                                it.isSelector -> it.copy(now = proxy)
+                                else -> it.copy(now = proxy, fixed = proxy)
+                            }
+                        }
+                        .toPersistentList(),
+                )
+                proxySelections?.select(uuid, group, proxy)
+            }
+        }
+    }
+
     // 记录的选择也要一并删掉，它是恢复选择的数据来源，留着下次连接时会把刚解除的固定又推回去。
     fun unfixProxy(group: String) {
-        val current = session ?: return
+        val current = session ?: run {
+            unfixPreviewProxy(group)
+            return
+        }
         current.scope.launch {
             stateMutex.withLock {
                 if (!isCurrent(current)) return@withLock
@@ -342,6 +430,21 @@ class ProxyViewModel(
                     AppLogger.warn(TAG, "unfixProxy failed", it)
                     _uiState.value = _uiState.value.copy(error = it.describe())
                 }
+            }
+        }
+    }
+
+    private fun unfixPreviewProxy(group: String) {
+        val uuid = getActiveUuid() ?: return
+        viewModelScope.launch {
+            stateMutex.withLock {
+                if (session != null || getActiveUuid() != uuid) return@withLock
+                _uiState.value = _uiState.value.copy(
+                    groups = _uiState.value.groups
+                        .map { if (it.name == group) it.copy(now = "", fixed = "") else it }
+                        .toPersistentList(),
+                )
+                proxySelections?.clear(uuid, group)
             }
         }
     }
@@ -449,5 +552,14 @@ class ProxyViewModel(
         const val MODE_GLOBAL = "global"
         const val MODE_DIRECT = "direct"
         private const val TAG = "ProxyViewModel"
+
+        // 预览拿到的是配置写法，这里补齐与运行时 /group 一致的类型名；未知类型原样展示（不可选）。
+        private val PREVIEW_GROUP_TYPES = mapOf(
+            "select" to "Selector",
+            "url-test" to "URLTest",
+            "fallback" to "Fallback",
+            "load-balance" to "LoadBalance",
+            "relay" to "Relay",
+        )
     }
 }

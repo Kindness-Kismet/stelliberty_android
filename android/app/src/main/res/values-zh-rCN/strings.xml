@@ -170,6 +170,7 @@
     <string name="proxy_no_matching_groups">没有匹配的代理组</string>
     <string name="proxy_hide_unavailable">仅显示可用节点</string>
     <string name="proxy_start_first">请先启动代理服务</string>
+    <string name="proxy_preview_hint">代理未启动，当前显示所选订阅的节点</string>
     <string name="proxy_mode_direct_hint">当前为直连模式，所有流量不经代理。此处的选择会被保存，切回规则模式后生效。</string>
     <string name="proxy_mode_global_hint">当前为全局模式，仅 GLOBAL 组决定出口。其他代理组的选择切回规则模式后生效。</string>
     <string name="proxy_refresh_icon">刷新图标</string>

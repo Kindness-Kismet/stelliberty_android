@@ -141,6 +141,19 @@ Java_com_stelliberty_android_data_bridge_StellibertyCoreBridge_nativeRuleContext
 }
 
 JNIEXPORT jstring JNICALL
+Java_com_stelliberty_android_data_bridge_StellibertyCoreBridge_nativeProxyPreview(
+        JNIEnv *env, jclass clazz, jstring jWorkDir, jstring jTransform, jstring jKey) {
+    char *workDir = jstring_to_cstr(env, jWorkDir);
+    char *transform = jstring_to_cstr(env, jTransform);
+    char *key = jstring_to_cstr(env, jKey);
+    char *result = stellibertyProxyPreview(workDir ? workDir : "", transform ? transform : "", key ? key : "");
+    free(workDir);
+    free(transform);
+    free(key);
+    return go_cstr_to_jstring(env, result);
+}
+
+JNIEXPORT jstring JNICALL
 Java_com_stelliberty_android_data_bridge_StellibertyCoreBridge_nativeGenAgeKeyPair(
         JNIEnv *env, jclass clazz) {
     char *result = stellibertyGenAgeKeyPair();

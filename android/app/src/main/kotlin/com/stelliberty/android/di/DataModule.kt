@@ -9,6 +9,7 @@ import com.stelliberty.android.data.repository.ChainProxyRepositoryImpl
 import com.stelliberty.android.data.repository.OverrideJsonStore
 import com.stelliberty.android.data.repository.OverrideProfileRepositoryImpl
 import com.stelliberty.android.data.repository.ProfileProcessor
+import com.stelliberty.android.data.repository.ProxyPreviewRepositoryImpl
 import com.stelliberty.android.data.repository.RuleOverrideRepositoryImpl
 import com.stelliberty.android.data.repository.SubscriptionProxyResolver
 import com.stelliberty.android.data.repository.SubscriptionRepositoryImpl
@@ -20,6 +21,7 @@ import com.stelliberty.android.data.store.SubscriptionStore
 import com.stelliberty.android.domain.repository.AppUpdateRepository
 import com.stelliberty.android.domain.repository.ChainProxyRepository
 import com.stelliberty.android.domain.repository.OverrideProfileRepository
+import com.stelliberty.android.domain.repository.ProxyPreviewRepository
 import com.stelliberty.android.domain.repository.RuleOverrideRepository
 import com.stelliberty.android.domain.repository.SubscriptionRepository
 import com.stelliberty.android.util.AppLogger
@@ -86,6 +88,14 @@ val dataModule = module {
     single<RuleOverrideRepository> {
         RuleOverrideRepositoryImpl(
             store = get(),
+            subscriptionStore = get(),
+            transformWriter = get(),
+            fileManager = get(),
+        )
+    }
+
+    single<ProxyPreviewRepository> {
+        ProxyPreviewRepositoryImpl(
             subscriptionStore = get(),
             transformWriter = get(),
             fileManager = get(),

@@ -172,6 +172,7 @@
     <string name="proxy_no_matching_groups">No matching groups</string>
     <string name="proxy_hide_unavailable">Only available nodes</string>
     <string name="proxy_start_first">Please start the proxy service first</string>
+    <string name="proxy_preview_hint">Proxy is not running — showing the selected subscription\'s nodes</string>
     <string name="proxy_mode_direct_hint">Direct mode is active: all traffic bypasses the proxy. Group selections are saved but only take effect after switching back to rule mode.</string>
     <string name="proxy_mode_global_hint">Global mode is active: only the GLOBAL group routes traffic. Selections in other groups take effect after switching back to rule mode.</string>
     <string name="proxy_refresh_icon">Refresh Icons</string>
