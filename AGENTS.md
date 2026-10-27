@@ -38,7 +38,7 @@ miuix + mihomo 的 Android 代理客户端。单模块 `:app`（`com.android.app
 
 ## 技术栈
 
-Kotlin（AGP 9 内置，不加独立 kotlin 插件）。UI：Compose（经 miuix `-android` 件传递）+ miuix（含自带 NavDisplay）+ androidx navigationevent（预测性返回手势）。图标是 `ui/icon/` 下手写的 MingCute ImageVector，**没有** material-icons 依赖。数据：JSON 文件（kotlinx-serialization）+ Ktor + kotlinx-* + Koin。其他：quickie 扫码、hiddenapibypass 预测性返回、core-splashscreen。核心：mihomo（YuKongA fork + 本地补丁）。
+Kotlin（AGP 9 内置，不加独立 kotlin 插件）。UI：Compose（经 miuix `-android` 件传递）+ miuix（含自带 NavDisplay）+ androidx navigationevent（预测性返回手势）。图标是 `ui/icon/` 下手写的 MingCute ImageVector，**没有** material-icons 依赖。数据：JSON 文件（kotlinx-serialization）+ Ktor + kotlinx-* + Koin。其他：quickie 扫码、hiddenapibypass 预测性返回、core-splashscreen。核心：mihomo（YuKongA/Mishka 原始提交 + 本地补丁）。
 
 **依赖版本与坐标唯一来源 = `android/gradle/libs.versions.toml`**（含 `[bundles]`），mihomo 版本在 `android/gradle.properties`。应用版本、包名和 SDK 在 `android/buildSrc/src/main/kotlin/ProjectConfig.kt`；应用稳定版只修改 `VERSION_NAME`，界面只展示 `BuildConfig.VERSION_NAME`。`scripta:editor` 经 `includeBuild("../third_party/scripta")` 引入，插件由 scripta 自己的 `pluginManagement` 解析。
 
@@ -51,8 +51,9 @@ Kotlin（AGP 9 内置，不加独立 kotlin 插件）。UI：Compose（经 miuix
 分层靠**包名**，跨层即普通包引用。约定（非 Gradle 强制）：`domain.model` 只放 `@Serializable` 模型、`domain.repository` 只放仓库接口，二者不引 android/compose/ktor。
 
 ```
-scripts/        prebuild.py（子模块 + 便携 JDK / Go + GeoIP）/ build.py（编译与打包）/ gen_icons.py
-third_party/    mihomo（submodule，YuKongA fork branch Mishka；附加补丁在 scripts/patches/）
+scripts/        prebuild.py（子模块 + 补丁 + 便携 JDK / Go + GeoIP）/ build.py（编译与打包）/ gen_icons.py
+                build_support/（构建辅助模块，patches/ 存放内核独有修复）
+third_party/    mihomo（submodule，YuKongA fork branch Mishka，锁定原始提交）
                 scripta（includeBuild 复合构建，YAML 编辑器；app 依赖 scripta:editor）
 android/        Gradle 根（wrapper + settings.gradle.kts + buildSrc + 两个模块）
                 Gradle 路径仍是 :app / :baselineprofile（名字被 targetProjectPath、CI 产物路径与文档引用着）
@@ -118,7 +119,7 @@ DELETE → 列表、草稿与节点选择清理 + imported/{uuid}/ + pending/{uu
 
 ## 构建
 
-mihomo 经 submodule 引入 YuKongA fork（branch `Mishka`），附加补丁由 `prebuild.py` 与 `build.py` 应用。Go 首次下载最新稳定版到 `build/go/`，后续复用缓存；更新工具链：`python scripts/prebuild.py --refresh-go`。Go 按 ABI 交叉编译，产物在 `android/app/src/main/jniLibs/<ABI>/`，APK 收集到 `build/apk/`。更新 GeoIP：`python scripts/prebuild.py --refresh-geo`。刷新 Baseline Profile：`python scripts/build.py gradle :app:generateReleaseBaselineProfile`（需 adb 连 arm64 真机，产物提交进仓库）。
+mihomo 经 submodule 锁定 YuKongA 的 `Mishka` 原始提交，独有修复保存在 `scripts/build_support/patches/mihomo-*.patch`。`prebuild.py` 同步子模块后按文件名排序应用补丁，`build.py` 每次编译前同样检查；已生效的补丁跳过，不兼容时停止并提示维护。更新上游时核对子模块提交、补丁和 `mihomo.version`，流程见 `native-build` 技能。Go 首次下载最新稳定版到 `build/go/`，后续复用缓存；更新工具链：`python scripts/prebuild.py --refresh-go`。Go 按 ABI 交叉编译，产物在 `android/app/src/main/jniLibs/<ABI>/`，APK 收集到 `build/apk/`。更新 GeoIP：`python scripts/prebuild.py --refresh-geo`。刷新 Baseline Profile：`python scripts/build.py gradle :app:generateReleaseBaselineProfile`（需 adb 连 arm64 真机，产物提交进仓库）。
 
 任务本身的硬约束（GoBuildTask 三条、downloadGeoFiles、CMake 链接）在 `native-build` skill。
 

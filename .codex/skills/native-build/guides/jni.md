@@ -26,7 +26,7 @@ Android `ProcessBuilder` fork 后会关闭全部非标准 fd，VPN 模式因此�
 
 ## 上游 patch
 
-**fd 模式 `forwarderBindInterface` 保持 `true`**：上游 `e38aa82a` 改动了这个取值，在 gvisor stack + VpnService fd 下经 fd 的流量不通。延迟测试由 mihomo 直接 dial、不经 fd，反映不出这个问题。sing-tun 源码里看似只有 `stack_system` 读取该标志，gvisor 路径同样受影响。fork 第 5 patch 在 fd 模式保留 `true`；每次 rebase 上游后确认 `listener/sing_tun/server.go` 的 `forwarderBindInterface = true` 仍然生效，前提是新代码已进 .so（见 `guides/gradle.md` 的 `replacedModuleSources`）。
+**fd 模式 `forwarderBindInterface` 保持 `true`**：gvisor stack + VpnService fd 的实际流量依赖此值；延迟测试由 mihomo 直接 dial、不经 fd，无法验证这条链路。每次同步上游后确认 `listener/sing_tun/server.go` 的 `forwarderBindInterface = true` 仍然生效，前提是新代码已进 .so（见 `guides/gradle.md` 的 `replacedModuleSources`）。
 
 ## 启动就绪契约
 

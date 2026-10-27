@@ -28,7 +28,7 @@
 !/.pi/settings.json
 
 !/scripts/**/*.py
-!/scripts/patches/*.patch
+!/scripts/build_support/patches/*.patch
 
 # Gradle 配置保留，启动脚本与启动器由 prebuild.py 按锁定版本下载。
 !/android/build.gradle.kts

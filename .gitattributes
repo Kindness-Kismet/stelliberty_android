@@ -1,2 +1,5 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# 补丁上下文以空格开头，保留空行和制表符前缀。
+scripts/build_support/patches/*.patch whitespace=-blank-at-eol,-space-before-tab
