@@ -50,6 +50,7 @@ ICONS: dict[str, str] = {
     "Route": "regular/locations/route.svg",
     "Search": "regular/files/search.svg",
     "SearchCleanup": "regular/system/close_circle.svg",
+    "Settings": "regular/system/settings_3.svg",
     "SingleColumn": "regular/design/rows_2.svg",
     "Sort": "regular/editing/sort_ascending.svg",
     "TestDelay": "regular/devices/dashboard_2.svg",

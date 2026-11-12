@@ -29,12 +29,20 @@ object TestTags {
 
     object Proxy {
         const val SEARCH = "Proxy.SearchButton"
-        const val SORT = "Proxy.SortButton"
-        const val MORE = "Proxy.MoreButton"
+        const val REFRESH = "Proxy.RefreshButton"
+        const val SETTINGS = "Proxy.SettingsButton"
         const val SEARCH_FIELD = "Proxy.SearchField"
+        const val SETTINGS_DIALOG = "Proxy.SettingsDialog"
+        const val SETTINGS_DONE = "Proxy.SettingsDone"
         const val MODE_ENTRY = "Proxy.ModeEntry"
         const val TUN_STACK_ENTRY = "Proxy.TunStackEntry"
         const val GROUP_LAYOUT = "Proxy.GroupLayout"
+        const val SINGLE_COLUMN = "Proxy.SingleColumn"
+        const val HIDE_UNAVAILABLE = "Proxy.HideUnavailable"
+        const val SHOW_GLOBAL_GROUP = "Proxy.ShowGlobalGroup"
+        const val SORT_ENTRY = "Proxy.SortEntry"
+        const val SORT_REVERSE = "Proxy.SortReverse"
+        const val REFRESH_ICONS = "Proxy.RefreshIcons"
 
         fun groupTab(name: String) = "Proxy.GroupTab.$name"
 

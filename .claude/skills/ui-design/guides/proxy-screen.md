@@ -34,12 +34,16 @@
 - 展开按钮用 `AppIcons.ChevronRight`（right_small），旋转为向下或向上。
 - 换图标时改 `gen_icons.py` 的 ICONS 表后重跑，调用点保持不变。
 
-## 更多菜单
+## 顶栏与代理设置
 
-右上角「更多」用级联弹窗 `WindowCascadingListPopup`，按 `DropdownEntry` 分两组：选路行为（代理模式、TUN Stack）与显示（布局模式、单列 / 只看可用 / GLOBAL 组 / 刷新图标）。`DropdownItem.summary` 回显当前值，`children` 非空即成为子菜单触发器。`collapseOnSelection = false` 让选中子项后两层菜单都保留，可连续修改；子菜单展开时主菜单缩小变暗但仍可见，返回键先收子菜单再关整层。
+顶栏三个图标：搜索、刷新、设置。刷新直接调 `ProxyViewModel.loadProxies()` 重新拉组与节点；设置打开 `WindowDialog`，内容按 4 张 Card 分块，底部固定「完成」。
 
-- 行首图标由 `menuIcon()` 生成，测试 ID 挂在图标上（`Proxy.ModeEntry` / `Proxy.TunStackEntry` / `Proxy.GroupLayout`），点击图标中心等价于点整行。
-- 横 / 竖布局合并为「布局模式」子菜单；子项 `onClick` 先比对当前值再调 `HomeViewModel.switchMode` / `switchTunStack`，选中当前项不触发重启。写 override + 重启仍归这两个方法（配置修改单点），菜单只传值与回调。
+- 选路：代理模式与 TUN Stack，用 `SingleChoicePreference`（`summary` 回显当前值，点开二级单选 Dialog）。
+- 显示：布局模式（横 / 竖）、单列、只看可用、GLOBAL 组（全局模式下禁用）。
+- 排序：默认 / 名称 / 延迟单选加倒序开关；`sortOption` 以 `key * 2 + reverse` 编码，改任一项都经 `updateSortOption` 写同一个值。
+- 动作：刷新图标（`IconLoader.clear()` + 递增 `iconCacheVersion`）。
+
+列表区用 `heightIn(max = 500.dp)` + `verticalScroll`，所有项即时生效，不设确认草稿。选路项先比对当前值再调 `HomeViewModel.switchMode` / `switchTunStack`，选中当前项不触发重启；写 override + 重启仍归这两个方法（配置修改单点），对话框只传值与回调。
 
 ## 两个 mode 值
 

@@ -178,6 +178,8 @@
     <string name="proxy_mode_direct_hint">Direct mode is active: all traffic bypasses the proxy. Group selections are saved but only take effect after switching back to rule mode.</string>
     <string name="proxy_mode_global_hint">Global mode is active: only the GLOBAL group routes traffic. Selections in other groups take effect after switching back to rule mode.</string>
     <string name="proxy_refresh_icon">Refresh Icons</string>
+    <string name="proxy_settings_title">Proxy Settings</string>
+    <string name="proxy_settings_done">Done</string>
     <string name="proxy_single_column">Single Column</string>
     <string name="proxy_node_count">%1$d/%2$d</string>
     <string name="proxy_expand_group">Expand group</string>

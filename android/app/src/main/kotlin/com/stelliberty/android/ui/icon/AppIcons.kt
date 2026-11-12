@@ -35,6 +35,7 @@ object AppIcons {
     val Route: ImageVector get() = MingCuteRoute
     val Search: ImageVector get() = MingCuteSearch
     val SearchCleanup: ImageVector get() = MingCuteCloseCircle
+    val Settings: ImageVector get() = MingCuteSettings3
     val SingleColumn: ImageVector get() = MingCuteRows2
     val Sort: ImageVector get() = MingCuteSortAscending
     val TestDelay: ImageVector get() = MingCuteDashboard2
