@@ -36,15 +36,21 @@ ICONS: dict[str, str] = {
     "ChevronRight": "regular/arrow/right_small.svg",
     "Close": "regular/system/close.svg",
     "Delete": "regular/system/delete_2.svg",
+    "Filter": "regular/business/filter_3.svg",
+    "Global": "regular/locations/earth.svg",
     "Info": "regular/system/information.svg",
+    "Layers": "regular/design/layer.svg",
+    "Layout": "regular/design/layout.svg",
     "More": "regular/system/more_1.svg",
     "MoveDown": "regular/arrow/down_small.svg",
     "MoveUp": "regular/arrow/up_small.svg",
     "Pin": "regular/files/pin.svg",
     "Refresh": "regular/system/refresh_2.svg",
     "Restore": "regular/files/download.svg",
+    "Route": "regular/locations/route.svg",
     "Search": "regular/files/search.svg",
     "SearchCleanup": "regular/system/close_circle.svg",
+    "SingleColumn": "regular/design/rows_2.svg",
     "Sort": "regular/editing/sort_ascending.svg",
     "TestDelay": "regular/devices/dashboard_2.svg",
     "Unpin": "regular/system/close_circle.svg",
@@ -107,6 +113,11 @@ def parse_paths(svg: str, rel: str) -> tuple[float, float, list[dict[str, str]]]
         sys.exit(f"error: {rel} 的 viewBox 非法：{root.get('viewBox')}")
     width, height = float(box[2]), float(box[3])
 
+    # 新版 MingCute 把颜色写在 <svg> 上供 path 继承，只读 path 会当成无填充无描边。
+    root_fill = (root.get("fill") or "none").strip()
+    root_stroke = (root.get("stroke") or "none").strip()
+    root_stroke_width = (root.get("stroke-width") or "1").strip()
+
     paths: list[dict[str, str]] = []
     for node in root.iter():
         tag = node.tag.replace(SVG_NS, "")
@@ -120,10 +131,10 @@ def parse_paths(svg: str, rel: str) -> tuple[float, float, list[dict[str, str]]]
         paths.append(
             {
                 "d": re.sub(r"\s+", " ", data).strip(),
-                "fill": (node.get("fill") or "none").strip(),
+                "fill": (node.get("fill") or root_fill).strip(),
                 "fill_rule": (node.get("fill-rule") or "nonzero").strip(),
-                "stroke": (node.get("stroke") or "none").strip(),
-                "stroke_width": (node.get("stroke-width") or "1").strip(),
+                "stroke": (node.get("stroke") or root_stroke).strip(),
+                "stroke_width": (node.get("stroke-width") or root_stroke_width).strip(),
                 "linecap": (node.get("stroke-linecap") or "butt").strip(),
                 "linejoin": (node.get("stroke-linejoin") or "miter").strip(),
             }

@@ -35,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -67,7 +68,9 @@ import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
+import top.yukonga.miuix.kmp.basic.DropdownEntry
 import top.yukonga.miuix.kmp.basic.DropdownImpl
+import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
@@ -81,6 +84,7 @@ import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
+import top.yukonga.miuix.kmp.window.WindowCascadingListPopup
 import top.yukonga.miuix.kmp.window.WindowListPopup
 
 @Composable
@@ -130,7 +134,6 @@ fun ProxyScreen(
     }
 
     val showPopup = remember { mutableStateOf(false) }
-    var choiceMenu by remember { mutableIntStateOf(0) }
     val showSortPopup = remember { mutableStateOf(false) }
     var iconCacheVersion by remember { mutableIntStateOf(0) }
     val coroutineScope = rememberCoroutineScope()
@@ -290,112 +293,103 @@ fun ProxyScreen(
                                     )
                                 }
 
-                                WindowListPopup(
+                                WindowCascadingListPopup(
                                     show = showPopup.value,
-                                    popupPositionProvider = MenuPositionProvider,
-                                    alignment = PopupPositionProvider.Align.TopEnd,
-                                    onDismissRequest = { showPopup.value = false },
-                                ) {
-                                    val entries = buildList {
-                                        add(MenuEntry(
-                                            text = "${stringResource(R.string.proxy_mode)}: ${MODE_OPTIONS.firstOrNull { it.first == mode.lowercase() }?.second ?: mode}",
-                                            selected = false, enabled = true,
-                                        ) { choiceMenu = 1 })
-                                        add(MenuEntry(
-                                            text = "${stringResource(R.string.proxy_tun_stack)}: ${TUN_STACK_OPTIONS.firstOrNull { it.first == tunStack.lowercase() }?.second ?: tunStack}",
-                                            selected = false, enabled = isRunning && tunMode != TunMode.RootTproxy,
-                                        ) { choiceMenu = 2 })
-                                        add(MenuEntry(
-                                            text = stringResource(R.string.proxy_group_tabs),
-                                            selected = groupTabs, enabled = true,
-                                        ) { viewModel?.updateGroupTabs(!groupTabs) })
-                                        add(
-                                            MenuEntry(
-                                                text = stringResource(R.string.proxy_single_column),
-                                                selected = singleColumn,
-                                                enabled = true,
-                                            ) { viewModel?.updateSingleColumn(!singleColumn) },
-                                        )
-                                        add(
-                                            MenuEntry(
-                                                text = stringResource(R.string.proxy_hide_unavailable),
-                                                selected = hideUnavailable,
-                                                enabled = true,
-                                            ) { viewModel?.updateHideUnavailableNodes(!hideUnavailable) },
-                                        )
-                                        add(
-                                            MenuEntry(
-                                                text = stringResource(R.string.proxy_show_global_group),
-                                                selected = showGlobalGroup || globalModeActive,
-                                                enabled = !globalModeActive,
-                                            ) { viewModel?.updateShowGlobalGroup(!showGlobalGroup) },
-                                        )
-                                        add(
-                                            MenuEntry(
-                                                text = stringResource(R.string.proxy_refresh_icon),
-                                                selected = false,
-                                                enabled = true,
-                                            ) {
-                                                coroutineScope.launch { IconLoader.clear() }
-                                                iconCacheVersion++
-                                            },
-                                        )
-                                    }
-                                    ListPopupColumn {
-                                        entries.forEachIndexed { index, entry ->
-                                            if (index == 2) {
-                                                HorizontalDivider(Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
-                                            }
-                                            val tag = when (index) {
-                                                0 -> TestTags.Proxy.MODE_ENTRY
-                                                1 -> TestTags.Proxy.TUN_STACK_ENTRY
-                                                2 -> TestTags.Proxy.GROUP_LAYOUT
-                                                else -> ""
-                                            }
-                                            Box(
-                                                if (tag.isEmpty()) Modifier else Modifier
-                                                    .semantics { testTagsAsResourceId = BuildConfig.DEBUG }
-                                                    .testTag(tag),
-                                            ) {
-                                                DropdownImpl(
-                                                    text = entry.text,
-                                                    optionSize = entries.size,
-                                                    isSelected = entry.selected,
-                                                    index = index,
-                                                    enabled = entry.enabled,
-                                                    onSelectedIndexChange = {
-                                                        entry.onClick()
-                                                        showPopup.value = false
+                                    entries = listOf(
+                                        DropdownEntry(
+                                            items = listOf(
+                                                DropdownItem(
+                                                    text = stringResource(R.string.proxy_mode),
+                                                    summary = MODE_OPTIONS.firstOrNull { it.first == mode.lowercase() }?.second ?: mode,
+                                                    icon = menuIcon(AppIcons.Route, TestTags.Proxy.MODE_ENTRY),
+                                                    children = MODE_OPTIONS.map { (value, label) ->
+                                                        DropdownItem(
+                                                            text = label,
+                                                            selected = mode.equals(value, ignoreCase = true),
+                                                            onClick = {
+                                                                if (!mode.equals(value, ignoreCase = true)) onSwitchMode(value)
+                                                            },
+                                                        )
                                                     },
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                                WindowListPopup(
-                                    show = choiceMenu != 0,
+                                                ),
+                                                DropdownItem(
+                                                    text = stringResource(R.string.proxy_tun_stack),
+                                                    summary = TUN_STACK_OPTIONS.firstOrNull { it.first == tunStack.lowercase() }?.second ?: tunStack,
+                                                    enabled = isRunning && tunMode != TunMode.RootTproxy,
+                                                    icon = menuIcon(
+                                                        imageVector = AppIcons.Layers,
+                                                        testTag = TestTags.Proxy.TUN_STACK_ENTRY,
+                                                        enabled = isRunning && tunMode != TunMode.RootTproxy,
+                                                    ),
+                                                    children = TUN_STACK_OPTIONS.map { (value, label) ->
+                                                        DropdownItem(
+                                                            text = label,
+                                                            selected = tunStack.equals(value, ignoreCase = true),
+                                                            onClick = {
+                                                                if (!tunStack.equals(value, ignoreCase = true)) onSwitchTunStack(value)
+                                                            },
+                                                        )
+                                                    },
+                                                ),
+                                            ),
+                                        ),
+                                        DropdownEntry(
+                                            items = listOf(
+                                                DropdownItem(
+                                                    text = stringResource(R.string.proxy_layout_mode),
+                                                    summary = stringResource(
+                                                        if (groupTabs) R.string.proxy_layout_horizontal
+                                                        else R.string.proxy_layout_vertical
+                                                    ),
+                                                    icon = menuIcon(AppIcons.Layout, TestTags.Proxy.GROUP_LAYOUT),
+                                                    children = listOf(
+                                                        DropdownItem(
+                                                            text = stringResource(R.string.proxy_layout_horizontal),
+                                                            selected = groupTabs,
+                                                            onClick = { viewModel?.updateGroupTabs(true) },
+                                                        ),
+                                                        DropdownItem(
+                                                            text = stringResource(R.string.proxy_layout_vertical),
+                                                            selected = !groupTabs,
+                                                            onClick = { viewModel?.updateGroupTabs(false) },
+                                                        ),
+                                                    ),
+                                                ),
+                                                DropdownItem(
+                                                    text = stringResource(R.string.proxy_single_column),
+                                                    selected = singleColumn,
+                                                    icon = menuIcon(AppIcons.SingleColumn),
+                                                    onClick = { viewModel?.updateSingleColumn(!singleColumn) },
+                                                ),
+                                                DropdownItem(
+                                                    text = stringResource(R.string.proxy_hide_unavailable),
+                                                    selected = hideUnavailable,
+                                                    icon = menuIcon(AppIcons.Filter),
+                                                    onClick = { viewModel?.updateHideUnavailableNodes(!hideUnavailable) },
+                                                ),
+                                                DropdownItem(
+                                                    text = stringResource(R.string.proxy_show_global_group),
+                                                    selected = showGlobalGroup || globalModeActive,
+                                                    enabled = !globalModeActive,
+                                                    icon = menuIcon(AppIcons.Global, enabled = !globalModeActive),
+                                                    onClick = { viewModel?.updateShowGlobalGroup(!showGlobalGroup) },
+                                                ),
+                                                DropdownItem(
+                                                    text = stringResource(R.string.proxy_refresh_icon),
+                                                    icon = menuIcon(AppIcons.Refresh),
+                                                    onClick = {
+                                                        coroutineScope.launch { IconLoader.clear() }
+                                                        iconCacheVersion++
+                                                    },
+                                                ),
+                                            ),
+                                        ),
+                                    ),
+                                    onDismissRequest = { showPopup.value = false },
                                     popupPositionProvider = MenuPositionProvider,
                                     alignment = PopupPositionProvider.Align.TopEnd,
-                                    onDismissRequest = { choiceMenu = 0 },
-                                ) {
-                                    val options = if (choiceMenu == 1) MODE_OPTIONS else TUN_STACK_OPTIONS
-                                    val selected = if (choiceMenu == 1) mode else tunStack
-                                    ListPopupColumn {
-                                        options.forEachIndexed { index, option ->
-                                            DropdownImpl(
-                                                text = option.second,
-                                                optionSize = options.size,
-                                                isSelected = selected.equals(option.first, ignoreCase = true),
-                                                index = index,
-                                                onSelectedIndexChange = {
-                                                    if (choiceMenu == 1) onSwitchMode(option.first)
-                                                    else onSwitchTunStack(option.first)
-                                                    choiceMenu = 0
-                                                },
-                                            )
-                                        }
-                                    }
-                                }
+                                    collapseOnSelection = false,
+                                )
 
                             }
                         },
@@ -580,12 +574,35 @@ fun ProxyScreen(
         }
     }
 }
-private class MenuEntry(
-    val text: String,
-    val selected: Boolean,
-    val enabled: Boolean,
-    val onClick: () -> Unit,
-)
+
+// 菜单行没有自定义 modifier 入口，测试 ID 挂在行首图标上；点击图标中心等价于点整行。
+@Composable
+private fun menuIcon(
+    imageVector: ImageVector,
+    testTag: String? = null,
+    enabled: Boolean = true,
+): @Composable (Modifier) -> Unit = { modifier ->
+    Icon(
+        imageVector = imageVector,
+        contentDescription = null,
+        modifier = modifier
+            .then(
+                if (testTag == null) {
+                    Modifier
+                } else {
+                    Modifier
+                        .semantics { testTagsAsResourceId = BuildConfig.DEBUG }
+                        .testTag(testTag)
+                }
+            )
+            .size(24.dp),
+        tint = if (enabled) {
+            MiuixTheme.colorScheme.onSurfaceContainer
+        } else {
+            MiuixTheme.colorScheme.disabledOnSecondaryVariant
+        },
+    )
+}
 
 private val MODE_OPTIONS = listOf("rule" to "Rule", "global" to "Global", "direct" to "Direct")
 

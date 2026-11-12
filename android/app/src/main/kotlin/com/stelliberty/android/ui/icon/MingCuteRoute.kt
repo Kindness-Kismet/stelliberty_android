@@ -1,0 +1,26 @@
+// 由 scripts/gen_icons.py 从 MingCute 生成，勿手改。源：regular/locations/route.svg
+package com.stelliberty.android.ui.icon
+
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathFillType
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.PathParser
+import androidx.compose.ui.unit.dp
+
+internal val MingCuteRoute: ImageVector by lazy {
+    ImageVector.Builder(
+        name = "Route",
+        defaultWidth = 24.dp,
+        defaultHeight = 24.dp,
+        viewportWidth = 24f,
+        viewportHeight = 24f,
+        autoMirror = false,
+    ).apply {
+        addPath(
+            pathData = PathParser().parsePathString("M17.515 21.964a3 3 0 0 1-1.638-.841c-2.047-2.046-.245-5.55 2.608-5.087.618.1 1.196.398 1.638.841 2.047 2.046.245 5.55-2.608 5.087m.321-3.948c-1.286.211-.967 2.18.328 1.968 1.286-.211.967-2.18-.328-1.968M18.865 5.51c2.227 2.506.992 6.533-2.258 7.354-.405.103-.661.123-1.076.136h-7c-.833.026-1.598.378-2.082 1.073-.23.33-.378.713-.428 1.112-.193 1.554.995 2.768 2.51 2.815H13c.639.042 1.142.603.966 1.259-.122.453-.515.711-.966.741H8.469c-1.279-.04-2.476-.545-3.334-1.51-2.227-2.506-.992-6.533 2.258-7.354.405-.103.661-.123 1.076-.136h7c.833-.026 1.598-.378 2.082-1.073.23-.33.378-.713.428-1.112.193-1.554-.995-2.768-2.51-2.815H11c-.639-.042-1.142-.603-.966-1.259.122-.453.515-.711.966-.741h4.531c1.279.04 2.476.545 3.334 1.51M5.515 7.964a3 3 0 0 1-1.638-.841c-2.047-2.046-.245-5.55 2.608-5.087.618.1 1.196.398 1.638.841 2.047 2.046.245 5.55-2.608 5.087m.321-3.948c-1.286.211-.967 2.18.328 1.968 1.286-.211.967-2.18-.328-1.968").toNodes(),
+            pathFillType = PathFillType.NonZero,
+            fill = SolidColor(Color.Black),
+        )
+    }.build()
+}

@@ -39,7 +39,7 @@ testTag 挂在最外层节点，按钮文字在子节点，`get` 返回整棵子
 | 前缀 | 覆盖 |
 |---|---|
 | `Home.*` | 启停按钮、状态卡、延迟测试、流量卡、订阅卡 |
-| `Proxy.*` | 搜索 / 排序 / 更多菜单、搜索框、模式与 TUN Stack 菜单项；布局开关 `Proxy.GroupLayout` |
+| `Proxy.*` | 搜索 / 排序 / 更多菜单、搜索框；更多菜单的 `ModeEntry` / `TunStackEntry` / `GroupLayout` 挂在行首图标上（点击等价于整行），子菜单项无 ID |
 | `Proxy.GroupTab.<组名>` | 横向组标签 |
 | `Proxy.Group.<组名>` | 代理组行；`.TestButton` 是组测速（兼作右侧延迟标签），`.ToggleButton` 是展开，`.UnfixButton` 是解除固定 |
 | `Proxy.Node.<节点名>` | 节点项；`.TestButton` 是节点测速 |
