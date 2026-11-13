@@ -119,7 +119,7 @@ def center(node):
 def subtree_text(node):
     parts = []
     for n in node.iter():
-        t = n.get("text", "").strip()
+        t = " ".join(n.get("text", "").split())
         if t:
             parts.append(t)
     return " ".join(parts)
