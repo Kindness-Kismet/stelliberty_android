@@ -6,6 +6,8 @@
 
 ## 自定义形状
 
+小尺寸 `CircularProgressIndicator` 必须显式传 `size` 与 `strokeWidth`。绘制直径取自 `size` 参数，单独用 `Modifier.size` 缩小占位会让默认圆环画到控件外面。
+
 非 miuix 组件的形状用 squircle modifier（`top.yukonga.miuix.kmp.squircle.*`），与 miuix 圆角保持一致。按场景选择：
 
 - 纯色背景、不可点击 → `squircleBackground`（无 offscreen layer，再叠 clip 会多一层）；

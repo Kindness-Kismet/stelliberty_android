@@ -106,8 +106,10 @@
     <string name="home_stop">停止</string>
     <string name="home_reload">熱重載</string>
     <string name="home_start">啟動</string>
-    <string name="home_starting_btn">啟動中...</string>
-    <string name="home_stopping_btn">停止中...</string>
+    <string name="home_restarting">重新啟動中</string>
+    <string name="home_reloading">重新載入中</string>
+    <string name="home_establishing_connection">正在載入設定並建立連線</string>
+    <string name="home_releasing_resources">正在關閉連線並釋放資源</string>
 
     <!-- Home - Quick Entries -->
     <string name="home_providers">外部資源</string>

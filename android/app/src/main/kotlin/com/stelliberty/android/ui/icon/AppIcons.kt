@@ -44,6 +44,8 @@ object AppIcons {
     val Settings: ImageVector get() = MingCuteSettings3
     val SingleColumn: ImageVector get() = MingCuteRows2
     val Sort: ImageVector get() = MingCuteSortAscending
+    val StatusClock: ImageVector get() = MingCuteTime
+    val StatusSubscription: ImageVector get() = MingCuteRss
     val SwipeHorizontal: ImageVector get() = MingCuteSwipeHorizontal
     val TestDelay: ImageVector get() = MingCuteDashboard2
     val Unpin: ImageVector get() = MingCuteCloseCircle

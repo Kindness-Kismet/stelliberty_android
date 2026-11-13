@@ -108,8 +108,10 @@
     <string name="home_stop">Stop</string>
     <string name="home_reload">Hot Reload</string>
     <string name="home_start">Start</string>
-    <string name="home_starting_btn">Starting...</string>
-    <string name="home_stopping_btn">Stopping...</string>
+    <string name="home_restarting">Restarting</string>
+    <string name="home_reloading">Reloading</string>
+    <string name="home_establishing_connection">Loading config and establishing connections</string>
+    <string name="home_releasing_resources">Closing connections and releasing resources</string>
 
     <!-- Home - Quick Entries -->
     <string name="home_providers">Providers</string>
