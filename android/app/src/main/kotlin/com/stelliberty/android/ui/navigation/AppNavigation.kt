@@ -5,10 +5,6 @@ import androidx.compose.animation.core.EaseInOut
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.MutatePriority
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -28,7 +24,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -50,16 +45,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -75,6 +68,7 @@ import com.stelliberty.android.platform.PlatformStorage
 import com.stelliberty.android.platform.StorageKeys
 import com.stelliberty.android.platform.WifiPolicyController
 import com.stelliberty.android.ui.component.AppUpdateDialog
+import com.stelliberty.android.ui.component.NavigationTabItem
 import com.stelliberty.android.ui.component.blur.BlurredBar
 import com.stelliberty.android.ui.component.blur.rememberBlurBackdrop
 import com.stelliberty.android.ui.component.liquid.IosLiquidGlassNavigationBar
@@ -103,6 +97,7 @@ import com.stelliberty.android.ui.screen.settings.DnsSettingsScreen
 import com.stelliberty.android.ui.screen.settings.FileManagerEditorScreen
 import com.stelliberty.android.ui.screen.settings.FileManagerScreen
 import com.stelliberty.android.ui.screen.settings.NetworkSettingsScreen
+import com.stelliberty.android.ui.screen.settings.OpenSourceLibrariesScreen
 import com.stelliberty.android.ui.screen.settings.PerformanceSettingsScreen
 import com.stelliberty.android.ui.screen.settings.PortControlScreen
 import com.stelliberty.android.ui.screen.settings.RootSettingsScreen
@@ -123,6 +118,7 @@ import com.stelliberty.android.ui.theme.LocalAppDarkMode
 import com.stelliberty.android.ui.theme.ThemeConfig
 import com.stelliberty.android.ui.theme.TopBarBlurStyle
 import com.stelliberty.android.ui.util.TestTags
+import com.stelliberty.android.ui.util.openUriOrShowToast
 import com.stelliberty.android.ui.util.rememberIsWideScreen
 import com.stelliberty.android.viewmodel.AppProxyViewModel
 import com.stelliberty.android.viewmodel.AppUpdateViewModel
@@ -147,15 +143,11 @@ import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import top.yukonga.miuix.kmp.basic.FloatingNavigationBar
-import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.NavigationBar
-import top.yukonga.miuix.kmp.basic.NavigationBarDisplayMode
-import top.yukonga.miuix.kmp.basic.NavigationBarItem
 import top.yukonga.miuix.kmp.basic.NavigationItem
 import top.yukonga.miuix.kmp.basic.NavigationRail
 import top.yukonga.miuix.kmp.basic.NavigationRailItem
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.rememberNavigationRailState
 import top.yukonga.miuix.kmp.blur.BlendColorEntry
 import top.yukonga.miuix.kmp.blur.BlurDefaults
@@ -164,6 +156,7 @@ import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.textureBlur
 import top.yukonga.miuix.kmp.nav.core.NavDisplay
 import top.yukonga.miuix.kmp.nav.core.NavDisplayEffects
+import top.yukonga.miuix.kmp.nav.core.NavEntryBuilder
 import top.yukonga.miuix.kmp.nav.core.NavKey
 import top.yukonga.miuix.kmp.nav.core.rememberNavSystemCornerRadius
 import top.yukonga.miuix.kmp.nav.transition.NavSwipeDirection
@@ -192,6 +185,8 @@ private val NavBackStackSaver = Saver<SnapshotStateList<NavKey>, List<String>>(
     },
 )
 
+private val LocalPredictiveBackEnabled = staticCompositionLocalOf { false }
+
 val LocalMainPagerState = staticCompositionLocalOf<MainPagerState> {
     error("LocalMainPagerState not provided")
 }
@@ -200,6 +195,7 @@ val LocalMainPagerState = staticCompositionLocalOf<MainPagerState> {
 fun AppNavigation(
     themeConfig: ThemeConfig = ThemeConfig(),
     onThemeConfigChange: (ThemeConfig) -> Unit = {},
+    onLanguageChange: () -> Unit = {},
     homeViewModel: HomeViewModel? = null,
     subscriptionViewModel: SubscriptionViewModel? = null,
     proxyViewModel: ProxyViewModel? = null,
@@ -256,8 +252,12 @@ fun AppNavigation(
                 return@collect
             }
             DebugNavBridge.routeOf(pageId)?.let { route ->
-                if (pageId.startsWith("settings.")) mainPagerState.animateToPage(3)
-                navigator.push(route)
+                if (pageId.startsWith("settings.")) {
+                    mainPagerState.animateToPage(3)
+                    navigator.openSettingsPage(route)
+                } else {
+                    navigator.push(route)
+                }
             }
         }
     }
@@ -273,7 +273,8 @@ fun AppNavigation(
         if (vm.uiState.value.groups.isEmpty()) vm.loadProxies()
     }
 
-    MainScreenBackHandler(mainPagerState, navigator)
+    val predictiveBackEnabled = onPredictiveBackChange != null &&
+        storage?.getString(StorageKeys.PREDICTIVE_BACK, "false") == "true"
 
     var swipeDismissEnabled by remember {
         mutableStateOf(storage?.getString(StorageKeys.SWIPE_DISMISS, "true") == "true")
@@ -284,11 +285,12 @@ fun AppNavigation(
     } else {
         NavSwipeDirection.LeftToRight
     }
-    val swipeDismiss = if (swipeDismissEnabled) swipeBackDirection else null
+    val swipeDismiss = if (swipeDismissEnabled) swipeBackDirection else NavSwipeDirection.None
 
     CompositionLocalProvider(
         LocalNavigator provides navigator,
         LocalMainPagerState provides mainPagerState,
+        LocalPredictiveBackEnabled provides predictiveBackEnabled,
     ) {
         NavDisplay(
             backStack = backStack,
@@ -309,9 +311,10 @@ fun AppNavigation(
                     storage,
                     onHideTaskCardChange,
                     hasRootPermission,
+                    onLanguageChange = onLanguageChange,
                 )
             }
-            entry<Route.SubscriptionAdd>(swipeDismiss = swipeDismiss) {
+            navPage<Route.SubscriptionAdd>(swipeDismiss = swipeDismiss) {
                 SubscriptionAddScreen(
                     viewModel = subscriptionViewModel,
                     onBack = { navigator.pop() },
@@ -340,7 +343,7 @@ fun AppNavigation(
                     } else null,
                 )
             }
-            entry<Route.SubscriptionAddUrl>(swipeDismiss = swipeDismiss) { route ->
+            navPage<Route.SubscriptionAddUrl>(swipeDismiss = swipeDismiss) { route ->
                 subscriptionViewModel?.let {
                     SubscriptionAddUrlScreen(
                         viewModel = it,
@@ -352,7 +355,7 @@ fun AppNavigation(
                     )
                 }
             }
-            entry<Route.SubscriptionEdit>(swipeDismiss = swipeDismiss) { route ->
+            navPage<Route.SubscriptionEdit>(swipeDismiss = swipeDismiss) { route ->
                 subscriptionViewModel?.let {
                     SubscriptionEditScreen(
                         uuid = route.uuid,
@@ -374,7 +377,7 @@ fun AppNavigation(
                     )
                 }
             }
-            entry<Route.SubscriptionChainProxies>(swipeDismiss = swipeDismiss) { route ->
+            navPage<Route.SubscriptionChainProxies>(swipeDismiss = swipeDismiss) { route ->
                 chainProxyViewModel?.let {
                     ChainProxyListScreen(
                         subscriptionId = route.uuid,
@@ -386,7 +389,7 @@ fun AppNavigation(
                     )
                 }
             }
-            entry<Route.ChainProxyEdit>(swipeDismiss = swipeDismiss) { route ->
+            navPage<Route.ChainProxyEdit>(swipeDismiss = swipeDismiss) { route ->
                 chainProxyViewModel?.let {
                     ChainProxyEditScreen(
                         subscriptionId = route.uuid,
@@ -396,7 +399,7 @@ fun AppNavigation(
                     )
                 }
             }
-            entry<Route.SubscriptionRuleOverrides>(swipeDismiss = swipeDismiss) { route ->
+            navPage<Route.SubscriptionRuleOverrides>(swipeDismiss = swipeDismiss) { route ->
                 ruleOverrideViewModel?.let {
                     RuleOverrideScreen(
                         subscriptionId = route.uuid,
@@ -408,7 +411,7 @@ fun AppNavigation(
                     )
                 }
             }
-            entry<Route.RuleOverrideEdit>(swipeDismiss = swipeDismiss) { route ->
+            navPage<Route.RuleOverrideEdit>(swipeDismiss = swipeDismiss) { route ->
                 ruleOverrideViewModel?.let {
                     RuleOverrideEditScreen(
                         subscriptionId = route.uuid,
@@ -418,7 +421,7 @@ fun AppNavigation(
                     )
                 }
             }
-            entry<Route.SubscriptionOverrides>(swipeDismiss = swipeDismiss) { route ->
+            navPage<Route.SubscriptionOverrides>(swipeDismiss = swipeDismiss) { route ->
                 if (subscriptionViewModel != null && overrideViewModel != null) {
                     SubscriptionOverridesScreen(
                         subscriptionId = route.uuid,
@@ -428,7 +431,7 @@ fun AppNavigation(
                     )
                 }
             }
-            entry<Route.OverrideList>(swipeDismiss = swipeDismiss) {
+            navPage<Route.OverrideList>(swipeDismiss = swipeDismiss) {
                 overrideViewModel?.let {
                     OverrideListScreen(
                         viewModel = it,
@@ -439,7 +442,7 @@ fun AppNavigation(
                     )
                 }
             }
-            entry<Route.OverrideEdit>(swipeDismiss = swipeDismiss) { route ->
+            navPage<Route.OverrideEdit>(swipeDismiss = swipeDismiss) { route ->
                 overrideViewModel?.let {
                     OverrideEditScreen(
                         overrideId = route.id,
@@ -450,7 +453,7 @@ fun AppNavigation(
                     )
                 }
             }
-            entry<Route.OverrideFileEditor>(swipeDismiss = swipeDismiss) { route ->
+            navPage<Route.OverrideFileEditor>(swipeDismiss = swipeDismiss) { route ->
                 overrideViewModel?.let {
                     OverrideFileEditorScreen(
                         overrideId = route.id,
@@ -459,7 +462,7 @@ fun AppNavigation(
                     )
                 }
             }
-            entry<Route.Log>(swipeDismiss = swipeDismiss) {
+            navPage<Route.Log>(swipeDismiss = swipeDismiss) {
                 logViewModel?.let {
                     LogScreen(
                         viewModel = it,
@@ -468,7 +471,7 @@ fun AppNavigation(
                     )
                 }
             }
-            entry<Route.Provider>(swipeDismiss = swipeDismiss) {
+            navPage<Route.Provider>(swipeDismiss = swipeDismiss) {
                 providerViewModel?.let {
                     ProviderScreen(
                         viewModel = it,
@@ -476,7 +479,7 @@ fun AppNavigation(
                     )
                 }
             }
-            entry<Route.Connection>(swipeDismiss = swipeDismiss) {
+            navPage<Route.Connection>(swipeDismiss = swipeDismiss) {
                 connectionViewModel?.let {
                     ConnectionScreen(
                         viewModel = it,
@@ -484,7 +487,7 @@ fun AppNavigation(
                     )
                 }
             }
-            entry<Route.DnsQuery>(swipeDismiss = swipeDismiss) {
+            navPage<Route.DnsQuery>(swipeDismiss = swipeDismiss) {
                 dnsQueryViewModel?.let {
                     DnsQueryScreen(
                         viewModel = it,
@@ -492,7 +495,7 @@ fun AppNavigation(
                     )
                 }
             }
-            entry<Route.ClashFeatures>(swipeDismiss = swipeDismiss) {
+            navPage<Route.ClashFeatures>(swipeDismiss = swipeDismiss) {
                 clashFeaturesViewModel?.let {
                     ClashFeaturesScreen(
                         viewModel = it,
@@ -505,7 +508,7 @@ fun AppNavigation(
                     )
                 }
             }
-            entry<Route.NetworkSettings>(swipeDismiss = swipeDismiss) {
+            navPage<Route.NetworkSettings>(swipeDismiss = swipeDismiss) {
                 clashFeaturesViewModel?.let {
                     NetworkSettingsScreen(
                         viewModel = it,
@@ -513,7 +516,7 @@ fun AppNavigation(
                     )
                 }
             }
-            entry<Route.PortControl>(swipeDismiss = swipeDismiss) {
+            navPage<Route.PortControl>(swipeDismiss = swipeDismiss) {
                 clashFeaturesViewModel?.let {
                     PortControlScreen(
                         viewModel = it,
@@ -521,7 +524,7 @@ fun AppNavigation(
                     )
                 }
             }
-            entry<Route.SystemIntegration>(swipeDismiss = swipeDismiss) {
+            navPage<Route.SystemIntegration>(swipeDismiss = swipeDismiss) {
                 storage?.let {
                     val homeState = homeViewModel?.uiState?.collectAsStateWithLifecycle()?.value
                     SystemIntegrationScreen(
@@ -535,7 +538,7 @@ fun AppNavigation(
                     )
                 }
             }
-            entry<Route.DnsSettings>(swipeDismiss = swipeDismiss) {
+            navPage<Route.DnsSettings>(swipeDismiss = swipeDismiss) {
                 clashFeaturesViewModel?.let {
                     DnsSettingsScreen(
                         viewModel = it,
@@ -543,7 +546,7 @@ fun AppNavigation(
                     )
                 }
             }
-            entry<Route.PerformanceSettings>(swipeDismiss = swipeDismiss) {
+            navPage<Route.PerformanceSettings>(swipeDismiss = swipeDismiss) {
                 clashFeaturesViewModel?.let {
                     PerformanceSettingsScreen(
                         viewModel = it,
@@ -551,7 +554,7 @@ fun AppNavigation(
                     )
                 }
             }
-            entry<Route.VpnSettings>(swipeDismiss = swipeDismiss) {
+            navPage<Route.VpnSettings>(swipeDismiss = swipeDismiss) {
                 storage?.let {
                     VpnSettingsScreen(
                         storage = it,
@@ -560,7 +563,7 @@ fun AppNavigation(
                     )
                 }
             }
-            entry<Route.RootSettings>(swipeDismiss = swipeDismiss) {
+            navPage<Route.RootSettings>(swipeDismiss = swipeDismiss) {
                 storage?.let {
                     val homeState = homeViewModel?.uiState?.collectAsStateWithLifecycle()?.value
                     RootSettingsScreen(
@@ -570,7 +573,7 @@ fun AppNavigation(
                     )
                 }
             }
-            entry<Route.AppProxy>(swipeDismiss = swipeDismiss) {
+            navPage<Route.AppProxy>(swipeDismiss = swipeDismiss) {
                 appProxyViewModel?.let {
                     AppProxyScreen(
                         viewModel = it,
@@ -578,7 +581,7 @@ fun AppNavigation(
                     )
                 }
             }
-            entry<Route.AppBehavior>(swipeDismiss = swipeDismiss) {
+            navPage<Route.AppBehavior>(swipeDismiss = swipeDismiss) {
                 storage?.let {
                     AppBehaviorScreen(
                         storage = it,
@@ -589,7 +592,7 @@ fun AppNavigation(
                     )
                 }
             }
-            entry<Route.WifiPolicy>(swipeDismiss = swipeDismiss) {
+            navPage<Route.WifiPolicy>(swipeDismiss = swipeDismiss) {
                 storage?.let {
                     WifiPolicyScreen(
                         storage = it,
@@ -599,7 +602,7 @@ fun AppNavigation(
                     )
                 }
             }
-            entry<Route.ThemeSettings>(swipeDismiss = swipeDismiss) {
+            navPage<Route.ThemeSettings>(swipeDismiss = swipeDismiss) {
                 storage?.let {
                     ThemeSettingsScreen(
                         storage = it,
@@ -615,7 +618,7 @@ fun AppNavigation(
                     )
                 }
             }
-            entry<Route.DataManagement>(swipeDismiss = swipeDismiss) {
+            navPage<Route.DataManagement>(swipeDismiss = swipeDismiss) {
                 if (backupViewModel != null && storage != null) {
                     DataManagementScreen(
                         viewModel = backupViewModel,
@@ -626,7 +629,7 @@ fun AppNavigation(
                     )
                 }
             }
-            entry<Route.FileManager>(swipeDismiss = swipeDismiss) {
+            navPage<Route.FileManager>(swipeDismiss = swipeDismiss) {
                 FileManagerScreen(
                     subscriptionViewModel = subscriptionViewModel,
                     onBack = { navigator.pop() },
@@ -635,7 +638,7 @@ fun AppNavigation(
                     },
                 )
             }
-            entry<Route.FileManagerEditor>(swipeDismiss = swipeDismiss) { route ->
+            navPage<Route.FileManagerEditor>(swipeDismiss = swipeDismiss) { route ->
                 FileManagerEditorScreen(
                     uuid = route.uuid,
                     relativePath = route.relativePath,
@@ -643,16 +646,26 @@ fun AppNavigation(
                     onBack = { navigator.pop() },
                 )
             }
-            entry<Route.AgeKey>(swipeDismiss = swipeDismiss) {
+            navPage<Route.AgeKey>(swipeDismiss = swipeDismiss) {
                 AgeKeyScreen(onBack = { navigator.pop() })
             }
-            entry<Route.About>(swipeDismiss = swipeDismiss) {
+            navPage<Route.About>(swipeDismiss = swipeDismiss) {
+                val context = LocalContext.current
                 val uriHandler = LocalUriHandler.current
                 AboutScreen(
                     appUpdateViewModel = appUpdateViewModel,
                     onBack = { navigator.pop() },
+                    onOpenUrl = { url -> uriHandler.openUriOrShowToast(url, context) },
+                    onOpenSource = { navigator.push(Route.OpenSourceLibraries) },
+                )
+            }
+            navPage<Route.OpenSourceLibraries>(swipeDismiss = swipeDismiss) {
+                val context = LocalContext.current
+                val uriHandler = LocalUriHandler.current
+                OpenSourceLibrariesScreen(
+                    onBack = { navigator.pop() },
+                    onOpenUrl = { url -> uriHandler.openUriOrShowToast(url, context) },
                     mihomoVersion = mihomoVersion,
-                    onOpenUrl = { url -> uriHandler.openUri(url) },
                 )
             }
         }
@@ -674,6 +687,7 @@ private fun MainPage(
     storage: PlatformStorage? = null,
     onHideTaskCardChange: ((Boolean) -> Unit)? = null,
     hasRootPermission: Boolean = false,
+    onLanguageChange: () -> Unit = {},
 ) {
     val homeUiState = homeViewModel?.uiState?.collectAsStateWithLifecycle()?.value ?: HomeUiState()
     val selectedPage = mainPagerState.selectedPage
@@ -683,8 +697,8 @@ private fun MainPage(
             modifier = pagerModifier,
             state = mainPagerState.pagerState,
             verticalAlignment = Alignment.Top,
-            // 四个主页面保留组合，避免翻页的动画帧重新创建节点与毛玻璃。
-            beyondViewportPageCount = mainPagerState.pagerState.pageCount - 1,
+            key = { NAV_TABS[it].key },
+            beyondViewportPageCount = 0,
         ) { page ->
             val pageVisible by remember(mainPagerState, page) {
                 derivedStateOf {
@@ -730,17 +744,24 @@ private fun MainPage(
                         )
                     }
 
-                    3 -> SettingsScreen(
-                        bottomPadding = bottomPadding,
-                        onNavigateThemeSettings = { navigator.push(Route.ThemeSettings) },
-                        onNavigateClashFeatures = { navigator.push(Route.ClashFeatures) },
-                        onNavigateOverrides = { navigator.push(Route.OverrideList) },
-                        onNavigateFileManager = { navigator.push(Route.FileManager) },
-                        onNavigateAppBehavior = { navigator.push(Route.AppBehavior) },
-                        onNavigateAbout = { navigator.push(Route.About) },
-                        onNavigateDataManagement = { navigator.push(Route.DataManagement) },
-                        onNavigateAgeKey = { navigator.push(Route.AgeKey) },
-                    )
+                    3 -> storage?.let {
+                        SettingsScreen(
+                            storage = it,
+                            themeConfig = themeConfig,
+                            bottomPadding = bottomPadding,
+                            isActive = navigator.current() is Route.Main && selectedPage == 3,
+                            onLanguageChange = onLanguageChange,
+                            onNavigateSearchResult = navigator::openSettingsPage,
+                            onNavigateThemeSettings = { navigator.push(Route.ThemeSettings) },
+                            onNavigateClashFeatures = { navigator.push(Route.ClashFeatures) },
+                            onNavigateOverrides = { navigator.push(Route.OverrideList) },
+                            onNavigateFileManager = { navigator.push(Route.FileManager) },
+                            onNavigateAppBehavior = { navigator.push(Route.AppBehavior) },
+                            onNavigateAbout = { navigator.push(Route.About) },
+                            onNavigateDataManagement = { navigator.push(Route.DataManagement) },
+                            onNavigateAgeKey = { navigator.push(Route.AgeKey) },
+                        )
+                    }
                 }
             }
         }
@@ -777,7 +798,7 @@ private fun MainPage(
             }
         }
     } else {
-        val bottomBarBackdrop = rememberBlurBackdrop(themeConfig.blurEnabled)
+        val bottomBarBackdrop = rememberBlurBackdrop(themeConfig.bottomBarBlurEnabled)
         val bottomBarBlurActive = bottomBarBackdrop != null
         val barColor = if (bottomBarBlurActive) Color.Transparent else MiuixTheme.colorScheme.surface
         val floatingBarColor = if (bottomBarBlurActive) Color.Transparent else MiuixTheme.colorScheme.surfaceContainer
@@ -803,10 +824,6 @@ private fun MainPage(
             )
         } else {
             Modifier
-        }
-        val bottomBarDisplayMode = when (themeConfig.bottomBarMode) {
-            BottomBarMode.IconAndText -> NavigationBarDisplayMode.IconAndText
-            BottomBarMode.IconOnly -> NavigationBarDisplayMode.IconOnly
         }
         val showBottomBarLabels = themeConfig.bottomBarMode == BottomBarMode.IconAndText
         val navigationItems = NAV_TABS.mapIndexed { index, tab ->
@@ -852,11 +869,11 @@ private fun MainPage(
                     ) {
                         NavigationBar(
                             color = barColor,
-                            mode = bottomBarDisplayMode,
                         ) {
                             navigationItems.forEachIndexed { index, item ->
-                                NavigationBarItem(
-                                    modifier = Modifier.testTag(TestTags.Nav.tab(index)),
+                                NavigationTabItem(
+                                    modifier = Modifier.weight(1f).testTag(TestTags.Nav.tab(index)),
+                                    showLabel = showBottomBarLabels,
                                     selected = selectedPage == index,
                                     onClick = { mainPagerState.animateToPage(index) },
                                     icon = item.icon,
@@ -890,45 +907,14 @@ private fun MiuixFloatingNavigationBarItem(
     showLabel: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val onSurfaceContainerColor = MiuixTheme.colorScheme.onSurfaceContainer
-    val tint = when {
-        isPressed -> onSurfaceContainerColor.copy(alpha = if (selected) 0.7f else 0.5f)
-        selected -> onSurfaceContainerColor
-        else -> onSurfaceContainerColor.copy(alpha = 0.6f)
-    }
-
-    Column(
-        modifier = modifier
-            .defaultMinSize(minWidth = if (showLabel) 56.dp else 48.dp, minHeight = 48.dp)
-            .selectable(
-                selected = selected,
-                onClick = onClick,
-                role = Role.Tab,
-                interactionSource = interactionSource,
-                indication = null,
-            )
-            .padding(horizontal = if (showLabel) 8.dp else 6.dp, vertical = 5.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Icon(
-            modifier = Modifier.size(22.dp),
-            imageVector = item.icon,
-            contentDescription = if (showLabel) null else item.label,
-            tint = tint,
-        )
-        if (showLabel) {
-            Text(
-                text = item.label,
-                color = tint,
-                fontSize = 11.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
+    NavigationTabItem(
+        selected = selected,
+        onClick = onClick,
+        icon = item.icon,
+        label = item.label,
+        showLabel = showLabel,
+        modifier = modifier.defaultMinSize(minWidth = if (showLabel) 56.dp else 48.dp),
+    )
 }
 
 @Stable
@@ -1002,31 +988,23 @@ fun rememberMainPagerState(
     MainPagerState(pagerState, coroutineScope)
 }
 
-@Composable
-private fun MainScreenBackHandler(
-    mainState: MainPagerState,
-    navigator: Navigator,
+private inline fun <reified T : NavKey> NavEntryBuilder.navPage(
+    swipeDismiss: NavSwipeDirection?,
+    noinline content: @Composable (T) -> Unit,
 ) {
-    val isPagerBackHandlerEnabled by remember {
-        derivedStateOf {
-            navigator.current() is Route.Main &&
-                    navigator.backStackSize() == 1 &&
-                    mainState.selectedPage != 0
-        }
+    entry<T>(swipeDismiss = swipeDismiss) { route ->
+        val navigator = LocalNavigator.current
+        NavigationBackHandler(
+            state = rememberNavigationEventState(NavigationEventInfo.None),
+            isBackEnabled = !LocalPredictiveBackEnabled.current,
+            onBackCompleted = navigator::pop,
+        )
+        content(route)
     }
-
-    val navEventState = rememberNavigationEventState(NavigationEventInfo.None)
-
-    NavigationBackHandler(
-        state = navEventState,
-        isBackEnabled = isPagerBackHandlerEnabled,
-        onBackCompleted = {
-            mainState.animateToPage(0)
-        },
-    )
 }
 
 private class NavTab(
+    val key: String,
     @StringRes val labelRes: Int,
     private val idle: ImageVector,
     private val active: ImageVector,
@@ -1035,8 +1013,8 @@ private class NavTab(
 }
 
 private val NAV_TABS = listOf(
-    NavTab(R.string.nav_home, AppIcons.NavHome, AppIcons.NavHomeActive),
-    NavTab(R.string.nav_proxy, AppIcons.NavProxy, AppIcons.NavProxyActive),
-    NavTab(R.string.nav_subscription, AppIcons.NavSubscription, AppIcons.NavSubscriptionActive),
-    NavTab(R.string.nav_settings, AppIcons.NavSettings, AppIcons.NavSettingsActive),
+    NavTab("home", R.string.nav_home, AppIcons.NavHome, AppIcons.NavHomeActive),
+    NavTab("proxy", R.string.nav_proxy, AppIcons.NavProxy, AppIcons.NavProxyActive),
+    NavTab("subscription", R.string.nav_subscription, AppIcons.NavSubscription, AppIcons.NavSubscriptionActive),
+    NavTab("settings", R.string.nav_settings, AppIcons.NavSettings, AppIcons.NavSettingsActive),
 )

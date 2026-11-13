@@ -75,6 +75,17 @@ def vector_name(rel: str) -> str:
     name = "MingCute" + "".join(part.capitalize() for part in stem.split("_"))
     return name + "Filled" if style == "filled" else name
 
+# 快照图标仅生成入口映射，矢量来源与许可见 .github/licenses/NOTICE.md。
+FIXED_ICONS = {
+    "Appearance": "MingCuteAppearance",
+    "BlurOn": "MingCuteBlurOn",
+    "DarkMode": "MingCuteDarkMode",
+    "GitHub": "MingCuteGithubLine",
+    "Language": "MingCuteLanguage",
+    "LibraryBooks": "MingCuteLibraryBooks",
+    "SwipeHorizontal": "MingCuteSwipeHorizontal",
+}
+
 CAP = {"butt": "Butt", "round": "Round", "square": "Square"}
 JOIN = {"miter": "Miter", "round": "Round", "bevel": "Bevel"}
 
@@ -212,15 +223,16 @@ internal val {val}: ImageVector by lazy {{
 
 
 def render_entry() -> str:
+    icons = {name: vector_name(rel) for name, rel in ICONS.items()} | FIXED_ICONS
     props = "\n".join(
-        f"    val {name}: ImageVector get() = {vector_name(rel)}" for name, rel in sorted(ICONS.items())
+        f"    val {name}: ImageVector get() = {vector}" for name, vector in sorted(icons.items())
     )
     return f"""// 由 scripts/gen_icons.py 生成，勿手改。改图标请改脚本里的 ICONS 表后重跑。
 package {OUT_PACKAGE}
 
 import androidx.compose.ui.graphics.vector.ImageVector
 
-/** 全应用图标入口，路径来自 MingCute。`Nav*Active` 是 filled 风格，其余为 regular（线性描边）。 */
+// 全应用图标入口；Nav*Active 使用填充态，其余使用线框态。
 object AppIcons {{
 {props}
 }}

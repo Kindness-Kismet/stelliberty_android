@@ -5,7 +5,7 @@
 - **Dialog 底部按钮按行为选择**：选项点击后关闭的弹窗与信息弹窗只放全宽「取消」，使用 miuix 默认次要按钮配色。输入、勾选、调整或附加操作后仍保持打开的弹窗放「取消 / 确定」，等宽、间距 12dp；确定使用 `textButtonColorsPrimary()`，内容到按钮 12dp。统一使用 [DialogButtons](../../../../android/app/src/main/kotlin/com/stelliberty/android/ui/component/DialogButtons.kt)。
 - **持续交互使用草稿**：输入、选择和待执行动作先保存到弹窗草稿，确定才应用，取消与返回放弃草稿；关闭动画结束前保留当前内容，下次打开重新读取已保存值。覆写字段留空确定即使用默认值。
 - **动作确认弹窗**（删除、关闭连接等）保留「取消 / 确定」，确定才执行动作；已完成的备份恢复自动重启进程，使恢复的设置重新加载。
-- **清除类操作放右上角**：`WindowDialog` 不传 title / summary，内容首行用 [DialogHeader](../../../../android/app/src/main/kotlin/com/stelliberty/android/ui/component/DialogHeader.kt) 按原生样式重画标题并放 `DialogClearAction`，图标与页面顶栏的清除操作一致；miuix 的标题区没有操作位。清除只清空输入、不关闭弹窗，写回仍由确定提交。
+- **附加功能放标题右侧唯一入口**：`WindowDialog` 不传 title / summary，内容首行用 [DialogHeader](../../../../android/app/src/main/kotlin/com/stelliberty/android/ui/component/DialogHeader.kt)。单功能用语义图标，多个功能用竖向三点菜单；按钮 40dp、图标 24dp，标题行到正文 12dp。清除只清空草稿，确定才写回。
 - **长内容 Dialog**：miuix `WindowDialog` 在手机上不限制内容高度。外层包 `Column(Modifier.heightIn(max = 500.dp))`，滚动区用 `weight(1f, fill = false).verticalScroll(...)`，按钮作为非加权子项固定在底部。
 - **Dialog 容器**保留默认 insideMargin 四周 24dp、outsideMargin 四周 12dp、maxWidth 420dp。操作行与候选行放在 Card 内，逐行四角 16dp 裁剪；普通摘要为 null。
 - **弹 Dialog 的入口行设 `holdDownState`**，Dialog 打开期间保持按下态（MIUI 惯例）；先关自身再弹下一层的操作行没有按下态窗口，无需设置。

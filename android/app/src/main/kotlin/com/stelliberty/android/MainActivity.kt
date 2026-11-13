@@ -2,7 +2,9 @@ package com.stelliberty.android
 
 import android.Manifest
 import android.app.ActivityManager
+import android.content.Context
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.Color
@@ -21,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.unit.Density
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
@@ -39,6 +42,10 @@ import com.stelliberty.android.platform.WifiPolicyController
 import com.stelliberty.android.service.RootHelper
 import com.stelliberty.android.ui.platform.IconDiskCache
 import com.stelliberty.android.ui.platform.IconLoader
+import com.stelliberty.android.ui.platform.localizedAppContext
+import com.stelliberty.android.ui.platform.scaledAppContext
+import com.stelliberty.android.ui.theme.DefaultDensityScale
+import com.stelliberty.android.ui.theme.readAppLanguage
 import com.stelliberty.android.ui.theme.ThemeColorMode
 import com.stelliberty.android.ui.theme.ThemeConfig
 import com.stelliberty.android.ui.theme.readThemeConfig
@@ -82,6 +89,9 @@ class MainActivity : ComponentActivity() {
     private var wifiPermissionCallback: ((Boolean) -> Unit)? = null
     private var latestThemeConfig: ThemeConfig? = null
     private var contentReady = false
+    private var appliedDensityScale = DefaultDensityScale
+    private var lastActivityConfiguration: Configuration? = null
+    private val platformDensityState = mutableStateOf<Density?>(null)
 
     private val pendingDeepLinkImport = mutableStateOf<DeepLinkImportRequest?>(null)
     private var consumedDeepLinkNonce: String? = null
@@ -93,6 +103,18 @@ class MainActivity : ComponentActivity() {
             setShowCloseButton(true)
             setKeepScreenOn(true)
         }
+    }
+
+    override fun attachBaseContext(newBase: Context) {
+        val storage = PlatformStorage(newBase)
+        appliedDensityScale = readThemeConfig(storage).densityScale
+        platformDensityState.value = Density(
+            newBase.resources.displayMetrics.density,
+            newBase.resources.configuration.fontScale,
+        )
+        val localized = localizedAppContext(newBase, readAppLanguage(newBase, storage))
+        super.attachBaseContext(scaledAppContext(localized, appliedDensityScale))
+        lastActivityConfiguration = Configuration(resources.configuration)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -226,7 +248,12 @@ class MainActivity : ComponentActivity() {
             }
             App(
                 themeConfig = themeConfig,
-                onThemeConfigChange = { themeConfig = it },
+                onThemeConfigChange = {
+                    themeConfig = it
+                    if (it.densityScale != appliedDensityScale) recreateWithoutTransition()
+                },
+                platformDensity = platformDensityState.value,
+                onLanguageChange = ::recreateWithoutTransition,
                 homeViewModel = homeViewModel,
                 subscriptionViewModel = subscriptionViewModel,
                 proxyViewModel = proxyViewModel,
@@ -309,8 +336,20 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
+        val changes = lastActivityConfiguration?.diff(newConfig) ?: 0
         super.onConfigurationChanged(newConfig)
-        latestThemeConfig?.let(::updateEdgeToEdge)
+        lastActivityConfiguration = Configuration(newConfig)
+        val systemResources = applicationContext.resources
+        val platformDensity = Density(systemResources.displayMetrics.density, systemResources.configuration.fontScale)
+        val densityChanged = platformDensityState.value != platformDensity
+        platformDensityState.value = platformDensity
+        val layoutChanges = ActivityInfo.CONFIG_ORIENTATION or ActivityInfo.CONFIG_SCREEN_SIZE or
+            ActivityInfo.CONFIG_SMALLEST_SCREEN_SIZE
+        if (densityChanged || (appliedDensityScale != DefaultDensityScale && changes and layoutChanges != 0)) {
+            recreateWithoutTransition()
+        } else {
+            latestThemeConfig?.let(::updateEdgeToEdge)
+        }
     }
 
     private fun updateEdgeToEdge(themeConfig: ThemeConfig) {

@@ -15,7 +15,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.stelliberty.android.ui.util.TestTags
-import top.yukonga.miuix.kmp.squircle.squircleSurface
+import top.yukonga.miuix.kmp.squircle.squircleBackground
+import top.yukonga.miuix.kmp.squircle.squircleClip
 import top.yukonga.miuix.kmp.theme.LocalContentColor
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -29,7 +30,7 @@ fun CardSegment(
     cornerRadius: Dp = 16.dp,
     topCornerRadius: Dp = if (isFirst) cornerRadius else 0.dp,
     bottomCornerRadius: Dp = if (isLast) cornerRadius else 0.dp,
-    outerHorizontalPadding: Dp = 12.dp,
+    outerHorizontalPadding: Dp? = null,
     outerTopPadding: Dp = 0.dp,
     outerBottomPadding: Dp = 0.dp,
     insidePadding: PaddingValues = PaddingValues(0.dp),
@@ -38,19 +39,21 @@ fun CardSegment(
     val background = if (topCornerRadius == 0.dp && bottomCornerRadius == 0.dp) {
         Modifier.background(color)
     } else {
-        Modifier.squircleSurface(color, topCornerRadius, topCornerRadius, bottomCornerRadius, bottomCornerRadius)
+        Modifier.squircleBackground(color, topCornerRadius, topCornerRadius, bottomCornerRadius, bottomCornerRadius)
     }
+    val horizontalPadding = outerHorizontalPadding ?: LocalPreferenceHorizontalPadding.current
     CompositionLocalProvider(LocalContentColor provides contentColor) {
         Column(
             modifier = modifier
                 .fillMaxWidth()
                 .padding(
-                    start = outerHorizontalPadding,
-                    end = outerHorizontalPadding,
+                    start = horizontalPadding,
+                    end = horizontalPadding,
                     top = outerTopPadding,
                     bottom = outerBottomPadding,
                 )
                 .then(background)
+                .squircleClip(cornerRadius)
                 .padding(insidePadding),
             content = content,
         )
@@ -66,8 +69,8 @@ fun LazyListScope.groupedCardItems(
     keyPrefix: String,
     items: List<CardItem>,
     outerTopPadding: Dp = 0.dp,
-    outerBottomPadding: Dp = 6.dp,
-    outerHorizontalPadding: Dp = 12.dp,
+    outerBottomPadding: Dp = PreferenceLayout.GroupSpacing,
+    outerHorizontalPadding: Dp? = null,
     insidePadding: PaddingValues = PaddingValues(0.dp),
 ) {
     if (items.isEmpty()) return

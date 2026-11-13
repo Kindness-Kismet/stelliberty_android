@@ -43,6 +43,7 @@ Tab 间走 `HorizontalPager.animateToPage`，动画约 300ms，截图前留出�
 | `settings.app_behavior` | 应用行为（自动连接、开机重启、Wi-Fi 策略入口、通知、应用日志等级） |
 | `settings.wifi_policy` | Wi-Fi 策略 |
 | `settings.about` | 关于 |
+| `settings.about.libraries` | 开源库（返回关于页） |
 | `settings.data` | 数据管理（本地与 WebDAV 备份恢复） |
 | `settings.age_key` | Age 密钥 |
 

@@ -84,6 +84,7 @@
     <string name="common_refresh">Refresh</string>
     <string name="common_more">More</string>
     <string name="common_close">Close</string>
+    <string name="common_default">Default</string>
     <string name="common_delete">Delete</string>
     <string name="common_edit">Edit</string>
     <string name="common_update">Update</string>
@@ -313,22 +314,12 @@
     <!-- Settings -->
     <string name="settings_title">Settings</string>
     <string name="settings_group_automation">Automation</string>
-    <string name="settings_group_personalization">Personalization</string>
-    <string name="settings_group_clash">Clash</string>
-    <string name="settings_group_application">Application</string>
-    <string name="settings_group_maintenance">Maintenance</string>
     <string name="clash_features_title">Clash Features</string>
     <string name="clash_features_summary">Network, ports, system integration, DNS, and core options</string>
-    <string name="network_settings_summary">Unified delay, LAN, IPv6, and sniffer</string>
     <string name="port_control_title">Port Control</string>
-    <string name="port_control_summary">Proxy ports and external controller</string>
     <string name="system_integration_title">System Integration</string>
-    <string name="system_integration_summary">Tunnel mode, VPN or ROOT settings, and per-app proxy</string>
     <string name="dns_settings_title">DNS</string>
-    <string name="dns_settings_summary">Nameservers, enhanced mode, and FakeIP filter</string>
     <string name="performance_settings_title">Performance</string>
-    <string name="performance_settings_summary">Geodata mode and process matching</string>
-    <string name="settings_core_log_summary">Minimum level output by the core; takes effect after restarting the proxy</string>
     <string name="app_behavior_title">App Behavior</string>
     <string name="app_behavior_summary">Auto connect, boot restore, Wi-Fi switching, notifications, and logs</string>
     <string name="data_management_title">Data Management</string>
@@ -356,37 +347,37 @@
     <string name="update_proxy_direct">Direct</string>
     <string name="update_proxy_system">System Proxy</string>
     <string name="update_proxy_core">Core Proxy</string>
-    <string name="update_proxy_direct_summary">Connect directly without any proxy</string>
-    <string name="update_proxy_system_summary">Use the HTTP proxy set for Wi-Fi or the system; connect directly if none is set</string>
-    <string name="update_proxy_core_summary">Download through the running core; connect directly while the proxy is stopped</string>
     <string name="settings_restart_after_update">Restart after update</string>
     <string name="settings_restart_after_update_summary">Restart the proxy when the active profile is updated, so the new config takes effect (briefly interrupts connections)</string>
     <string name="settings_auto_connect">Connect on Launch</string>
     <string name="settings_auto_connect_summary">Start the proxy when the app opens, if a usable profile is available</string>
     <string name="settings_auto_restart">Restart on Boot</string>
     <string name="settings_auto_restart_summary">Restore the proxy that was running before a reboot or app update</string>
-    <string name="settings_theme_title">Appearance &amp; Theme</string>
-    <string name="settings_theme_group_color">Color &amp; Theme</string>
-    <string name="settings_theme_group_interface">Interface &amp; Effects</string>
-    <string name="settings_theme_group_navigation">Bottom Navigation</string>
+    <string name="settings_theme_title">Appearance</string>
+    <string name="settings_search">Search settings</string>
+    <string name="settings_search_empty">No matching settings</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_language_english">English</string>
+    <string name="settings_language_simplified">简体中文</string>
+    <string name="settings_language_traditional">繁體中文</string>
+    <string name="settings_theme_bottom_bar_blur">Bottom bar blur</string>
+    <string name="settings_blur_unavailable">Requires Android 13 or later</string>
+    <string name="settings_predictive_back_unavailable">Requires Android 14 or later</string>
     <string name="settings_theme_summary">Color, blur effects and interface scale; bottom bar and back gestures</string>
     <string name="settings_theme_mode">Theme Mode</string>
     <string name="settings_theme_system">Follow System</string>
     <string name="settings_theme_light">Light</string>
     <string name="settings_theme_dark">Dark</string>
-    <string name="settings_theme_monet">Monet Colors</string>
+    <string name="settings_theme_monet">Dynamic colors</string>
     <string name="settings_theme_monet_summary">Use the system dynamic color palette when available</string>
-    <string name="settings_theme_blur">Blur Effects</string>
-    <string name="settings_theme_blur_summary">Enable blur effects for bars and layered surfaces</string>
+    <string name="settings_theme_blur">Top bar blur</string>
     <string name="settings_theme_blur_style">Top bar blur style</string>
     <string name="settings_theme_blur_style_gaussian">Gaussian</string>
     <string name="settings_theme_blur_style_progressive">Progressive</string>
     <string name="settings_theme_blur_style_gaussian_summary">Uniform frosted blur across the top bar</string>
     <string name="settings_theme_blur_style_progressive_summary">Gradient blur, strongest at the top edge</string>
-    <string name="settings_theme_density_scale">Interface Scale</string>
-    <string name="settings_theme_density_scale_summary">Adjust the global display scale (80% - 110%)</string>
+    <string name="settings_theme_density_scale">App scale</string>
     <string name="settings_theme_floating_bottom_bar">Floating Bottom Bar</string>
-    <string name="settings_theme_floating_bottom_bar_summary">Use a floating bottom navigation bar on phones</string>
     <string name="settings_theme_floating_bottom_bar_style">Floating Bottom Bar Style</string>
     <string name="settings_theme_floating_bottom_bar_style_miuix">Miuix</string>
     <string name="settings_theme_floating_bottom_bar_style_ios_like">iOS-like (Liquid Glass)</string>
@@ -404,7 +395,6 @@
     <string name="settings_theme_palette_fidelity">Fidelity (Fidelity)</string>
     <string name="settings_theme_palette_content">Content (Content)</string>
     <string name="settings_theme_pure_black">Pure Black Background</string>
-    <string name="settings_theme_pure_black_summary">Use a pure black background in dark mode</string>
     <string name="settings_theme_accent_title">Accent Color</string>
     <string name="settings_theme_accent_default">System color</string>
     <string name="settings_theme_accent_blue">Blue</string>
@@ -416,9 +406,7 @@
     <string name="settings_theme_accent_green">Green</string>
     <string name="settings_theme_accent_teal">Teal</string>
     <string name="settings_predictive_back">Predictive Back Gesture</string>
-    <string name="settings_predictive_back_summary">Enable predictive back animation</string>
     <string name="settings_swipe_dismiss">Swipe Back Gesture</string>
-    <string name="settings_swipe_dismiss_summary">Swipe sideways anywhere on the page to go back</string>
     <string name="settings_hide_task_card">Hide from recents</string>
     <string name="settings_hide_task_card_summary">Hide task card in recent tasks</string>
     <string name="settings_app_log_summary">Minimum level written to application logs</string>
@@ -596,9 +584,7 @@
     <string name="backup_webdav_row_summary">Back up to or restore from a WebDAV server</string>
 
     <!-- About -->
-    <string name="app_update_title">App Updates</string>
     <string name="app_update_check">Check for updates</string>
-    <string name="app_update_idle">Check for a newer version</string>
     <string name="app_update_checking">Checking for updates…</string>
     <string name="app_update_available">Version %1$s is available</string>
     <string name="app_update_up_to_date">You are up to date</string>
@@ -607,14 +593,15 @@
     <string name="app_update_channel_stable">Stable</string>
     <string name="app_update_channel_test">Test</string>
     <string name="app_update_on_startup">Check on startup</string>
-    <string name="app_update_on_startup_summary">Notify me when a newer version is available</string>
     <string name="app_update_dialog_title">New version %1$s</string>
     <string name="app_update_no_notes">No release notes provided</string>
     <string name="app_update_download">Download</string>
     <string name="app_update_open_failed">Could not open the download page</string>
 
     <string name="about_title">About</string>
-    <string name="about_open_source">Open Source Licenses</string>
+    <string name="about_repository">Project source code</string>
+    <string name="about_open_source">Open source libraries</string>
+    <string name="about_open_link_failed">Could not open the link. Please install a browser.</string>
 
     <!-- FormatUtils -->
 

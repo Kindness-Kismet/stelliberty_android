@@ -50,6 +50,8 @@ import top.yukonga.miuix.kmp.theme.platformDynamicColors
 fun App(
     themeConfig: ThemeConfig = ThemeConfig(),
     onThemeConfigChange: (ThemeConfig) -> Unit = {},
+    platformDensity: Density? = null,
+    onLanguageChange: () -> Unit = {},
     homeViewModel: HomeViewModel? = null,
     subscriptionViewModel: SubscriptionViewModel? = null,
     proxyViewModel: ProxyViewModel? = null,
@@ -123,18 +125,11 @@ fun App(
     }
 
     MiuixTheme(colors = themedColors) {
-        val currentDensity = LocalDensity.current
-        val appDensity = remember(currentDensity, themeConfig.densityScale) {
-            Density(
-                density = currentDensity.density * themeConfig.densityScale,
-                fontScale = currentDensity.fontScale,
-            )
-        }
+        val systemDensity = platformDensity ?: LocalDensity.current
         CompositionLocalProvider(
             LocalAppDarkMode provides isDark,
             LocalAppMonetEnabled provides themeConfig.useMonet,
-            LocalPlatformDensity provides currentDensity,
-            LocalDensity provides appDensity,
+            LocalPlatformDensity provides systemDensity,
             LocalBlurEnabled provides themeConfig.blurEnabled,
             LocalTopBarBlurStyle provides themeConfig.topBarBlurStyle,
             LocalContentColor provides MiuixTheme.colorScheme.onBackground,
@@ -149,6 +144,7 @@ fun App(
                 AppNavigation(
                     themeConfig = themeConfig,
                     onThemeConfigChange = onThemeConfigChange,
+                    onLanguageChange = onLanguageChange,
                     homeViewModel = homeViewModel,
                     subscriptionViewModel = subscriptionViewModel,
                     proxyViewModel = proxyViewModel,

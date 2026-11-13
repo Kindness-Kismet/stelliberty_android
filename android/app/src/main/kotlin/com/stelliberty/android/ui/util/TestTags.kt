@@ -52,6 +52,13 @@ object TestTags {
     }
 
     object About {
+        const val TOP_BAR = "About.TopBar"
+        const val ICON = "About.AppIcon"
+        const val NAME = "About.AppName"
+        const val VERSION = "About.AppVersion"
+        const val REPOSITORY = "About.Repository"
+        const val OPEN_SOURCE = "About.OpenSource"
+        const val UPDATE_CARD = "About.UpdateCard"
         const val CHECK_UPDATE = "About.CheckUpdate"
         const val UPDATE_CHANNEL = "About.UpdateChannel"
         const val UPDATE_STARTUP = "About.UpdateStartup"
@@ -61,6 +68,13 @@ object TestTags {
         const val UPDATE_DOWNLOAD = "About.UpdateDownload"
 
         fun channel(name: String) = "About.Channel.$name"
+
+    }
+
+    object Libraries {
+        const val SCREEN = "Libraries.Screen"
+
+        fun project(name: String) = "Libraries.Project.$name"
     }
 
     object Home {
@@ -187,10 +201,18 @@ object TestTags {
     }
 
     object Settings {
+        const val SEARCH = "Settings.SearchButton"
+        const val SEARCH_FIELD = "Settings.SearchField"
+        const val SEARCH_CLOSE = "Settings.SearchClose"
+        const val SEARCH_CLEAR = "Settings.SearchClear"
         const val CHOICE_DIALOG = "Settings.ChoiceDialog"
+        const val APP_SCALE = "Settings.AppScale"
+
+        fun entry(key: String) = "Settings.Entry.$key"
 
         fun option(index: Int) = "Settings.Choice.$index"
-        fun entry(key: String) = "Settings.Entry.$key"
+
+        fun searchResult(key: String) = "Settings.SearchResult.$key"
     }
 
     object AppProxy {

@@ -82,6 +82,7 @@
     <string name="common_refresh">重新整理</string>
     <string name="common_more">更多</string>
     <string name="common_close">關閉</string>
+    <string name="common_default">預設</string>
     <string name="common_delete">刪除</string>
     <string name="common_edit">編輯</string>
     <string name="common_update">更新</string>
@@ -311,22 +312,12 @@
     <!-- Settings -->
     <string name="settings_title">設定</string>
     <string name="settings_group_automation">自動化</string>
-    <string name="settings_group_personalization">個人化</string>
-    <string name="settings_group_clash">Clash</string>
-    <string name="settings_group_application">應用程式</string>
-    <string name="settings_group_maintenance">維護</string>
     <string name="clash_features_title">Clash 特性</string>
     <string name="clash_features_summary">網路、連接埠、系統整合、DNS 與核心參數</string>
-    <string name="network_settings_summary">統一延遲、區域網路、IPv6 與嗅探器</string>
     <string name="port_control_title">連接埠控制</string>
-    <string name="port_control_summary">代理連接埠與外部控制器</string>
     <string name="system_integration_title">系統整合</string>
-    <string name="system_integration_summary">通道模式、VPN 或 ROOT 設定與分應用程式代理</string>
     <string name="dns_settings_title">DNS 設定</string>
-    <string name="dns_settings_summary">Nameserver、增強模式與 FakeIP 過濾</string>
     <string name="performance_settings_title">效能最佳化</string>
-    <string name="performance_settings_summary">Geodata 模式與處理程序比對</string>
-    <string name="settings_core_log_summary">核心輸出的最低等級，重新啟動代理後生效</string>
     <string name="app_behavior_title">應用程式行為</string>
     <string name="app_behavior_summary">自動連線、開機重啟、Wi-Fi 切換、通知與日誌</string>
     <string name="data_management_title">資料管理</string>
@@ -354,37 +345,37 @@
     <string name="update_proxy_direct">直連</string>
     <string name="update_proxy_system">系統代理</string>
     <string name="update_proxy_core">核心代理</string>
-    <string name="update_proxy_direct_summary">不經任何代理，直接連線</string>
-    <string name="update_proxy_system_summary">使用 Wi-Fi 或系統設定的 HTTP 代理，未設定時直連</string>
-    <string name="update_proxy_core_summary">經執行中的核心下載，代理未啟動時直連</string>
     <string name="settings_restart_after_update">更新後重新啟動代理</string>
     <string name="settings_restart_after_update_summary">更新目前訂閱後重新啟動代理使新設定生效（會短暫中斷連線）</string>
     <string name="settings_auto_connect">啟動時自動連線</string>
     <string name="settings_auto_connect_summary">開啟應用程式時若有可用訂閱則啟動代理</string>
     <string name="settings_auto_restart">開機後自動重啟</string>
     <string name="settings_auto_restart_summary">開機或應用程式更新後還原上次執行的代理</string>
-    <string name="settings_theme_title">外觀與主題</string>
-    <string name="settings_theme_group_color">顏色與主題</string>
-    <string name="settings_theme_group_interface">介面與效果</string>
-    <string name="settings_theme_group_navigation">底部導覽列</string>
+    <string name="settings_theme_title">外觀</string>
+    <string name="settings_search">搜尋設定</string>
+    <string name="settings_search_empty">找不到符合的設定</string>
+    <string name="settings_language">語言</string>
+    <string name="settings_language_english">English</string>
+    <string name="settings_language_simplified">简体中文</string>
+    <string name="settings_language_traditional">繁體中文</string>
+    <string name="settings_theme_bottom_bar_blur">底欄模糊</string>
+    <string name="settings_blur_unavailable">需要 Android 13 或更新版本</string>
+    <string name="settings_predictive_back_unavailable">需要 Android 14 或更新版本</string>
     <string name="settings_theme_summary">顏色、模糊效果與介面縮放，底部列與返回手勢</string>
     <string name="settings_theme_mode">主題模式</string>
     <string name="settings_theme_system">跟隨系統</string>
     <string name="settings_theme_light">淺色</string>
     <string name="settings_theme_dark">深色</string>
-    <string name="settings_theme_monet">Monet 取色</string>
+    <string name="settings_theme_monet">動態色彩</string>
     <string name="settings_theme_monet_summary">可用時使用系統動態取色</string>
-    <string name="settings_theme_blur">模糊效果</string>
-    <string name="settings_theme_blur_summary">啟用頂部列、底部列等表面的模糊效果</string>
+    <string name="settings_theme_blur">頂欄模糊</string>
     <string name="settings_theme_blur_style">頂欄模糊樣式</string>
     <string name="settings_theme_blur_style_gaussian">高斯</string>
     <string name="settings_theme_blur_style_progressive">漸進</string>
     <string name="settings_theme_blur_style_gaussian_summary">頂欄整體均勻模糊</string>
     <string name="settings_theme_blur_style_progressive_summary">頂部漸強模糊</string>
-    <string name="settings_theme_density_scale">介面縮放</string>
-    <string name="settings_theme_density_scale_summary">調整全域顯示比例（80% - 110%）</string>
+    <string name="settings_theme_density_scale">縮放比例</string>
     <string name="settings_theme_floating_bottom_bar">懸浮底部列</string>
-    <string name="settings_theme_floating_bottom_bar_summary">在手機版面中使用懸浮底部導覽列</string>
     <string name="settings_theme_floating_bottom_bar_style">懸浮底部列樣式</string>
     <string name="settings_theme_floating_bottom_bar_style_miuix">Miuix</string>
     <string name="settings_theme_floating_bottom_bar_style_ios_like">iOS 風格（液態玻璃）</string>
@@ -402,7 +393,6 @@
     <string name="settings_theme_palette_fidelity">保真（Fidelity）</string>
     <string name="settings_theme_palette_content">內容（Content）</string>
     <string name="settings_theme_pure_black">純黑背景</string>
-    <string name="settings_theme_pure_black_summary">深色模式下使用純黑背景</string>
     <string name="settings_theme_accent_title">強調色</string>
     <string name="settings_theme_accent_default">系統取色</string>
     <string name="settings_theme_accent_blue">藍色</string>
@@ -414,9 +404,7 @@
     <string name="settings_theme_accent_green">綠色</string>
     <string name="settings_theme_accent_teal">藍綠色</string>
     <string name="settings_predictive_back">預測性返回手勢</string>
-    <string name="settings_predictive_back_summary">啟用預測性返回動畫效果</string>
     <string name="settings_swipe_dismiss">橫移返回手勢</string>
-    <string name="settings_swipe_dismiss_summary">在頁面任意位置橫移即可返回上一頁</string>
     <string name="settings_hide_task_card">從最近使用清單隱藏</string>
     <string name="settings_hide_task_card_summary">在最近使用清單中隱藏任務卡片</string>
     <string name="settings_app_log_summary">寫入應用程式日誌的最低等級</string>
@@ -594,9 +582,7 @@
     <string name="backup_webdav_row_summary">備份至 WebDAV 伺服器或從中還原</string>
 
     <!-- About -->
-    <string name="app_update_title">應用程式更新</string>
     <string name="app_update_check">檢查更新</string>
-    <string name="app_update_idle">檢查是否有新版本</string>
     <string name="app_update_checking">正在檢查更新…</string>
     <string name="app_update_available">有新版本 %1$s 可用</string>
     <string name="app_update_up_to_date">目前已是最新版本</string>
@@ -605,14 +591,15 @@
     <string name="app_update_channel_stable">穩定版</string>
     <string name="app_update_channel_test">測試版</string>
     <string name="app_update_on_startup">啟動時檢查更新</string>
-    <string name="app_update_on_startup_summary">有新版本時通知我</string>
     <string name="app_update_dialog_title">有新版本 %1$s 可用</string>
     <string name="app_update_no_notes">此版本未提供更新日誌</string>
     <string name="app_update_download">前往下載</string>
     <string name="app_update_open_failed">無法開啟下載頁面</string>
 
     <string name="about_title">關於</string>
-    <string name="about_open_source">開放原始碼授權</string>
+    <string name="about_repository">專案原始碼</string>
+    <string name="about_open_source">開源函式庫</string>
+    <string name="about_open_link_failed">無法開啟連結，請先安裝瀏覽器</string>
 
     <!-- FormatUtils -->
 

@@ -6,7 +6,7 @@ user_invocable: true
 
 ## 核心约束
 
-1. 组件用 miuix，自定义形状用 squircle modifier，与 miuix 圆角保持一致。颜色只取自 `MiuixTheme.colorScheme.*` 或 `ui.theme.StatusColors`，用户强制深 / 浅色时各处才对得上。
+1. 组件用 miuix，自定义形状用 squircle modifier，与 miuix 圆角保持一致。界面颜色取自 `MiuixTheme.colorScheme.*` 或 `ui.theme.StatusColors`，用户强制深 / 浅色时各处才对得上；透明色除外。
 2. 深浅色一律读 `LocalAppDarkMode.current`，它反映用户的强制设置。
 3. 帧率级 State（滚动折叠比例、动画进度）在 layout / draw 阶段读：以 `State<T>` 或 `() -> T` 透传给消费方，组合期读会让整个 restart scope 每帧失效。
 

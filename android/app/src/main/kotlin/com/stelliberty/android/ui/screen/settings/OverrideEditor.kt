@@ -21,10 +21,13 @@ import androidx.compose.ui.unit.dp
 import com.stelliberty.android.R
 import com.stelliberty.android.ui.component.DialogButtons
 import com.stelliberty.android.ui.component.ListEditDialog
+import com.stelliberty.android.ui.component.SingleChoicePreference
 import com.stelliberty.android.ui.component.dialogTestTag
 import com.stelliberty.android.ui.util.TestTags
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 import top.yukonga.miuix.kmp.basic.TextField
-import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
 import top.yukonga.miuix.kmp.window.WindowDialog
 
 internal enum class OverrideEditorKind { Port, Text, List }
@@ -102,23 +105,23 @@ internal fun OverrideEditorDialogs(state: OverrideEditorState) {
     )
 }
 
-// 覆写下拉项：首项「未修改」对应 null，其余 labels 与 values 一一对应。
+// 首项「未修改」对应 null，其余 labels 与 values 一一对应。
 @Immutable
-internal class OverrideChoices(val labels: List<String>, val values: List<String>)
+internal class OverrideChoices(val labels: ImmutableList<String>, val values: ImmutableList<String>)
 
 internal val LOG_LEVEL_CHOICES = OverrideChoices(
-    labels = listOf("Info", "Warning", "Error", "Debug", "Silent"),
-    values = listOf("info", "warning", "error", "debug", "silent"),
+    labels = persistentListOf("Info", "Warning", "Error", "Debug", "Silent"),
+    values = persistentListOf("info", "warning", "error", "debug", "silent"),
 )
 
 internal val DNS_ENHANCED_MODE_CHOICES = OverrideChoices(
-    labels = listOf("Normal", "FakeIP", "Redir-Host"),
-    values = listOf("normal", "fake-ip", "redir-host"),
+    labels = persistentListOf("Normal", "FakeIP", "Redir-Host"),
+    values = persistentListOf("normal", "fake-ip", "redir-host"),
 )
 
 internal val FIND_PROCESS_MODE_CHOICES = OverrideChoices(
-    labels = listOf("Off", "Strict", "Always"),
-    values = listOf("off", "strict", "always"),
+    labels = persistentListOf("Off", "Strict", "Always"),
+    values = persistentListOf("off", "strict", "always"),
 )
 
 @Composable
@@ -127,13 +130,11 @@ internal fun OverrideChoicePreference(
     choices: OverrideChoices,
     value: String?,
     onValueChange: (String?) -> Unit,
-    summary: String? = null,
     enabled: Boolean = true,
 ) {
-    OverlayDropdownPreference(
+    SingleChoicePreference(
         title = title,
-        summary = summary,
-        items = listOf(stringResource(R.string.common_not_modified)) + choices.labels,
+        items = (listOf(stringResource(R.string.common_not_modified)) + choices.labels).toImmutableList(),
         selectedIndex = choices.values.indexOf(value) + 1,
         onSelectedIndexChange = { index -> onValueChange(choices.values.getOrNull(index - 1)) },
         enabled = enabled,

@@ -3,21 +3,27 @@ package com.stelliberty.android.ui.icon
 
 import androidx.compose.ui.graphics.vector.ImageVector
 
-/** 全应用图标入口，路径来自 MingCute。`Nav*Active` 是 filled 风格，其余为 regular（线性描边）。 */
+// 全应用图标入口；Nav*Active 使用填充态，其余使用线框态。
 object AppIcons {
     val Add: ImageVector get() = MingCuteAdd
+    val Appearance: ImageVector get() = MingCuteAppearance
     val ArrowRight: ImageVector get() = MingCuteArrowRight
     val Back: ImageVector get() = MingCuteArrowLeft
     val Backup: ImageVector get() = MingCuteUpload
+    val BlurOn: ImageVector get() = MingCuteBlurOn
     val Check: ImageVector get() = MingCuteCheck
     val ChevronRight: ImageVector get() = MingCuteRightSmall
     val Close: ImageVector get() = MingCuteClose
+    val DarkMode: ImageVector get() = MingCuteDarkMode
     val Delete: ImageVector get() = MingCuteDelete2
     val Filter: ImageVector get() = MingCuteFilter3
+    val GitHub: ImageVector get() = MingCuteGithubLine
     val Global: ImageVector get() = MingCuteEarth
     val Info: ImageVector get() = MingCuteInformation
+    val Language: ImageVector get() = MingCuteLanguage
     val Layers: ImageVector get() = MingCuteLayer
     val Layout: ImageVector get() = MingCuteLayout
+    val LibraryBooks: ImageVector get() = MingCuteLibraryBooks
     val More: ImageVector get() = MingCuteMore1
     val MoveDown: ImageVector get() = MingCuteDownSmall
     val MoveUp: ImageVector get() = MingCuteUpSmall
@@ -38,6 +44,7 @@ object AppIcons {
     val Settings: ImageVector get() = MingCuteSettings3
     val SingleColumn: ImageVector get() = MingCuteRows2
     val Sort: ImageVector get() = MingCuteSortAscending
+    val SwipeHorizontal: ImageVector get() = MingCuteSwipeHorizontal
     val TestDelay: ImageVector get() = MingCuteDashboard2
     val Unpin: ImageVector get() = MingCuteCloseCircle
     val Wifi: ImageVector get() = MingCuteWifi

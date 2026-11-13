@@ -40,6 +40,7 @@ object DebugNavBridge {
         "settings.app_behavior" -> Route.AppBehavior
         "settings.wifi_policy" -> Route.WifiPolicy
         "settings.about" -> Route.About
+        "settings.about.libraries" -> Route.OpenSourceLibraries
         "settings.data" -> Route.DataManagement
         "settings.age_key" -> Route.AgeKey
         else -> null
