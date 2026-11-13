@@ -201,17 +201,6 @@ fun ProxyScreen(
                             }
 
                             IconButton(
-                                onClick = { viewModel?.loadProxies() },
-                                modifier = Modifier.testTag(TestTags.Proxy.REFRESH),
-                            ) {
-                                Icon(
-                                    imageVector = AppIcons.Refresh,
-                                    contentDescription = stringResource(R.string.common_refresh),
-                                    tint = MiuixTheme.colorScheme.onSurface,
-                                )
-                            }
-
-                            IconButton(
                                 onClick = { showSettings = true },
                                 modifier = Modifier.testTag(TestTags.Proxy.SETTINGS),
                                 holdDownState = showSettings,

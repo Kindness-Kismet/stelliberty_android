@@ -39,7 +39,7 @@ testTag 挂在最外层节点，按钮文字在子节点，`get` 返回整棵子
 | 前缀 | 覆盖 |
 |---|---|
 | `Home.*` | 启停按钮、状态卡、延迟测试、流量卡、订阅卡 |
-| `Proxy.*` | 顶栏 `SearchButton` / `RefreshButton` / `SettingsButton`；设置对话框 `SettingsDialog` / `SettingsCancel` / `SettingsConfirm` 及各行 `ModeEntry` / `TunStackEntry` / `GroupLayout` / `SingleColumn` / `HideUnavailable` / `ShowGlobalGroup` / `SortEntry` / `SortReverse` / `RefreshIcons` |
+| `Proxy.*` | 顶栏 `SearchButton` / `SettingsButton`；设置对话框 `SettingsDialog` / `SettingsCancel` / `SettingsConfirm` 及各行 `ModeEntry` / `TunStackEntry` / `GroupLayout` / `SingleColumn` / `HideUnavailable` / `ShowGlobalGroup` / `SortEntry` / `SortReverse` / `RefreshIcons` |
 | `Dialog.*` | 对话框根节点、通用 `Cancel` / `Confirm`、输入 `Input` 与热点接口扫描 `ScanInterfaces`；按钮默认次要取消、主色确定，单选类只有取消 |
 | `Backup.*` | 本地导出 / 恢复 `ExportLocal` / `RestoreLocal`，恢复模式 `RestoreMerge` / `RestoreOverwrite`，WebDAV 表单 `WebDavUrl` / `WebDavUsername` / `WebDavPassword` 与草稿动作 `WebDavAction.Test/Backup/Restore` |
 | `AgeKey.*` / `Dns.*` | 密钥复制 `CopySecret` / `CopyPublic`，缓存操作 `ClearDnsCache` / `ClearFakeIpCache`；点操作后关闭弹窗 |

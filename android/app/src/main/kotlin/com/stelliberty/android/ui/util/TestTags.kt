@@ -90,7 +90,6 @@ object TestTags {
 
     object Proxy {
         const val SEARCH = "Proxy.SearchButton"
-        const val REFRESH = "Proxy.RefreshButton"
         const val SETTINGS = "Proxy.SettingsButton"
         const val SEARCH_FIELD = "Proxy.SearchField"
         const val SETTINGS_DIALOG = "Proxy.SettingsDialog"

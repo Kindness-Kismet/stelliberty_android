@@ -36,7 +36,7 @@
 
 ## 顶栏与代理设置
 
-顶栏三个图标：搜索、刷新、设置。刷新直接调 `ProxyViewModel.loadProxies()` 重新拉组与节点；设置打开 `WindowDialog`，内容按 4 张 Card 分块，底部固定「取消 / 确定」。
+顶栏只放搜索与设置，组与节点随内核连接及轮询更新；设置打开 `WindowDialog`，内容按 4 张 Card 分块，底部固定「取消 / 确定」。
 
 - 选路：代理模式与 TUN Stack，用 `SingleChoicePreference`（`summary` 回显当前值，点开二级单选 Dialog）。
 - 显示：布局模式（横 / 竖）、单列、只看可用、GLOBAL 组（全局模式下禁用）。
