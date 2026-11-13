@@ -50,7 +50,7 @@ testTag 挂在最外层节点，按钮文字在子节点，`get` 返回整棵子
 | `Overrides.*` | 新增、保存、名称与地址输入；`Item.<id>` 的编辑 / 更新 / 删除按钮，`Select.<id>` 的选择与上下移动 |
 | `ChainProxy.*` | 新增、保存、名称输入；`Custom.<id>` 的开关与删除按钮，`Hop.<序号>` 的上下移动与移除 |
 | `RuleOverride.*` | 新增、更多、保存；`Row.<序号>` 是规则行（序号从 1 起），`.Toggle` 是开关；`Menu.<序号>` 是更多菜单项；编辑页的内容、位置输入与删除按钮；`Template.<id>` 与其 `.Delete` 只修改弹窗草稿，确定后应用 |
-| `Settings.Entry.<key>` | 设置项，由 `groupedCardItems` 按 `CardItem.key` 自动生成；key 以页面定义为准，可用 `list` 查询 |
+| `Settings.Entry.<key>` | 设置项，由 `groupedCardItems` 按 `CardItem.key` 自动生成；`appNotifications` 是主动申请通知权限的开关；其余 key 以页面定义为准，可用 `list` 查询 |
 | `Settings.*` | 搜索入口 `SearchButton`、输入 `SearchField`、清空 `SearchClear`、关闭 `SearchClose`、结果 `SearchResult.<key>`；单选弹窗 `ChoiceDialog` 与选项 `Choice.<序号>`；缩放滑块 `AppScale` |
 | `About.*` | 小顶栏 `TopBar`、前景图标 `AppIcon`、名称 `AppName`、版本 `AppVersion`、项目源码 `Repository`、开源入口 `OpenSource`、更新卡片 `UpdateCard`；更新检查 `CheckUpdate`、渠道入口 `UpdateChannel` 与选项 `Channel.STABLE/TEST`、启动检查 `UpdateStartup`、新版弹窗 `UpdateDialog`、日志 `ReleaseNotes`、取消 `UpdateDismiss`、下载 `UpdateDownload` |
 | `Libraries.*` | 独立开源库页 `Screen`、库链接 `Project.<名称>`；顶栏与系统返回均回到关于页 |

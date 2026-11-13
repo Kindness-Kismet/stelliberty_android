@@ -6,6 +6,8 @@
     <string name="channel_vpn_desc">Stelliberty proxy service status</string>
     <string name="channel_profile_status_name">Config Update Progress</string>
     <string name="channel_profile_status_desc">Config download and validation progress</string>
+    <string name="settings_app_notifications">App notifications</string>
+    <string name="settings_app_notifications_summary">Turn on to request notification permission; turn off in system settings</string>
     <string name="channel_wifi_policy_service_name">Wi-Fi Auto Switch Service</string>
     <string name="channel_wifi_policy_service_desc">Internal monitor service for Wi-Fi auto switching</string>
     <string name="channel_wifi_policy_event_name">Wi-Fi Auto Switch Events</string>

@@ -4,6 +4,8 @@
     <string name="channel_vpn_desc">Stelliberty 代理服务运行状态</string>
     <string name="channel_profile_status_name">配置更新进度</string>
     <string name="channel_profile_status_desc">配置下载和验证进度</string>
+    <string name="settings_app_notifications">应用通知</string>
+    <string name="settings_app_notifications_summary">开启时申请通知权限，关闭需前往系统设置</string>
     <string name="channel_wifi_policy_service_name">Wi-Fi 自动切换服务</string>
     <string name="channel_wifi_policy_service_desc">用于 Wi-Fi 自动切换的内部监控服务</string>
     <string name="channel_wifi_policy_event_name">Wi-Fi 自动切换事件</string>

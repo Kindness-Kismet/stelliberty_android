@@ -34,6 +34,8 @@
 
 Tun / Root / ProfileWorker 的 onCreate 均 `try { startForeground() } catch (Exception)`，覆盖 API 31+ 的 `ForegroundServiceStartNotAllowedException` 与 API 34+ 的 FGS type 异常。失败路径：Tun / Root 上报 Error + `stopSelf()`；ProfileWorker 置标记，收到 Intent 后转交 `ProfileUpdateJobService` 再停止。更新任务的存活不依赖 Activity。
 
+通知权限由「应用行为 → 应用通知」开关主动申请，首次启动不申请。开关读取 `NotificationManager.areNotificationsEnabled()`，拒绝后保持关闭；无法再次弹出授权框或用户要关闭时进入系统通知设置，返回时重新同步。前台服务仍按 Android 要求发布通知。
+
 ## 配置变了就重启
 
 决策单点是 [ProxyServiceController.restartWhenReady](../../../../android/app/src/main/kotlin/com/stelliberty/android/platform/ProxyServiceController.kt)，读 ProxyServiceBridge：`uiState.isRunning` 在 Starting 窗口内仍为 false（同步加载 provider 时可达一分钟），以它为准会漏掉重启。Starting / Stopping 过渡态挂起等待收敛：落到 Running 补一次重启，落到 Stopped / Error 放弃（尊重用户中途的手动停止）。两个调用方：

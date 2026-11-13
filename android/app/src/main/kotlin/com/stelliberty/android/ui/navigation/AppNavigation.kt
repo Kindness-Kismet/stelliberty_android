@@ -214,6 +214,8 @@ fun AppNavigation(
     onRequestWifiPermission: (((Boolean) -> Unit) -> Unit)? = null,
     onPredictiveBackChange: ((Boolean) -> Unit)? = null,
     onHideTaskCardChange: ((Boolean) -> Unit)? = null,
+    notificationsEnabled: Boolean = false,
+    onNotificationsChange: ((Boolean) -> Unit)? = null,
     hasRootPermission: Boolean = false,
     deepLinkImport: DeepLinkImportRequest? = null,
     onDeepLinkImportConsumed: () -> Unit = {},
@@ -587,6 +589,8 @@ fun AppNavigation(
                         storage = it,
                         bootStartManager = bootStartManager,
                         onHideTaskCardChange = onHideTaskCardChange,
+                        notificationsEnabled = notificationsEnabled,
+                        onNotificationsChange = onNotificationsChange,
                         onBack = { navigator.pop() },
                         onNavigateWifiPolicy = { navigator.push(Route.WifiPolicy) },
                     )

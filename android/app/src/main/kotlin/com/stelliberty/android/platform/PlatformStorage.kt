@@ -80,6 +80,7 @@ object StorageKeys {
     const val THEME_DENSITY_SCALE = "theme_density_scale"
     const val APP_LANGUAGE = "app_language"
     const val DYNAMIC_NOTIFICATION = "dynamic_notification"
+    const val NOTIFICATION_PERMISSION_REQUESTED = "notification_permission_requested"
     const val PREDICTIVE_BACK = "predictive_back"
     const val SWIPE_DISMISS = "swipe_dismiss"
     const val HIDE_TASK_CARD = "hide_task_card"

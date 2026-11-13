@@ -335,6 +335,7 @@ private fun settingsSearchItems(theme: ThemeConfig, language: AppLanguage): Immu
     SettingsSearchItem("overrides", stringResource(R.string.override_title), Route.OverrideList, stringResource(R.string.settings_overrides_summary)),
     SettingsSearchItem("fileManager", stringResource(R.string.settings_file_manager), Route.FileManager, stringResource(R.string.settings_file_manager_summary)),
     SettingsSearchItem("appBehavior", stringResource(R.string.app_behavior_title), Route.AppBehavior, stringResource(R.string.app_behavior_summary)),
+    SettingsSearchItem("appNotifications", stringResource(R.string.settings_app_notifications), Route.AppBehavior),
     SettingsSearchItem("wifiPolicy", stringResource(R.string.wifi_policy_title), Route.WifiPolicy, "Wi-Fi"),
     SettingsSearchItem("dataManagement", stringResource(R.string.data_management_title), Route.DataManagement, stringResource(R.string.data_management_summary)),
     SettingsSearchItem("ageKey", stringResource(R.string.age_key_title), Route.AgeKey, stringResource(R.string.age_key_summary)),

@@ -1,6 +1,8 @@
 package com.stelliberty.android
 
 import android.Manifest
+import android.app.NotificationManager
+import android.provider.Settings
 import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
@@ -85,6 +87,8 @@ class MainActivity : ComponentActivity() {
     private lateinit var scanQrLauncher: ActivityResultLauncher<ScannerConfig>
     private lateinit var vpnPermissionLauncher: ActivityResultLauncher<Intent>
     private lateinit var wifiPermissionLauncher: ActivityResultLauncher<Array<String>>
+    private lateinit var notificationPermissionLauncher: ActivityResultLauncher<String>
+    private val notificationsEnabled = mutableStateOf(false)
     private var qrResultCallback: ((String?) -> Unit)? = null
     private var wifiPermissionCallback: ((Boolean) -> Unit)? = null
     private var latestThemeConfig: ThemeConfig? = null
@@ -125,12 +129,6 @@ class MainActivity : ComponentActivity() {
         consumedDeepLinkNonce = savedInstanceState?.getString(STATE_DEEPLINK_NONCE)
         acceptDeepLinkImport(intent)
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 0)
-            }
-        }
-
         scanQrLauncher = registerForActivityResult(ScanCustomCode()) { result ->
             val url: String? = when (result) {
                 is QRResult.QRSuccess -> {
@@ -166,6 +164,9 @@ class MainActivity : ComponentActivity() {
         }
 
         val storage: PlatformStorage = get()
+        notificationPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+            refreshNotificationPermission()
+        }
         val initialThemeConfig = readThemeConfig(storage)
         updateEdgeToEdge(initialThemeConfig)
         val profileProcessor: ProfileProcessor = get()
@@ -284,6 +285,8 @@ class MainActivity : ComponentActivity() {
                 onHideTaskCardChange = { enabled ->
                     setExcludeFromRecents(enabled)
                 },
+                notificationsEnabled = notificationsEnabled.value,
+                onNotificationsChange = ::changeNotificationPermission,
                 deepLinkImport = pendingDeepLinkImport.value,
                 onDeepLinkImportConsumed = { pendingDeepLinkImport.value = null },
                 backupViewModel = get(),
@@ -409,8 +412,29 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        refreshNotificationPermission()
         latestThemeConfig?.let(::updateEdgeToEdge)
         serviceController.verifyAndSyncState()
+    }
+
+    private fun refreshNotificationPermission() {
+        notificationsEnabled.value = getSystemService(NotificationManager::class.java).areNotificationsEnabled()
+    }
+
+    private fun changeNotificationPermission(enabled: Boolean) {
+        val storage: PlatformStorage = get()
+        if (enabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED &&
+            (storage.getString(StorageKeys.NOTIFICATION_PERMISSION_REQUESTED, "false") != "true" ||
+                shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS))
+        ) {
+            storage.putString(StorageKeys.NOTIFICATION_PERMISSION_REQUESTED, "true")
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+            })
+        }
     }
 
     override fun onStart() {
