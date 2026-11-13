@@ -116,7 +116,6 @@ import com.stelliberty.android.ui.theme.BottomBarMode
 import com.stelliberty.android.ui.theme.FloatingBottomBarStyle
 import com.stelliberty.android.ui.theme.LocalAppDarkMode
 import com.stelliberty.android.ui.theme.ThemeConfig
-import com.stelliberty.android.ui.theme.TopBarBlurStyle
 import com.stelliberty.android.ui.util.TestTags
 import com.stelliberty.android.ui.util.openUriOrShowToast
 import com.stelliberty.android.ui.util.rememberIsWideScreen
@@ -869,7 +868,6 @@ private fun MainPage(
                     BlurredBar(
                         backdrop = bottomBarBackdrop,
                         blurActive = bottomBarBlurActive,
-                        blurStyle = TopBarBlurStyle.Gaussian,
                     ) {
                         NavigationBar(
                             color = barColor,

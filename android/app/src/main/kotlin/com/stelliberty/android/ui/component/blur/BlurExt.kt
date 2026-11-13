@@ -7,19 +7,15 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
-import com.stelliberty.android.ui.theme.TopBarBlurStyle
 import top.yukonga.miuix.kmp.blur.BlendColorEntry
 import top.yukonga.miuix.kmp.blur.BlurColors
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
-import top.yukonga.miuix.kmp.blur.ProgressiveBlur
 import top.yukonga.miuix.kmp.blur.isRuntimeShaderSupported
-import top.yukonga.miuix.kmp.blur.progressiveTextureBlur
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.blur.textureBlur
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 val LocalBlurEnabled = staticCompositionLocalOf { true }
-val LocalTopBarBlurStyle = staticCompositionLocalOf { TopBarBlurStyle.Gaussian }
 
 @Composable
 fun Modifier.defaultBlurEffect(
@@ -53,34 +49,15 @@ fun rememberBlurBackdrop(enabled: Boolean = LocalBlurEnabled.current): LayerBack
 fun BlurredBar(
     backdrop: LayerBackdrop?,
     blurActive: Boolean = rememberBlurEnabled().value,
-    blurStyle: TopBarBlurStyle = LocalTopBarBlurStyle.current,
     content: @Composable () -> Unit,
 ) {
-    val progressive = blurStyle == TopBarBlurStyle.Progressive
     Box(
-        modifier = if (blurActive && backdrop != null && !progressive) {
+        modifier = if (blurActive && backdrop != null) {
             Modifier.defaultBlurEffect(backdrop)
         } else {
             Modifier
         },
     ) {
-        if (blurActive && backdrop != null && progressive) {
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .progressiveTextureBlur(
-                        backdrop = backdrop,
-                        shape = RectangleShape,
-                        gradient = ProgressiveBlur.Top.copy(curve = 2.2f),
-                        blurRadius = 10f,
-                        colors = BlurColors(
-                            blendColors = listOf(
-                                BlendColorEntry(color = MiuixTheme.colorScheme.surface.copy(0.3f)),
-                            ),
-                        ),
-                    ),
-            )
-        }
         content()
     }
 }

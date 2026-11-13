@@ -371,11 +371,6 @@
     <string name="settings_theme_monet">Dynamic colors</string>
     <string name="settings_theme_monet_summary">Use the system dynamic color palette when available</string>
     <string name="settings_theme_blur">Top bar blur</string>
-    <string name="settings_theme_blur_style">Top bar blur style</string>
-    <string name="settings_theme_blur_style_gaussian">Gaussian</string>
-    <string name="settings_theme_blur_style_progressive">Progressive</string>
-    <string name="settings_theme_blur_style_gaussian_summary">Uniform frosted blur across the top bar</string>
-    <string name="settings_theme_blur_style_progressive_summary">Gradient blur, strongest at the top edge</string>
     <string name="settings_theme_density_scale">App scale</string>
     <string name="settings_theme_floating_bottom_bar">Floating Bottom Bar</string>
     <string name="settings_theme_floating_bottom_bar_style">Floating Bottom Bar Style</string>

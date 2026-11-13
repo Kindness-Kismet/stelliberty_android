@@ -369,11 +369,6 @@
     <string name="settings_theme_monet">動態色彩</string>
     <string name="settings_theme_monet_summary">可用時使用系統動態取色</string>
     <string name="settings_theme_blur">頂欄模糊</string>
-    <string name="settings_theme_blur_style">頂欄模糊樣式</string>
-    <string name="settings_theme_blur_style_gaussian">高斯</string>
-    <string name="settings_theme_blur_style_progressive">漸進</string>
-    <string name="settings_theme_blur_style_gaussian_summary">頂欄整體均勻模糊</string>
-    <string name="settings_theme_blur_style_progressive_summary">頂部漸強模糊</string>
     <string name="settings_theme_density_scale">縮放比例</string>
     <string name="settings_theme_floating_bottom_bar">懸浮底部列</string>
     <string name="settings_theme_floating_bottom_bar_style">懸浮底部列樣式</string>

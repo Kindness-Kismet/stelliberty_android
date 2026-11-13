@@ -73,7 +73,6 @@ object StorageKeys {
     const val THEME_ACCENT_COLOR = "theme_accent_color"
     const val THEME_BLUR = "theme_blur"
     const val THEME_BOTTOM_BAR_BLUR = "theme_bottom_bar_blur"
-    const val THEME_BLUR_STYLE = "theme_blur_style"
     const val THEME_FLOATING_BOTTOM_BAR = "theme_floating_bottom_bar"
     const val THEME_FLOATING_BOTTOM_BAR_STYLE = "theme_floating_bottom_bar_style"
     const val THEME_BOTTOM_BAR_MODE = "theme_bottom_bar_mode"

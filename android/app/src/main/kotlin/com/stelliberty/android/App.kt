@@ -16,7 +16,6 @@ import com.stelliberty.android.platform.FilePicker
 import com.stelliberty.android.platform.PlatformStorage
 import com.stelliberty.android.platform.WifiPolicyController
 import com.stelliberty.android.ui.component.blur.LocalBlurEnabled
-import com.stelliberty.android.ui.component.blur.LocalTopBarBlurStyle
 import com.stelliberty.android.ui.navigation.AppNavigation
 import com.stelliberty.android.ui.theme.LocalAppDarkMode
 import com.stelliberty.android.ui.theme.LocalAppMonetEnabled
@@ -133,7 +132,6 @@ fun App(
             LocalAppMonetEnabled provides themeConfig.useMonet,
             LocalPlatformDensity provides systemDensity,
             LocalBlurEnabled provides themeConfig.blurEnabled,
-            LocalTopBarBlurStyle provides themeConfig.topBarBlurStyle,
             LocalContentColor provides MiuixTheme.colorScheme.onBackground,
         ) {
             // testTag 默认只在 Compose 语义树里，adb 看不到；开这项才写进无障碍树的

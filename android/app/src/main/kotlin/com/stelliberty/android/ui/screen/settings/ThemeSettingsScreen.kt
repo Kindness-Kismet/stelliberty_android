@@ -23,7 +23,6 @@ import com.stelliberty.android.ui.theme.ThemeAccentColor
 import com.stelliberty.android.ui.theme.ThemeColorMode
 import com.stelliberty.android.ui.theme.ThemeConfig
 import com.stelliberty.android.ui.theme.ThemePaletteStyles
-import com.stelliberty.android.ui.theme.TopBarBlurStyle
 import com.stelliberty.android.ui.theme.label
 import com.stelliberty.android.ui.theme.writeThemeConfig
 import kotlinx.collections.immutable.toImmutableList
@@ -53,8 +52,6 @@ fun ThemeSettingsScreen(
     val paletteItems = paletteStyles.map { it.label() }.toImmutableList()
     val accentOptions = ThemeAccentColor.entries
     val accentItems = accentOptions.map { it.label() }.toImmutableList()
-    val topBarBlurStyles = TopBarBlurStyle.entries
-    val blurStyleItems = topBarBlurStyles.map { it.label() }.toImmutableList()
     val floatingStyles = FloatingBottomBarStyle.entries
     val floatingItems = floatingStyles.map { it.label() }.toImmutableList()
     val bottomBarModes = BottomBarMode.entries
@@ -115,9 +112,9 @@ fun ThemeSettingsScreen(
             },
         )
         groupedCardItems(
-            keyPrefix = "theme_top_bar",
-            items = buildList {
-                add(CardItem("blur") {
+            keyPrefix = "theme_blur",
+            items = listOf(
+                CardItem("blur") {
                     SwitchPreference(
                         title = stringResource(R.string.settings_theme_blur),
                         summary = blurUnavailable,
@@ -126,31 +123,18 @@ fun ThemeSettingsScreen(
                         startAction = { PreferenceIcon(AppIcons.BlurOn) },
                         onCheckedChange = { updateTheme(themeConfig.copy(blurEnabled = it)) },
                     )
-                })
-                if (isBlurSupported && themeConfig.blurEnabled) {
-                    add(CardItem("blurStyle") {
-                        SingleChoicePreference(
-                            title = stringResource(R.string.settings_theme_blur_style),
-                            items = blurStyleItems,
-                            selectedIndex = themeConfig.topBarBlurStyle.ordinal,
-                            onSelectedIndexChange = { updateTheme(themeConfig.copy(topBarBlurStyle = topBarBlurStyles[it])) },
-                        )
-                    })
-                }
-            },
-        )
-        groupedCardItems(
-            keyPrefix = "theme_bottom_bar",
-            items = listOf(CardItem("bottomBarBlur") {
-                SwitchPreference(
-                    title = stringResource(R.string.settings_theme_bottom_bar_blur),
-                    summary = blurUnavailable,
-                    checked = themeConfig.bottomBarBlurEnabled,
-                    enabled = isBlurSupported,
-                    startAction = { PreferenceIcon(AppIcons.BlurOn) },
-                    onCheckedChange = { updateTheme(themeConfig.copy(bottomBarBlurEnabled = it)) },
-                )
-            }),
+                },
+                CardItem("bottomBarBlur") {
+                    SwitchPreference(
+                        title = stringResource(R.string.settings_theme_bottom_bar_blur),
+                        summary = blurUnavailable,
+                        checked = themeConfig.bottomBarBlurEnabled,
+                        enabled = isBlurSupported,
+                        startAction = { PreferenceIcon(AppIcons.BlurOn) },
+                        onCheckedChange = { updateTheme(themeConfig.copy(bottomBarBlurEnabled = it)) },
+                    )
+                },
+            ),
         )
         groupedCardItems(
             keyPrefix = "theme_gestures",
