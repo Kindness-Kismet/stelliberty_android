@@ -6,7 +6,13 @@
 
 ROOT 内核通过 `su -g <应用 UID>` 保持 UID 0 并使用应用 UID 作为主 GID；iptables 按这个 GID 排除内核、按应用 UID 排除应用自身。系统 netd 同样使用 UID 0，按 UID 0 整体放行会漏掉系统 DNS。
 
-`RootDnsHijacker` 为两个 ROOT 模式接管本机 TCP / UDP 53 到 mihomo 的 1053 端口，局域网 DNS 同样接管，内核自己的 DNS 按 GID 绕过以免循环。ROOT TUN 只挂 OUTPUT，热点的 Bypass 策略保持有效；ROOT TPROXY 另挂 PREROUTING 接管转发 DNS。停止与模式切换统一清理两个地址族的 DNS 链。
+`RootDnsCoordinator` 为两个 ROOT 模式统一安装、核对与更新 `RootDnsHijacker` 的 DNS 规则，本机 TCP / UDP 53 转到 mihomo 的双栈 1053 监听，内核自己的 DNS 按 GID 绕过以免循环。ROOT TUN 只挂 OUTPUT，热点的 Bypass 策略保持有效；ROOT TPROXY 另挂 PREROUTING 接管转发 DNS。停止与模式切换统一清理两个地址族的 DNS 链及 IPv6 回退过滤链。
+
+DNS 的 IPv6 处理独立于 `VPN_ALLOW_IPV6`：ip6tables NAT 可用时安装 IPv6 REDIRECT；明确缺少 NAT 表时，仅在同一非 VPN、具有 INTERNET 能力的网络同时提供 IPv4 / IPv6 DNS 时，按该网络接口拒绝 IPv6 TCP / UDP 53，促使 netd 改用已劫持的 IPv4 DNS。只提供 IPv6 DNS 的接口保持放行。核心 GID 与应用 UID 始终绕过；su 超时、锁等待与执行异常按能力未知处理，不能记成缺少 NAT。
+
+启动与 attach 在发布 Running 前强制刷新一次 DNS 规则并清理 Android resolver 网络缓存；`dns.flush_cache` 只清 mihomo 缓存。`Network.networkHandle` 高 32 位提供 netId，稳定 `IDnsResolver` AIDL 的事务 11 为 `flushNetworkCache`；只接受无异常的零值 Parcel，su 退出 0 不代表 Binder 调用成功。
+
+网络回调按 DNS / 接口快照去重，并与启动刷新共用串行锁；停止先注销回调、等待进行中的刷新，再拆规则，销毁时注销并取消回调任务。应用被杀后的 ROOT 内核保留规则，重新打开时 attach 刷新当前网络。
 
 ROOT 的 DNS 增强模式固定为 `redir-host`，netd 代查无法按应用区分；分应用排除项及应用自身必须拿到真实地址，不能收到无法直连的 Fake-IP。DNS 映射仍为内核提供域名分流信息。
 

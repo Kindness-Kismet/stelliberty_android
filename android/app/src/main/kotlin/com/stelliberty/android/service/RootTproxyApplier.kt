@@ -64,7 +64,6 @@ object RootTproxyApplier {
                 appendLine("ip -6 rule show | grep -q '^$PRIORITY:.*fwmark 0x1000000/0x1000000 lookup $TABLE'")
                 appendLine("ip -6 route show table $TABLE | grep -q '^local default dev lo'")
             }
-            RootDnsHijacker.appendChecks(this, appUid, ipv6Enabled, includeForwarded = true)
         }
         val code = RootHelper.runRootScriptHeredoc(script, timeoutSeconds = w + 5L)
         return code == 0
@@ -210,9 +209,6 @@ object RootTproxyApplier {
                 }
             }
         }
-
-        sb.appendLine()
-        RootDnsHijacker.appendApply(sb, appUid, ipv6Enabled, includeForwarded = true)
 
         sb.appendLine()
         sb.appendLine("# === 7. 挂主链 ===")

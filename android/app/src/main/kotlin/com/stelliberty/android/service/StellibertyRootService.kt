@@ -50,6 +50,7 @@ class StellibertyRootService : Service() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val runner by lazy { MihomoRunner(this) }
+    private val dnsCoordinator by lazy { RootDnsCoordinator(this, scope) }
     private val dynamicNotification by lazy {
         DynamicNotificationManager(this, scope, StellibertyApplication.instance.connectionManager)
     }
@@ -214,6 +215,7 @@ class StellibertyRootService : Service() {
                     val existingStartTime =
                         storage.getString(StorageKeys.ROOT_START_TIME, "").toLongOrNull() ?: Clock.System.now().toEpochMilliseconds()
                     AppLogger.info(TAG, "Reconnected to existing mihomo: pid=$existingPid submode=${submode.storageValue}")
+                    dnsCoordinator.stop()
                     val routingApplied = when (submode) {
                         Submode.Tun -> {
                             val activeMode = RootTetherHijacker.Mode.from(tetherModeActive.ifEmpty { tetherModeRequested })
@@ -222,8 +224,7 @@ class StellibertyRootService : Service() {
                             if (shouldReapplyOnAttach(storage, RootTetherHijacker::anyRulesPresent)) {
                                 applyTetherRulesActive(storage, tproxySupported)
                             }
-                            RootDnsHijacker.rulesPresent(appUid, ipv6Enabled) ||
-                                RootDnsHijacker.apply(appUid, ipv6Enabled)
+                            true
                         }
 
                         Submode.Tproxy -> {
@@ -231,8 +232,9 @@ class StellibertyRootService : Service() {
                                 applyTproxyRules(storage)
                         }
                     }
+                    val dnsApplied = routingApplied && dnsCoordinator.start(appUid, submode == Submode.Tproxy)
                     ensureActive()
-                    if (!routingApplied) {
+                    if (!dnsApplied) {
                         failRoutingSetup(storage)
                         return@launch
                     }
@@ -387,12 +389,13 @@ class StellibertyRootService : Service() {
             val routingApplied = when (submode) {
                 Submode.Tun -> {
                     applyTetherRules(storage, tproxyForTether)
-                    RootDnsHijacker.apply(appUid, ipv6Enabled)
+                    true
                 }
                 Submode.Tproxy -> applyTproxyRules(storage)
             }
+            val dnsApplied = routingApplied && dnsCoordinator.start(appUid, submode == Submode.Tproxy)
             ensureActive()
-            if (!routingApplied) {
+            if (!dnsApplied) {
                 failRoutingSetup(storage)
                 return@launch
             }
@@ -436,6 +439,7 @@ class StellibertyRootService : Service() {
     }
 
     private suspend fun failRoutingSetup(storage: PlatformStorage) {
+        dnsCoordinator.stopObserving()
         dynamicNotification.stop()
         if (!stopRunner()) return
         teardownAllRootRules()
@@ -472,6 +476,7 @@ class StellibertyRootService : Service() {
 
     private suspend fun teardownAllRootRules() {
         withContext(NonCancellable) {
+            dnsCoordinator.stop()
             RootTetherHijacker.teardown()
             RootTproxyApplier.teardown()
         }
@@ -553,6 +558,8 @@ class StellibertyRootService : Service() {
     }
 
     private fun restartProxy(subscriptionId: String?) {
+        startJob?.cancel()
+        dnsCoordinator.stopObserving()
         AppLogger.info(TAG, "Restarting proxy (ROOT)...")
         ProxyServiceBridge.updateState(ProxyServiceStatus(ProxyState.Stopping, tunMode = currentSubmode.tunMode))
         dynamicNotification.stop()
@@ -572,6 +579,8 @@ class StellibertyRootService : Service() {
     }
 
     private fun stopProxy() {
+        startJob?.cancel()
+        dnsCoordinator.stopObserving()
         AppLogger.info(TAG, "Stopping proxy (ROOT)...")
         ProxyServiceBridge.updateState(ProxyServiceStatus(ProxyState.Stopping, tunMode = currentSubmode.tunMode))
         dynamicNotification.stop()
@@ -592,6 +601,7 @@ class StellibertyRootService : Service() {
     }
 
     override fun onDestroy() {
+        dnsCoordinator.close()
         notificationRefreshJob?.cancel()
         monitorJob?.cancel()
         dynamicNotification.stop()
