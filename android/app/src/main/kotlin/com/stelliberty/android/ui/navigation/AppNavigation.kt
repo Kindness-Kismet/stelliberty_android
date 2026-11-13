@@ -407,7 +407,7 @@ fun AppNavigation(
                         subscriptionId = route.uuid,
                         session = route.session,
                         viewModel = it,
-                        onBack = { navigator.pop() },
+                        onBack = { if (navigator.current() == route) navigator.pop() },
                         onAdd = { navigator.push(Route.RuleOverrideEdit(route.uuid)) },
                         onEdit = { id -> navigator.push(Route.RuleOverrideEdit(route.uuid, id)) },
                     )
@@ -419,7 +419,7 @@ fun AppNavigation(
                         subscriptionId = route.uuid,
                         ruleId = route.ruleId,
                         viewModel = it,
-                        onBack = { navigator.pop() },
+                        onBack = { if (navigator.current() == route) navigator.pop() },
                     )
                 }
             }
