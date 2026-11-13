@@ -124,7 +124,6 @@ fun HomeScreen(
                     isRunning = uiState.isRunning,
                     isStarting = uiState.isStarting,
                     isStopping = uiState.isStopping,
-                    requestedAction = requestedAction,
                 )
                 overviewCardsSection(
                     speed = speed,
