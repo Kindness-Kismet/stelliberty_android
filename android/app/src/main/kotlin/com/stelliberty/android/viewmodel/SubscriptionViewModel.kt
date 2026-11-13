@@ -16,6 +16,7 @@ import com.stelliberty.android.domain.model.SubscriptionUpdateProxyMode
 import com.stelliberty.android.domain.repository.SubscriptionRepository
 import com.stelliberty.android.platform.ProfileFileManager
 import com.stelliberty.android.platform.ProxyServiceController
+import com.stelliberty.android.service.ProfileWorker
 import com.stelliberty.android.util.AppLogger
 import com.stelliberty.android.util.describe
 import kotlinx.collections.immutable.ImmutableList
@@ -172,10 +173,11 @@ class SubscriptionViewModel(
     fun runStartupUpdates() {
         if (startupUpdatesStarted) return
         startupUpdatesStarted = true
-        updateSubscriptions(
+        ProfileWorker.startUpdates(
+            context,
             repository.subscriptions.value.filter {
                 !it.isLocalFile && it.autoUpdateMode == SubscriptionAutoUpdateMode.Startup
-            }
+            }.map { it.id },
         )
     }
 

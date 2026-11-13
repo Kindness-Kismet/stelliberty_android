@@ -6,8 +6,6 @@
     <string name="channel_vpn_desc">Stelliberty proxy service status</string>
     <string name="channel_profile_status_name">Config Update Progress</string>
     <string name="channel_profile_status_desc">Config download and validation progress</string>
-    <string name="channel_profile_result_name">Config Update Result</string>
-    <string name="channel_profile_result_desc">Config update success or failure notifications</string>
     <string name="channel_wifi_policy_service_name">Wi-Fi Auto Switch Service</string>
     <string name="channel_wifi_policy_service_desc">Internal monitor service for Wi-Fi auto switching</string>
     <string name="channel_wifi_policy_event_name">Wi-Fi Auto Switch Events</string>
@@ -27,11 +25,6 @@
     <!-- Profile Update Notifications -->
     <string name="notification_profile_update">Config Update</string>
     <string name="notification_profile_running">Running…</string>
-    <string name="notification_profile_updating">Updating config</string>
-    <string name="notification_update_success">Update Successful</string>
-    <string name="notification_update_success_content">%1$s updated</string>
-    <string name="notification_update_failed">Update Failed</string>
-    <string name="notification_unknown_error">Unknown error</string>
 
     <!-- Tile -->
     <string name="tile_connected">Connected</string>

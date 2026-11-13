@@ -6,13 +6,11 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import androidx.core.app.NotificationCompat
 import com.stelliberty.android.MainActivity
 import com.stelliberty.android.R
-import com.stelliberty.android.service.NotificationHelper.PROFILE_PROGRESS_ID_BASE
-import java.util.concurrent.atomic.AtomicInteger
 
-// 通知编号按用途分段，撞号就会互相覆盖或取消掉：固定通知一段、更新结果一段循环用、
-// 每个订阅的进度另占一段。新增通知按段取号。
+// 常驻服务与事件使用独立的固定编号，避免互相覆盖或取消。
 object NotificationHelper {
 
     private const val CHANNEL_VPN = "stelliberty_vpn"
@@ -20,24 +18,12 @@ object NotificationHelper {
 
     private const val CHANNEL_PROFILE_STATUS = "stelliberty_profile_status"
     const val NOTIFICATION_ID_PROFILE_WORKER = 2
-    private const val PROFILE_PROGRESS_ID_BASE = 0x10000
-
-    private const val CHANNEL_PROFILE_RESULT = "stelliberty_profile_result"
-    private const val RESULT_ID_BASE = 100
-    private const val RESULT_ID_RANGE = 900
-    private val nextResultId = AtomicInteger(0)
 
     private const val CHANNEL_WIFI_POLICY_SERVICE = "stelliberty_wifi_policy_service"
     private const val CHANNEL_WIFI_POLICY_EVENT = "stelliberty_wifi_policy_event"
     const val NOTIFICATION_ID_WIFI_POLICY = 3
 
     private const val NOTIFICATION_ID_WIFI_POLICY_EVENT = 4
-
-    fun profileProgressId(uuid: String): Int =
-        PROFILE_PROGRESS_ID_BASE + (uuid.hashCode() and 0xFFFF)
-
-    private fun nextResultId(): Int =
-        RESULT_ID_BASE + (nextResultId.getAndIncrement() % RESULT_ID_RANGE)
 
     fun createChannels(context: Context) {
         val manager = context.getSystemService(NotificationManager::class.java)
@@ -58,13 +44,6 @@ object NotificationHelper {
                 ).apply {
                     description = context.getString(R.string.channel_profile_status_desc)
                     setShowBadge(false)
-                },
-                NotificationChannel(
-                    CHANNEL_PROFILE_RESULT,
-                    context.getString(R.string.channel_profile_result_name),
-                    NotificationManager.IMPORTANCE_DEFAULT,
-                ).apply {
-                    description = context.getString(R.string.channel_profile_result_desc)
                 },
                 NotificationChannel(
                     CHANNEL_WIFI_POLICY_SERVICE,
@@ -194,72 +173,14 @@ object NotificationHelper {
     }
 
     fun buildProfileWorkerNotification(context: Context): Notification {
-        return Notification.Builder(context, CHANNEL_PROFILE_STATUS)
+        return NotificationCompat.Builder(context, CHANNEL_PROFILE_STATUS)
             .setContentTitle(context.getString(R.string.notification_profile_update))
             .setContentText(context.getString(R.string.notification_profile_running))
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
-            .setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE)
+            .setSilent(true)
+            .setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_DEFERRED)
             .build()
-    }
-
-    fun buildProfileUpdatingNotification(context: Context, name: String): Notification {
-        return Notification.Builder(context, CHANNEL_PROFILE_STATUS)
-            .setContentTitle(context.getString(R.string.notification_profile_updating))
-            .setContentText(name)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setOngoing(true)
-            .setOnlyAlertOnce(true)
-            .setGroup(CHANNEL_PROFILE_STATUS)
-            .build()
-    }
-
-    fun notifyProfileUpdateSuccess(context: Context, name: String): Int {
-        val id = nextResultId()
-        val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
-        }
-        val pendingIntent = PendingIntent.getActivity(
-            context, id, intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
-
-        val notification = Notification.Builder(context, CHANNEL_PROFILE_RESULT)
-            .setContentTitle(context.getString(R.string.notification_update_success))
-            .setContentText(context.getString(R.string.notification_update_success_content, name))
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentIntent(pendingIntent)
-            .setAutoCancel(true)
-            .setGroup(CHANNEL_PROFILE_RESULT)
-            .build()
-
-        context.getSystemService(NotificationManager::class.java).notify(id, notification)
-        return id
-    }
-
-    fun notifyProfileUpdateFailed(context: Context, name: String, reason: String): Int {
-        val id = nextResultId()
-        val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
-        }
-        val pendingIntent = PendingIntent.getActivity(
-            context, id, intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
-
-        val text = "$name: $reason"
-        val notification = Notification.Builder(context, CHANNEL_PROFILE_RESULT)
-            .setContentTitle(context.getString(R.string.notification_update_failed))
-            .setContentText(text)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentIntent(pendingIntent)
-            .setAutoCancel(true)
-            .setGroup(CHANNEL_PROFILE_RESULT)
-            .setStyle(Notification.BigTextStyle().bigText(text))
-            .build()
-
-        context.getSystemService(NotificationManager::class.java).notify(id, notification)
-        return id
     }
 }

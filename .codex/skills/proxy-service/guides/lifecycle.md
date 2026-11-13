@@ -32,7 +32,7 @@
 
 ## startForeground 防御
 
-Tun / Root / ProfileWorker 的 onCreate 均 `try { startForeground() } catch (Exception)`，覆盖 API 31+ 的 `ForegroundServiceStartNotAllowedException` 与 API 34+ 的 FGS type 异常。失败路径：Tun / Root 上报 Error + `stopSelf()`；ProfileWorker 置标记后 `stopSelf()`，之后到达的 start 一律拒收。前台服务审核要求保持前台服务形态。
+Tun / Root / ProfileWorker 的 onCreate 均 `try { startForeground() } catch (Exception)`，覆盖 API 31+ 的 `ForegroundServiceStartNotAllowedException` 与 API 34+ 的 FGS type 异常。失败路径：Tun / Root 上报 Error + `stopSelf()`；ProfileWorker 置标记，收到 Intent 后转交 `ProfileUpdateJobService` 再停止。更新任务的存活不依赖 Activity。
 
 ## 配置变了就重启
 

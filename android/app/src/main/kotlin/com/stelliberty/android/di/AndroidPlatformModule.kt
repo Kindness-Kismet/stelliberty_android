@@ -7,6 +7,7 @@ import com.stelliberty.android.platform.PlatformStorage
 import com.stelliberty.android.platform.ProxyServiceController
 import com.stelliberty.android.platform.WifiPolicyController
 import com.stelliberty.android.service.ProfileUpdateScheduler
+import com.stelliberty.android.service.ProfileUpdateTask
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.Module
 import org.koin.dsl.module
@@ -17,6 +18,7 @@ val androidPlatformModule: Module = module {
     single { AppListProvider(androidContext()) }
     single { WifiPolicyController(androidContext()) }
     single { BootStartManager(androidContext()) }
+    factory { ProfileUpdateTask(get(), get(), get(), get()) }
     single {
         BackupManager(
             context = androidContext(),

@@ -14,7 +14,7 @@ fetch + provider prefetch + Parse 三步经 `StellibertyCoreBridge.fetchAndValid
 
 `kotlinx.coroutines.sync.Mutex` 不可重入。`markUpdated` / `commitPending` / `queryImported` / `queryPending` 由 `ProfileProcessor` 在 `withProfileLock{}` 内调用，内部直接执行；`create` / `patch` / `release` / `delete` 直接被 ViewModel 调用，自带锁。锁顺序 processLock → profileLock，全仓只在 commit 一处嵌套。
 
-`processing/` 是进程内的单例沙箱（路径不带 uuid）：`prepareProcessing` 每次清空后重填，`commitProcessingToImported(uuid)` 再换入 imported/。`ProfileProcessor.processLock` 因此是 companion 进程级 Mutex。`ProfileProcessor` 是 Koin `factory`，前台 `SubscriptionViewModel.processor` 与后台 `ProfileWorker`（每个 `ACTION_UPDATE_PROFILE` 取一个）是不同实例，实例级锁会让两个并发 update 交错清空 `processing/`，把 B 的配置提交进 `imported/A/`。
+`processing/` 是进程内的单例沙箱（路径不带 uuid）：`prepareProcessing` 每次清空后重填，`commitProcessingToImported(uuid)` 再换入 imported/。`ProfileProcessor.processLock` 因此是 companion 进程级 Mutex。`ProfileProcessor` 是 Koin `factory`，前台 `SubscriptionViewModel.processor` 与后台服务的 `ProfileUpdateTask`是不同实例，实例级锁会让两个并发 update 交错清空 `processing/`，把 B 的配置提交进 `imported/A/`。
 
 启动清理走 `ProfileProcessor.cleanupResidual()`（持同一把锁）：先 `cleanupProcessing`（它会把 `commit.old.{uuid}` 还原回 imported/），再按订阅列表与草稿列表现存的 Id 反扫 `imported/`、`pending/`，删除孤儿目录（删除订阅分「先删列表条目 → 再删目录」两步，中途进程死亡会留下孤儿）。列表文件解析失败时 `knownUuidsOrNull()` 返回 null，跳过这一步，否则会删光全部订阅。
 

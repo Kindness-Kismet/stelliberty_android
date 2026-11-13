@@ -4,8 +4,6 @@
     <string name="channel_vpn_desc">Stelliberty 代理服务运行状态</string>
     <string name="channel_profile_status_name">配置更新进度</string>
     <string name="channel_profile_status_desc">配置下载和验证进度</string>
-    <string name="channel_profile_result_name">配置更新结果</string>
-    <string name="channel_profile_result_desc">配置更新成功或失败的通知</string>
     <string name="channel_wifi_policy_service_name">Wi-Fi 自动切换服务</string>
     <string name="channel_wifi_policy_service_desc">用于 Wi-Fi 自动切换的内部监控服务</string>
     <string name="channel_wifi_policy_event_name">Wi-Fi 自动切换事件</string>
@@ -25,11 +23,6 @@
     <!-- Profile Update Notifications -->
     <string name="notification_profile_update">配置更新</string>
     <string name="notification_profile_running">正在运行…</string>
-    <string name="notification_profile_updating">正在更新配置</string>
-    <string name="notification_update_success">更新成功</string>
-    <string name="notification_update_success_content">%1$s 已更新</string>
-    <string name="notification_update_failed">更新失败</string>
-    <string name="notification_unknown_error">未知错误</string>
 
     <!-- Tile -->
     <string name="tile_connected">已连接</string>

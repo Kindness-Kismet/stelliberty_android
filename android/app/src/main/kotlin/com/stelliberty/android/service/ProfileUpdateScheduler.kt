@@ -29,17 +29,22 @@ class ProfileUpdateScheduler(
     fun start() {
         if (job != null) return
         job = scope.launch(Dispatchers.IO) {
-            store.importedFlow.collect { reconcile(it) }
+            store.importedFlow.collect { reconcile() }
         }
     }
 
-    fun reconcileNow() {
-        reconcile(store.imported())
+    fun reconcileNow() = reconcile()
+
+    fun isDue(subscription: Subscription): Boolean {
+        val interval = subscription.intervalMillisOrNull() ?: return false
+        return Clock.System.now().toEpochMilliseconds() >= subscription.lastAttemptMillis() + interval
     }
 
     // 闹钟集合完全由订阅列表推导出来，跟着列表的变化持续核对：新增订阅、改间隔立刻生效，删订阅自动撤闹钟。
     // 不要改成「在每个增删改的地方各自布置闹钟」，那样漏一处就是设了自动更新却永远不更新。
-    private fun reconcile(subscriptions: List<Subscription>) {
+    @Synchronized
+    private fun reconcile() {
+        val subscriptions = store.imported()
         val eligible = subscriptions.filter { it.intervalMillisOrNull() != null }
         val keep = eligible.mapTo(mutableSetOf()) { it.id }
         ((armed + subscriptions.map { it.id }) - keep).forEach { cancelNext(context, it) }
@@ -59,6 +64,9 @@ class ProfileUpdateScheduler(
             return (autoUpdateIntervalMinutes * 60_000L).takeIf { it >= MIN_INTERVAL_MS }
         }
 
+        private fun Subscription.lastAttemptMillis(): Long =
+            listOfNotNull(lastUpdatedAt ?: createdAt, lastErrorAt).max().toEpochMilliseconds()
+
         private fun scheduleNext(context: Context, subscription: Subscription) {
             val intent = pendingIntentOf(context, subscription.id)
             val alarmManager = context.getSystemService(AlarmManager::class.java) ?: return
@@ -68,8 +76,7 @@ class ProfileUpdateScheduler(
 
             val current = Clock.System.now().toEpochMilliseconds()
             // 同 PC：起点取最近一次成功或失败，失败后也顺延一个间隔，不会立刻重试。
-            val lastAttempt = listOfNotNull(subscription.lastUpdatedAt ?: subscription.createdAt, subscription.lastErrorAt)
-                .max().toEpochMilliseconds()
+            val lastAttempt = subscription.lastAttemptMillis()
             val delay = (interval - (current - lastAttempt)).coerceAtLeast(0)
             AppLogger.info(TAG, "Schedule ${subscription.id} (${subscription.name}) in ${delay / 1000}s")
             scheduleAlarm(alarmManager, current + delay, intent)
@@ -79,8 +86,7 @@ class ProfileUpdateScheduler(
             context.getSystemService(AlarmManager::class.java)?.cancel(pendingIntentOf(context, uuid))
         }
 
-        // 精确闹钟能让后台启动服务被系统放行。用户若在系统设置里收回了精确闹钟权限就退成不精确闹钟，
-        // 此时靠 ProfileReceiver 里的异常捕获加重新布置来保住调度链。
+        // 精确闹钟允许后台启动前台服务；不精确闹钟被限制时由 JobScheduler 接手执行。
         fun scheduleAlarm(alarmManager: AlarmManager, triggerAt: Long, pi: PendingIntent) {
             if (alarmManager.canScheduleExactAlarms()) {
                 alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
