@@ -10,7 +10,9 @@
 
 ## 幂等串行
 
-`StellibertyRootService` / `StellibertyTunService` 用 `startJob`（`@Volatile`，主线程与 IO 协程共用）守门：已有启动在进行时，新的 `ACTION_START` 直接忽略。`stopProxy` / `restartProxy` / `onRevoke` 先 `startJob?.cancelAndJoin()` 再继续，才能越过幂等检查。
+`StellibertyRootService` / `StellibertyTunService` 用 `startJob`（`@Volatile`，主线程与 IO 协程共用）守门：已有启动在进行时，新的 `ACTION_START` 直接忽略。`stopProxy` / `restartProxy` / `onRevoke` 依次等待 `startJob?.cancelAndJoin()`、`monitorJob?.cancelAndJoin()`，再停止内核；监控由启动末尾创建，必须先等启动结束才能取消到它。
+
+启动与监控在阻塞操作后、发布结果前检查 `ensureActive()`；ROOT 规则安装结果在取消检查后处理，死亡监控在清理结束后再检查，避免被取消的任务发布状态或停止接替它的服务。
 
 `ACTION_START` 会在数百毫秒内到达两次：「打开应用自动连接」发一次，[BootReceiver](../../../../android/app/src/main/kotlin/com/stelliberty/android/service/BootReceiver.kt) 收到补发的 BOOT_COMPLETED 再发一次（HyperOS 等 ROM 等进程起来后才补投广播；BootReceiver 另建 controller，与 `launchAutoConnectConsumed` 各自独立）。两条启动协程并发跑 iptables 会互抢 `/system/etc/xtables.lock`，ROOT TPROXY 下启动卡死。BootReceiver 只在 `state == Running` 时跳过（Starting 仍发送，下述抢占才能生效），去重统一由 Service 负责。
 
