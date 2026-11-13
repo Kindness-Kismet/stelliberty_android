@@ -96,13 +96,23 @@ object RootHelper {
         }
     }
 
-    fun isAliveAsRoot(pid: Int): Boolean {
+    // null 表示检查未完成，不能据此认定已跟踪的内核退出。
+    fun isAliveAsRoot(pid: Int): Boolean? {
         return try {
             val script = RootProcessScript.isAlive(BuildConfig.APPLICATION_ID, pid)
             val process = ProcessBuilder("su", "-c", script).redirectErrorStream(true).start()
-            awaitDrained(process, 3).code == 0
-        } catch (_: Exception) {
-            false
+            val result = awaitDrained(process, 3)
+            when (result.code) {
+                0 -> true
+                1 -> false
+                else -> {
+                    AppLogger.warn(TAG, "Root process check inconclusive: pid=$pid code=${result.code} ${result.output}")
+                    null
+                }
+            }
+        } catch (e: Exception) {
+            AppLogger.warn(TAG, "Root process check inconclusive: pid=$pid", e)
+            null
         }
     }
 

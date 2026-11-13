@@ -31,7 +31,7 @@ class MihomoRunner(private val context: Context) {
     val isRunning: Boolean
         // 两条分支的代价差一个量级：VPN 那条只是查一下本进程的子进程，几乎免费；ROOT 那条每次都要
         // 启动一个 su 进程，因为 Android 10 以后普通应用读不到 root 进程的 /proc。轮询它的地方要自己控制频率。
-        get() = childPid > 0 && if (isRootMode) RootHelper.isAliveAsRoot(childPid) else isProcessAlive(childPid)
+        get() = childPid > 0 && if (isRootMode) RootHelper.isAliveAsRoot(childPid) != false else isProcessAlive(childPid)
 
     // 进程归属与接口身份必须同时匹配，避免重连到复用端口或 PID 的其他进程。
     fun attachToExisting(
@@ -40,8 +40,8 @@ class MihomoRunner(private val context: Context) {
         externalController: String,
         subscriptionId: String?,
     ): Boolean {
-        if (pid <= 0 || !RootHelper.isAliveAsRoot(pid)) {
-            AppLogger.warn(TAG, "Attach failed: pid dead (pid=$pid)")
+        if (pid <= 0 || RootHelper.isAliveAsRoot(pid) != true) {
+            AppLogger.warn(TAG, "Attach failed: process identity not verified (pid=$pid)")
             return false
         }
         if (MihomoApiProbe.probe(pid, secret, externalController, timeoutMs = 1500) != MihomoApiProbe.Status.Ready) {
@@ -197,9 +197,12 @@ class MihomoRunner(private val context: Context) {
                     recordStartupLog(log)
                     return scanLogForTunError(log)
                 }
-                MihomoApiProbe.Status.Initializing -> if (!initializing) {
-                    initializing = true
-                    AppLogger.info(TAG, "mihomo API up after ${elapsed}ms, waiting for providers")
+                MihomoApiProbe.Status.Initializing -> {
+                    if (!initializing) {
+                        initializing = true
+                        AppLogger.info(TAG, "mihomo API up after ${elapsed}ms, waiting for providers")
+                    }
+                    nextLivenessCheck = SystemClock.elapsedRealtime() + LIVENESS_CHECK_INTERVAL_MS
                 }
                 MihomoApiProbe.Status.Foreign -> {
                     recordStartupLog(readStartupLog(useRoot, workDir))
@@ -209,7 +212,7 @@ class MihomoRunner(private val context: Context) {
             }
             if (SystemClock.elapsedRealtime() >= nextLivenessCheck) {
                 val alive = if (useRoot) RootHelper.isAliveAsRoot(childPid) else isProcessAlive(childPid)
-                if (!alive) {
+                if (alive == false) {
                     val logContent = readStartupLog(useRoot, workDir)
                     recordStartupLog(logContent)
                     return if (logContent.isNotBlank()) {
