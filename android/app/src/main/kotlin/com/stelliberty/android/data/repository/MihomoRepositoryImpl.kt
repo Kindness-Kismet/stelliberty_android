@@ -15,14 +15,20 @@ import com.stelliberty.android.domain.model.ProxiesResponse
 import com.stelliberty.android.domain.model.RuleProvidersResponse
 import com.stelliberty.android.domain.model.RulesResponse
 import com.stelliberty.android.domain.model.TrafficData
+import com.stelliberty.android.domain.model.TestedDelay
 import com.stelliberty.android.domain.repository.MihomoRepository
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.collections.immutable.persistentMapOf
+import kotlinx.collections.immutable.toPersistentMap
+import kotlinx.collections.immutable.toPersistentSet
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
@@ -33,6 +39,16 @@ class MihomoRepositoryImpl(
 ) : MihomoRepository {
 
     override val connectionState: StateFlow<Boolean> get() = webSocket.connectionState
+
+    private val delaySemaphore = Semaphore(DELAY_CONCURRENCY)
+    private val delayStateLock = Any()
+    private val activeDelayTests = mutableMapOf<String, Int>()
+    private var closed = false
+    private var delayRevision = 0L
+    private val _testingNodes = MutableStateFlow<Set<String>>(emptySet())
+    override val testingNodes: StateFlow<Set<String>> = _testingNodes.asStateFlow()
+    private val _delayResults = MutableStateFlow<Map<String, TestedDelay>>(persistentMapOf())
+    override val delayResults: StateFlow<Map<String, TestedDelay>> = _delayResults.asStateFlow()
 
     override fun trafficFlow(): Flow<TrafficData> = webSocket.trafficFlow()
     override fun logsFlow(level: String): Flow<LogEvent> = webSocket.logsFlow(level)
@@ -49,7 +65,7 @@ class MihomoRepositoryImpl(
         testUrl: String,
         timeout: Int,
     ): Result<DelayResult> =
-        io { apiClient.getProxyDelay(name, testUrl, timeout) }
+        testDelay(name) { apiClient.getProxyDelay(name, testUrl, timeout) }
 
     override suspend fun getProviderProxyDelay(
         provider: String,
@@ -57,21 +73,45 @@ class MihomoRepositoryImpl(
         testUrl: String,
         timeout: Int,
     ): Result<DelayResult> =
-        io { apiClient.getProviderProxyDelay(provider, name, testUrl, timeout) }
+        testDelay(name) { apiClient.getProviderProxyDelay(provider, name, testUrl, timeout) }
 
     override suspend fun testDelays(nodes: Collection<String>, providerOf: Map<String, String>) {
-        val semaphore = Semaphore(DELAY_CONCURRENCY)
         coroutineScope {
-            nodes.map { name ->
+            nodes.distinct().map { name ->
                 async {
-                    semaphore.withPermit {
-                        val provider = providerOf[name]
-                        if (provider != null) getProviderProxyDelay(provider, name) else getProxyDelay(name)
-                    }
+                    val provider = providerOf[name]
+                    if (provider != null) getProviderProxyDelay(provider, name) else getProxyDelay(name)
                 }
             }.awaitAll()
         }
     }
+
+    // 单测、批测与后台测速共用并发预算，拿到名额后才显示节点进度。
+    private suspend fun testDelay(name: String, block: suspend () -> DelayResult): Result<DelayResult> =
+        delaySemaphore.withPermit {
+            synchronized(delayStateLock) {
+                if (closed) throw CancellationException("Mihomo repository is closed")
+                activeDelayTests[name] = (activeDelayTests[name] ?: 0) + 1
+                _testingNodes.value = activeDelayTests.keys.toPersistentSet()
+            }
+            try {
+                io { block() }.also { result ->
+                    synchronized(delayStateLock) {
+                        if (!closed) {
+                            val delay = result.getOrNull()?.delay?.takeIf { it > 0 } ?: -1
+                            _delayResults.value = _delayResults.value.toPersistentMap()
+                                .putting(name, TestedDelay(delay, ++delayRevision))
+                        }
+                    }
+                }
+            } finally {
+                synchronized(delayStateLock) {
+                    val count = (activeDelayTests[name] ?: 0) - 1
+                    if (count > 0) activeDelayTests[name] = count else activeDelayTests.remove(name)
+                    _testingNodes.value = activeDelayTests.keys.toPersistentSet()
+                }
+            }
+        }
 
     override suspend fun getRules(): Result<RulesResponse> = io { apiClient.getRules() }
     override fun connectionsFlow(): Flow<ConnectionsResponse> = webSocket.connectionsFlow()
@@ -89,6 +129,12 @@ class MihomoRepositoryImpl(
     override suspend fun flushDnsCache(): Result<Unit> = io { apiClient.flushDnsCache() }
 
     override fun close() {
+        synchronized(delayStateLock) {
+            closed = true
+            activeDelayTests.clear()
+            _testingNodes.value = emptySet()
+            _delayResults.value = emptyMap()
+        }
         apiClient.close()
         webSocket.close()
     }

@@ -6,3 +6,9 @@ import kotlinx.serialization.Serializable
 data class DelayResult(
     val delay: Int = 0,
 )
+
+@Serializable
+data class TestedDelay(
+    val delay: Int,
+    val revision: Long,
+)

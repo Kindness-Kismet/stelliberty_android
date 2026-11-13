@@ -22,6 +22,8 @@ interface SubscriptionRepository {
 
     fun getActive(): Subscription?
 
+    suspend fun setAutoTestDelayInterval(uuid: String, intervalMinutes: Int)
+
     suspend fun create(
         name: String,
         sourceLocation: String,

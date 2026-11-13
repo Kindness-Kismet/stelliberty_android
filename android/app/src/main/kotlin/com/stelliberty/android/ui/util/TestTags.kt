@@ -91,6 +91,8 @@ object TestTags {
     object Proxy {
         const val SEARCH = "Proxy.SearchButton"
         const val SETTINGS = "Proxy.SettingsButton"
+        const val TEST_ALL_DELAYS = "Proxy.TestAllDelays"
+        const val AUTO_DELAY_INTERVAL = "Proxy.AutoDelayInterval"
         const val SEARCH_FIELD = "Proxy.SearchField"
         const val SETTINGS_DIALOG = "Proxy.SettingsDialog"
         const val SETTINGS_CANCEL = "Proxy.SettingsCancel"

@@ -30,17 +30,18 @@
 
 ## 图标
 
-- 横向标签布局的顶栏测速图标用 `AppIcons.TestDelay`（MingCute dashboard_2_line）。分组卡片右侧用延迟标签，节点卡片的延迟区域无背景。未测速显示「—」，点击即测速，测速中显示 `CircularProgressIndicator`。
+- 横向标签布局的顶栏测速图标用 `AppIcons.TestDelay`（MingCute dashboard_2_line）。分组卡片右侧用延迟标签，节点卡片的延迟区域无背景。未测速显示「—」，点击即测速；单个、批量与定时测速统一按当前仓库的实际请求状态，在节点延迟按钮处显示 `CircularProgressIndicator`。
 - 展开按钮用 `AppIcons.ChevronRight`（right_small），旋转为向下或向上。
 - 换图标时改 `gen_icons.py` 的 ICONS 表后重跑，调用点保持不变。
 
 ## 顶栏与代理设置
 
-顶栏只放搜索与设置，组与节点随内核连接及轮询更新；设置打开 `WindowDialog`，内容按 4 张 Card 分块，底部固定「取消 / 确定」。
+顶栏放全量测速、搜索与设置，组与节点随内核连接及轮询更新；设置打开 `WindowDialog`，内容按 5 张 Card 分块，底部固定「取消 / 确定」。
 
 - 选路：代理模式与 TUN Stack，用 `SingleChoicePreference`（`summary` 回显当前值，点开二级单选 Dialog）。
 - 显示：布局模式（横 / 竖）、单列、只看可用、GLOBAL 组（全局模式下禁用）。
 - 排序：默认 / 名称 / 延迟单选加倒序开关；`sortOption` 以 `key * 2 + reverse` 编码，改任一项都经 `updateSortOption` 写同一个值。
+- 定时测速：当前订阅的分钟间隔，空值与 0 为关闭、最多 6 位；确认只更新订阅元数据，已有草稿同步同一字段，不触发订阅下载或内核重启。
 - 动作：勾选刷新图标，在确定时调用 `IconLoader.clear()` 并递增 `iconCacheVersion`。
 
 列表区用 `heightIn(max = 500.dp)` + `verticalScroll`，全部改动先保存为弹窗草稿，取消放弃，确定才应用。选路变更经 `HomeViewModel.applyProxyRouting` 一次保存 override 并调用 `restartWhenReady`；相同值不触发重启，模式与 TUN Stack 同时修改也只重启一次。对话框只传值与回调。

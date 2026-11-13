@@ -2,6 +2,7 @@ package com.stelliberty.android.di
 
 import com.stelliberty.android.data.backup.BackupManager
 import com.stelliberty.android.platform.AppListProvider
+import com.stelliberty.android.platform.AutoDelayAlarm
 import com.stelliberty.android.platform.BootStartManager
 import com.stelliberty.android.platform.PlatformStorage
 import com.stelliberty.android.platform.ProxyServiceController
@@ -13,6 +14,7 @@ import org.koin.core.module.Module
 import org.koin.dsl.module
 
 val androidPlatformModule: Module = module {
+    single { AutoDelayAlarm(androidContext()) }
     single { PlatformStorage(androidContext()) }
     single { ProxyServiceController(androidContext(), get()) }
     single { AppListProvider(androidContext()) }

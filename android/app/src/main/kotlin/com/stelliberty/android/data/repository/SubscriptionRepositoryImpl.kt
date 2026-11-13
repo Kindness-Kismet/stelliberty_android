@@ -168,6 +168,14 @@ class SubscriptionRepositoryImpl(
         commitPending(uuid, fetched = false)
     }
 
+    // 调整排期不更新配置文件，已有草稿同步字段以免下次提交覆盖新间隔。
+    override suspend fun setAutoTestDelayInterval(uuid: String, intervalMinutes: Int): Unit = profileLock.withLock {
+        val interval = intervalMinutes.coerceAtLeast(0)
+        val imported = store.findImported(uuid) ?: throw IllegalArgumentException("Profile $uuid not found")
+        store.putImported(imported.copy(autoTestDelayIntervalMinutes = interval))
+        store.findPending(uuid)?.let { store.putPending(it.copy(autoTestDelayIntervalMinutes = interval)) }
+    }
+
     // 必须由外层持有订阅锁后调用，自己不能再加锁——协程用的这种锁不可重入。
     suspend fun markUpdated(uuid: String, trafficInfo: SubscriptionTrafficInfo?, builtinChainProxyNames: List<String>) {
         val existing = store.findImported(uuid) ?: return

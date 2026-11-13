@@ -44,6 +44,9 @@ internal val PROXY_METHODS = setOf(
     "proxy.select",
     "proxy.test_group",
     "proxy.test_node",
+    "proxy.test_all",
+    "proxy.set_auto_delay",
+    "proxy.get_test_state",
     "proxy.list",
 )
 

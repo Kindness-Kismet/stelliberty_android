@@ -5,7 +5,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -20,6 +22,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.state.ToggleableState
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.stelliberty.android.BuildConfig
 import com.stelliberty.android.R
@@ -31,7 +34,11 @@ import kotlinx.collections.immutable.toImmutableList
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Checkbox
+import top.yukonga.miuix.kmp.basic.SmallTitle
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.preference.SwitchPreference
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.squircle.squircleClip
 import top.yukonga.miuix.kmp.window.WindowDialog
 
@@ -54,6 +61,8 @@ private data class ProxySettingsDraft(
     val showGlobalGroup: Boolean,
     val sortIndex: Int,
     val reverseSort: Boolean,
+    val subscriptionId: String?,
+    val autoDelayInterval: String,
     val clearIconCache: Boolean = false,
 )
 
@@ -76,6 +85,9 @@ internal fun ProxySettingsDialog(
     onShowGlobalGroupChange: (Boolean) -> Unit,
     sortOption: Int,
     onSortOptionChange: (Int) -> Unit,
+    activeSubscriptionId: String?,
+    autoDelayIntervalMinutes: Int,
+    onAutoDelayIntervalChange: (Int) -> Unit,
     onClearIconCache: () -> Unit,
 ) {
     val modeIndex = MODE_OPTIONS.indexOfFirst { it.first == mode.lowercase() }.coerceAtLeast(0)
@@ -85,9 +97,10 @@ internal fun ProxySettingsDialog(
     val tunStackEnabled = isRunning && tunMode != TunMode.RootTproxy
     val initial = ProxySettingsDraft(
         modeIndex, tunStackIndex, groupTabs, singleColumn, hideUnavailable, showGlobalGroup, sortIndex, reverseSort,
+        activeSubscriptionId, autoDelayIntervalMinutes.takeIf { it > 0 }?.toString().orEmpty(),
     )
     var draft by remember { mutableStateOf(initial) }
-    LaunchedEffect(show) {
+    LaunchedEffect(show, activeSubscriptionId) {
         if (show) draft = initial
     }
     val draftGlobalMode = MODE_OPTIONS[draft.modeIndex].first == "global"
@@ -177,6 +190,34 @@ internal fun ProxySettingsDialog(
                 }
                 Spacer(Modifier.height(12.dp))
                 Card(Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(bottom = 12.dp)) {
+                        SmallTitle(text = stringResource(R.string.subscription_auto_delay_interval))
+                        TextField(
+                            value = draft.autoDelayInterval,
+                            onValueChange = { input ->
+                                draft = draft.copy(autoDelayInterval = input.filter { it in '0'..'9' }.take(6))
+                            },
+                            label = stringResource(R.string.proxy_auto_delay_placeholder),
+                            useLabelAsPlaceholder = true,
+                            enabled = activeSubscriptionId != null,
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp)
+                                .testTag(TestTags.Proxy.AUTO_DELAY_INTERVAL),
+                        )
+                        if (activeSubscriptionId == null) {
+                            Text(
+                                text = stringResource(R.string.proxy_no_active_subscription),
+                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+                Card(Modifier.fillMaxWidth()) {
                     BasicComponent(
                         title = stringResource(R.string.proxy_refresh_icon),
                         modifier = Modifier.squircleClip(16.dp).testTag(TestTags.Proxy.REFRESH_ICONS),
@@ -206,6 +247,10 @@ internal fun ProxySettingsDialog(
                     if (draft.showGlobalGroup != showGlobalGroup) onShowGlobalGroupChange(draft.showGlobalGroup)
                     val nextSort = draft.sortIndex * 2 + if (draft.reverseSort) 1 else 0
                     if (nextSort != sortOption) onSortOptionChange(nextSort)
+                    if (activeSubscriptionId != null && draft.subscriptionId == activeSubscriptionId) {
+                        val nextInterval = draft.autoDelayInterval.toIntOrNull() ?: 0
+                        if (nextInterval != autoDelayIntervalMinutes) onAutoDelayIntervalChange(nextInterval)
+                    }
                     if (draft.clearIconCache) onClearIconCache()
                     onDismissRequest()
                 },

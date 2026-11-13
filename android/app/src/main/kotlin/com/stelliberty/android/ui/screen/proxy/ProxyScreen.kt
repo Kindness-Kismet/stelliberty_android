@@ -102,6 +102,8 @@ fun ProxyScreen(
     )
     val hideUnavailable = viewModel?.hideUnavailableNodes?.collectAsStateWithLifecycle()?.value == true
     val showGlobalGroup = viewModel?.showGlobalGroup?.collectAsStateWithLifecycle()?.value != false
+    val activeSubscription = viewModel?.activeSubscription?.collectAsStateWithLifecycle()?.value
+    val autoDelayInterval = viewModel?.autoTestDelayIntervalMinutes?.collectAsStateWithLifecycle()?.value ?: 0
     val scrollBehavior = MiuixScrollBehavior()
     val globalModeActive = uiState.mode == ProxyViewModel.MODE_GLOBAL
     val groups = remember(uiState.groups, globalModeActive, showGlobalGroup) {
@@ -186,6 +188,22 @@ fun ProxyScreen(
                         },
                         actions = {
                             IconButton(
+                                onClick = { viewModel?.testAllDelays() },
+                                enabled = isRunning && uiState.groups.isNotEmpty() && !uiState.isTestingAllDelays,
+                                modifier = Modifier.testTag(TestTags.Proxy.TEST_ALL_DELAYS),
+                            ) {
+                                if (uiState.isTestingAllDelays) {
+                                    CircularProgressIndicator(size = 20.dp, strokeWidth = 2.dp)
+                                } else {
+                                    Icon(
+                                        imageVector = AppIcons.TestDelay,
+                                        contentDescription = stringResource(R.string.proxy_test_all_delays),
+                                        modifier = Modifier.size(24.dp),
+                                        tint = MiuixTheme.colorScheme.onSurface,
+                                    )
+                                }
+                            }
+                            IconButton(
                                 onClick = {
                                     searchVisible = !searchVisible
                                     if (!searchVisible) query = ""
@@ -231,6 +249,9 @@ fun ProxyScreen(
                         onShowGlobalGroupChange = { viewModel?.updateShowGlobalGroup(it) },
                         sortOption = sortOption,
                         onSortOptionChange = { viewModel?.updateSortOption(it) },
+                        activeSubscriptionId = activeSubscription?.id,
+                        autoDelayIntervalMinutes = autoDelayInterval,
+                        onAutoDelayIntervalChange = { viewModel?.updateAutoTestDelayInterval(it) },
                         onClearIconCache = {
                             coroutineScope.launch {
                                 IconLoader.clear()
