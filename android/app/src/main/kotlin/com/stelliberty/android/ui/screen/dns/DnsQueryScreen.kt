@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -39,11 +40,14 @@ import com.stelliberty.android.domain.model.DnsQueryTypes
 import com.stelliberty.android.domain.model.dnsTypeName
 import com.stelliberty.android.ui.component.AdaptiveTopAppBar
 import com.stelliberty.android.ui.component.CardItem
+import com.stelliberty.android.ui.component.DialogButtons
 import com.stelliberty.android.ui.component.blur.BlurredBar
 import com.stelliberty.android.ui.component.blur.rememberBlurBackdrop
+import com.stelliberty.android.ui.component.dialogTestTag
 import com.stelliberty.android.ui.component.groupedCardItems
 import com.stelliberty.android.ui.icon.AppIcons
 import com.stelliberty.android.ui.theme.StatusColors
+import com.stelliberty.android.ui.util.TestTags
 import com.stelliberty.android.ui.util.horizontalCutoutPadding
 import com.stelliberty.android.viewmodel.DnsQueryViewModel
 import top.yukonga.miuix.kmp.basic.BasicComponent
@@ -58,7 +62,9 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.blur.layerBackdrop
+import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.squircle.squircleBackground
+import top.yukonga.miuix.kmp.squircle.squircleClip
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
@@ -253,28 +259,31 @@ fun DnsQueryScreen(
     }
 
     WindowDialog(
+        modifier = Modifier.dialogTestTag(TestTags.Dialog.CACHE_ACTIONS),
         show = showCacheDialog,
         title = stringResource(R.string.dns_clear_cache),
         onDismissRequest = { showCacheDialog = false },
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            TextButton(
-                text = stringResource(R.string.dns_clear_dns),
-                modifier = Modifier.fillMaxWidth(),
+        Card(Modifier.fillMaxWidth()) {
+            ArrowPreference(
+                title = stringResource(R.string.dns_clear_dns),
+                modifier = Modifier.squircleClip(16.dp).testTag(TestTags.Dns.CLEAR_DNS),
                 onClick = {
                     viewModel.flushDnsCache()
                     showCacheDialog = false
                 },
             )
-            TextButton(
-                text = stringResource(R.string.dns_clear_fakeip),
-                modifier = Modifier.fillMaxWidth(),
+            ArrowPreference(
+                title = stringResource(R.string.dns_clear_fakeip),
+                modifier = Modifier.squircleClip(16.dp).testTag(TestTags.Dns.CLEAR_FAKEIP),
                 onClick = {
                     viewModel.flushFakeIp()
                     showCacheDialog = false
                 },
             )
         }
+        Spacer(Modifier.height(12.dp))
+        DialogButtons(onCancel = { showCacheDialog = false })
     }
 }
 

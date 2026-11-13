@@ -60,9 +60,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.rememberLifecycleOwner
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
@@ -79,12 +79,20 @@ import com.stelliberty.android.ui.component.blur.BlurredBar
 import com.stelliberty.android.ui.component.blur.rememberBlurBackdrop
 import com.stelliberty.android.ui.component.liquid.IosLiquidGlassNavigationBar
 import com.stelliberty.android.ui.icon.AppIcons
+import com.stelliberty.android.ui.screen.chainproxy.ChainProxyEditScreen
+import com.stelliberty.android.ui.screen.chainproxy.ChainProxyListScreen
 import com.stelliberty.android.ui.screen.connection.ConnectionScreen
 import com.stelliberty.android.ui.screen.dns.DnsQueryScreen
 import com.stelliberty.android.ui.screen.home.HomeScreen
 import com.stelliberty.android.ui.screen.log.LogScreen
+import com.stelliberty.android.ui.screen.overrides.OverrideEditScreen
+import com.stelliberty.android.ui.screen.overrides.OverrideFileEditorScreen
+import com.stelliberty.android.ui.screen.overrides.OverrideListScreen
+import com.stelliberty.android.ui.screen.overrides.SubscriptionOverridesScreen
 import com.stelliberty.android.ui.screen.provider.ProviderScreen
 import com.stelliberty.android.ui.screen.proxy.ProxyScreen
+import com.stelliberty.android.ui.screen.ruleoverride.RuleOverrideEditScreen
+import com.stelliberty.android.ui.screen.ruleoverride.RuleOverrideScreen
 import com.stelliberty.android.ui.screen.settings.AboutScreen
 import com.stelliberty.android.ui.screen.settings.AgeKeyScreen
 import com.stelliberty.android.ui.screen.settings.AppBehaviorScreen
@@ -103,18 +111,10 @@ import com.stelliberty.android.ui.screen.settings.SystemIntegrationScreen
 import com.stelliberty.android.ui.screen.settings.ThemeSettingsScreen
 import com.stelliberty.android.ui.screen.settings.VpnSettingsScreen
 import com.stelliberty.android.ui.screen.settings.WifiPolicyScreen
+import com.stelliberty.android.ui.screen.subscription.RuleOverrideSummary
 import com.stelliberty.android.ui.screen.subscription.SubscriptionAddScreen
 import com.stelliberty.android.ui.screen.subscription.SubscriptionAddUrlScreen
-import com.stelliberty.android.ui.screen.subscription.RuleOverrideSummary
 import com.stelliberty.android.ui.screen.subscription.SubscriptionEditScreen
-import com.stelliberty.android.ui.screen.chainproxy.ChainProxyEditScreen
-import com.stelliberty.android.ui.screen.chainproxy.ChainProxyListScreen
-import com.stelliberty.android.ui.screen.ruleoverride.RuleOverrideEditScreen
-import com.stelliberty.android.ui.screen.ruleoverride.RuleOverrideScreen
-import com.stelliberty.android.ui.screen.overrides.OverrideEditScreen
-import com.stelliberty.android.ui.screen.overrides.OverrideFileEditorScreen
-import com.stelliberty.android.ui.screen.overrides.OverrideListScreen
-import com.stelliberty.android.ui.screen.overrides.SubscriptionOverridesScreen
 import com.stelliberty.android.ui.screen.subscription.SubscriptionScreen
 import com.stelliberty.android.ui.screen.subscription.SubscriptionUpdateProgressDialog
 import com.stelliberty.android.ui.theme.BottomBarMode
@@ -127,17 +127,17 @@ import com.stelliberty.android.ui.util.rememberIsWideScreen
 import com.stelliberty.android.viewmodel.AppProxyViewModel
 import com.stelliberty.android.viewmodel.AppUpdateViewModel
 import com.stelliberty.android.viewmodel.BackupViewModel
+import com.stelliberty.android.viewmodel.ChainProxyViewModel
 import com.stelliberty.android.viewmodel.ClashFeaturesViewModel
 import com.stelliberty.android.viewmodel.ConnectionViewModel
 import com.stelliberty.android.viewmodel.DnsQueryViewModel
 import com.stelliberty.android.viewmodel.HomeUiState
 import com.stelliberty.android.viewmodel.HomeViewModel
 import com.stelliberty.android.viewmodel.LogViewModel
-import com.stelliberty.android.viewmodel.ChainProxyViewModel
-import com.stelliberty.android.viewmodel.RuleOverrideViewModel
 import com.stelliberty.android.viewmodel.OverrideProfileViewModel
 import com.stelliberty.android.viewmodel.ProviderViewModel
 import com.stelliberty.android.viewmodel.ProxyViewModel
+import com.stelliberty.android.viewmodel.RuleOverrideViewModel
 import com.stelliberty.android.viewmodel.SubscriptionViewModel
 import java.util.UUID
 import kotlin.math.abs
@@ -718,8 +718,7 @@ private fun MainPage(
                         mode = homeUiState.mode,
                         tunStack = homeUiState.tunStack,
                         tunMode = homeUiState.tunMode,
-                        onSwitchMode = { homeViewModel?.switchMode(it) },
-                        onSwitchTunStack = { homeViewModel?.switchTunStack(it) },
+                        onApplyRouting = { mode, stack -> homeViewModel?.applyProxyRouting(mode, stack) },
                     )
                     2 -> subscriptionViewModel?.let {
                         SubscriptionScreen(

@@ -177,7 +177,6 @@
     <string name="proxy_mode_global_hint">目前為全域模式，僅由 GLOBAL 群組決定出口。其他代理群組的選擇將在切回規則模式後生效。</string>
     <string name="proxy_refresh_icon">重新整理圖示</string>
     <string name="proxy_settings_title">代理設定</string>
-    <string name="proxy_settings_done">完成</string>
     <string name="proxy_single_column">單欄顯示</string>
     <string name="proxy_node_count">%1$d/%2$d</string>
     <string name="proxy_expand_group">展開代理群組</string>
@@ -586,9 +585,6 @@
     <string name="backup_restore_merge_summary">保留本機資料，只加入本機沒有的訂閱</string>
     <string name="backup_restore_overwrite">覆蓋還原</string>
     <string name="backup_restore_overwrite_summary">以備份取代本機的訂閱與設定，無法復原</string>
-    <string name="backup_restore_done_title">還原完成</string>
-    <string name="backup_restore_done_summary">需要重新啟動應用程式以載入還原後的資料。</string>
-    <string name="backup_restart_now">立即重新啟動</string>
     <string name="backup_section_local">本機備份</string>
     <string name="backup_export_local">備份至檔案</string>
     <string name="backup_restore_local">從檔案還原</string>
@@ -612,7 +608,6 @@
     <string name="app_update_on_startup_summary">有新版本時通知我</string>
     <string name="app_update_dialog_title">有新版本 %1$s 可用</string>
     <string name="app_update_no_notes">此版本未提供更新日誌</string>
-    <string name="app_update_not_now">暫不更新</string>
     <string name="app_update_download">前往下載</string>
     <string name="app_update_open_failed">無法開啟下載頁面</string>
 

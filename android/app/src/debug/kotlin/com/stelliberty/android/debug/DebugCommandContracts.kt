@@ -32,6 +32,7 @@ private const val KEY_TARGET = "target"
 private const val KEY_DATA = "data"
 
 internal val PAGE_METHODS = setOf("page.open")
+internal val DIALOG_METHODS = setOf("dialog.show_fixture")
 
 // 方法名一律「动词」或「动词_宾语」，别用名词当动作。主目标一律经 --arg 传，
 // extras 只放修饰参数——两条规则任一破例，调用方就得逐条记特例。

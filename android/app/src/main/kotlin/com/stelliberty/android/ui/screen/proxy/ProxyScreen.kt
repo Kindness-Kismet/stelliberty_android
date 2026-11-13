@@ -6,7 +6,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -83,8 +82,7 @@ fun ProxyScreen(
     mode: String = "",
     tunStack: String = "",
     tunMode: TunMode = TunMode.Vpn,
-    onSwitchMode: (String) -> Unit = {},
-    onSwitchTunStack: (String) -> Unit = {},
+    onApplyRouting: (String?, String?) -> Unit = { _, _ -> },
 ) {
     val uiState = viewModel?.uiState?.collectAsStateWithLifecycle()?.value ?: ProxyUiState()
     val context = LocalContext.current
@@ -230,11 +228,10 @@ fun ProxyScreen(
                         show = showSettings,
                         onDismissRequest = { showSettings = false },
                         mode = mode,
-                        onSwitchMode = onSwitchMode,
+                        onApplyRouting = onApplyRouting,
                         tunStack = tunStack,
                         tunMode = tunMode,
                         isRunning = isRunning,
-                        onSwitchTunStack = onSwitchTunStack,
                         groupTabs = groupTabs,
                         onGroupTabsChange = { viewModel?.updateGroupTabs(it) },
                         singleColumn = singleColumn,
@@ -242,13 +239,14 @@ fun ProxyScreen(
                         hideUnavailable = hideUnavailable,
                         onHideUnavailableChange = { viewModel?.updateHideUnavailableNodes(it) },
                         showGlobalGroup = showGlobalGroup,
-                        globalModeActive = globalModeActive,
                         onShowGlobalGroupChange = { viewModel?.updateShowGlobalGroup(it) },
                         sortOption = sortOption,
                         onSortOptionChange = { viewModel?.updateSortOption(it) },
                         onClearIconCache = {
-                            coroutineScope.launch { IconLoader.clear() }
-                            iconCacheVersion++
+                            coroutineScope.launch {
+                                IconLoader.clear()
+                                iconCacheVersion++
+                            }
                         },
                     )
                     if (groupTabs && selectedGroup != null) {

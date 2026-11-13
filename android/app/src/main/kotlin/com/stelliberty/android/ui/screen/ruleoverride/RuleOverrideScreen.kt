@@ -1,11 +1,9 @@
 package com.stelliberty.android.ui.screen.ruleoverride
 
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -41,7 +39,6 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
-import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.stelliberty.android.BuildConfig
@@ -49,6 +46,7 @@ import com.stelliberty.android.R
 import com.stelliberty.android.domain.model.RuleTemplate
 import com.stelliberty.android.ui.component.AdaptiveTopAppBar
 import com.stelliberty.android.ui.component.CardSegment
+import com.stelliberty.android.ui.component.DialogButtons
 import com.stelliberty.android.ui.component.ListPopupDefaults.MenuPositionProvider
 import com.stelliberty.android.ui.component.SearchBarFake
 import com.stelliberty.android.ui.component.SearchBox
@@ -57,6 +55,7 @@ import com.stelliberty.android.ui.component.SearchResultStatusEffect
 import com.stelliberty.android.ui.component.SearchStatus
 import com.stelliberty.android.ui.component.blur.BlurredBar
 import com.stelliberty.android.ui.component.blur.rememberBlurBackdrop
+import com.stelliberty.android.ui.component.dialogTestTag
 import com.stelliberty.android.ui.component.rememberSearchBarTopPadding
 import com.stelliberty.android.ui.component.rememberSearchScreenStatus
 import com.stelliberty.android.ui.icon.AppIcons
@@ -68,10 +67,10 @@ import com.stelliberty.android.ui.util.horizontalCutoutPadding
 import com.stelliberty.android.viewmodel.RuleOverrideRow
 import com.stelliberty.android.viewmodel.RuleOverrideViewModel
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toPersistentList
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.BasicComponentDefaults
-import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.DropdownImpl
 import top.yukonga.miuix.kmp.basic.Icon
@@ -82,16 +81,18 @@ import top.yukonga.miuix.kmp.basic.PopupPositionProvider
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.blur.layerBackdrop
+import top.yukonga.miuix.kmp.preference.RadioButtonLocation
+import top.yukonga.miuix.kmp.preference.RadioButtonPreference
+import top.yukonga.miuix.kmp.squircle.squircleClip
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 import top.yukonga.miuix.kmp.window.WindowDialog
 import top.yukonga.miuix.kmp.window.WindowListPopup
 
-// 改动先留在 ViewModel 的草稿里，点保存才写入并按需重启；不保存直接返回即放弃。模板例外，保存与删除立即生效。
+// 规则改动留在页面草稿里，点保存才写入；模板自身的保存与删除由对应弹窗确认。
 @Composable
 fun RuleOverrideScreen(
     subscriptionId: String,
@@ -390,7 +391,7 @@ private fun MoreMenu(
     }
 }
 
-// 点一行即合并该模板；右侧按钮立即删除模板。
+// 模板选择与删除先记录草稿，确定后再分别合并规则与写回模板列表。
 @Composable
 private fun TemplatePickerDialog(
     show: Boolean,
@@ -399,45 +400,63 @@ private fun TemplatePickerDialog(
     onApply: (RuleTemplate) -> Unit,
     onDelete: (RuleTemplate) -> Unit,
 ) {
+    var selectedId by remember { mutableStateOf<String?>(null) }
+    var deletedIds by remember { mutableStateOf(persistentSetOf<String>()) }
+    LaunchedEffect(show) {
+        if (show) {
+            selectedId = null
+            deletedIds = persistentSetOf()
+        }
+    }
     WindowDialog(
+        modifier = Modifier.dialogTestTag(TestTags.Dialog.TEMPLATE_PICKER),
         show = show,
         title = stringResource(R.string.rule_override_apply_template),
-        insideMargin = DpSize(0.dp, 24.dp),
         onDismissRequest = onDismiss,
     ) {
         Column(Modifier.heightIn(max = 500.dp)) {
-            Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {
-                templates.forEach { template ->
-                    BasicComponent(
-                        title = template.name,
-                        summary = pluralStringResource(R.plurals.rule_override_template_count, template.rules.size, template.rules.size),
-                        insideMargin = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
-                        endActions = {
-                            IconButton(
-                                onClick = { onDelete(template) },
-                                minHeight = 35.dp,
-                                minWidth = 35.dp,
-                                backgroundColor = MiuixTheme.colorScheme.secondaryContainer,
-                            ) {
-                                Icon(
-                                    modifier = Modifier.size(20.dp),
-                                    imageVector = AppIcons.Delete,
-                                    contentDescription = stringResource(R.string.common_delete),
-                                    tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                                )
-                            }
-                        },
-                        onClick = { onApply(template) },
-                    )
+            Card(Modifier.fillMaxWidth().weight(1f, fill = false)) {
+                Column(Modifier.verticalScroll(rememberScrollState())) {
+                    templates.filter { it.id !in deletedIds }.forEach { template ->
+                        RadioButtonPreference(
+                            title = template.name,
+                            selected = selectedId == template.id,
+                            radioButtonLocation = RadioButtonLocation.End,
+                            summary = pluralStringResource(R.plurals.rule_override_template_count, template.rules.size, template.rules.size),
+                            modifier = Modifier.squircleClip(16.dp).testTag(TestTags.RuleOverride.template(template.id)),
+                            endActions = {
+                                IconButton(
+                                    onClick = {
+                                        deletedIds = deletedIds.adding(template.id)
+                                        if (selectedId == template.id) selectedId = null
+                                    },
+                                    modifier = Modifier.testTag(TestTags.RuleOverride.deleteTemplate(template.id)),
+                                    minHeight = 35.dp,
+                                    minWidth = 35.dp,
+                                    backgroundColor = MiuixTheme.colorScheme.secondaryContainer,
+                                ) {
+                                    Icon(
+                                        modifier = Modifier.size(20.dp),
+                                        imageVector = AppIcons.Delete,
+                                        contentDescription = stringResource(R.string.common_delete),
+                                        tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                                    )
+                                }
+                            },
+                            onClick = { selectedId = template.id },
+                        )
+                    }
                 }
             }
-            TextButton(
-                text = stringResource(R.string.common_cancel),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
-                    .padding(top = 12.dp),
-                onClick = onDismiss,
+            Spacer(Modifier.height(12.dp))
+            DialogButtons(
+                onCancel = onDismiss,
+                confirmEnabled = selectedId != null || deletedIds.isNotEmpty(),
+                onConfirm = {
+                    templates.filter { it.id in deletedIds }.forEach(onDelete)
+                    templates.firstOrNull { it.id == selectedId }?.let(onApply)
+                    onDismiss()
+                },
             )
         }
     }
@@ -445,8 +464,12 @@ private fun TemplatePickerDialog(
 
 @Composable
 private fun TemplateSaveDialog(show: Boolean, onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
-    var name by rememberSaveable(show) { mutableStateOf("") }
+    var name by rememberSaveable { mutableStateOf("") }
+    LaunchedEffect(show) {
+        if (show) name = ""
+    }
     WindowDialog(
+        modifier = Modifier.dialogTestTag(TestTags.Dialog.TEMPLATE_SAVE),
         show = show,
         title = stringResource(R.string.rule_override_save_template),
         summary = stringResource(R.string.rule_override_save_template_summary),
@@ -464,23 +487,11 @@ private fun TemplateSaveDialog(show: Boolean, onDismiss: () -> Unit, onConfirm: 
                 .testTag(TestTags.RuleOverride.TEMPLATE_NAME),
         )
         Spacer(Modifier.height(12.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            TextButton(
-                text = stringResource(R.string.common_cancel),
-                modifier = Modifier.weight(1f),
-                onClick = onDismiss,
-            )
-            TextButton(
-                text = stringResource(R.string.common_confirm),
-                modifier = Modifier.weight(1f),
-                enabled = name.isNotBlank(),
-                colors = ButtonDefaults.textButtonColorsPrimary(),
-                onClick = { onConfirm(name) },
-            )
-        }
+        DialogButtons(
+            onCancel = onDismiss,
+            onConfirm = { onConfirm(name) },
+            confirmEnabled = name.isNotBlank(),
+        )
     }
 }
 

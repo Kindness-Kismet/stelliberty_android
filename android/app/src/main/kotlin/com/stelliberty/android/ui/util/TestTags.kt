@@ -4,6 +4,53 @@ package com.stelliberty.android.ui.util
 // debug-app skill 里的引用；写进无障碍树仅 debug 包（见 App.kt 的 testTagsAsResourceId）。
 object TestTags {
 
+    object Dialog {
+        fun tetherInterface(name: String) = "Dialog.Interface.$name"
+        const val INPUT = "Dialog.Input"
+        const val SCAN_INTERFACES = "Dialog.ScanInterfaces"
+        const val CANCEL = "Dialog.Cancel"
+        const val CONFIRM = "Dialog.Confirm"
+        const val LIST_EDITOR = "Dialog.ListEditor"
+        const val PORT_EDITOR = "Dialog.PortEditor"
+        const val TEXT_EDITOR = "Dialog.TextEditor"
+        const val PROVIDER_PROGRESS = "Dialog.ProviderProgress"
+        const val TEMPLATE_PICKER = "Dialog.TemplatePicker"
+        const val TEMPLATE_SAVE = "Dialog.TemplateSave"
+        const val AGE_KEYS = "Dialog.AgeKeys"
+        const val BACKUP_LOCAL = "Dialog.LocalBackup"
+        const val BACKUP_RESTORE_MODE = "Dialog.RestoreMode"
+        const val BACKUP_WEBDAV = "Dialog.WebDav"
+        const val ROOT_TUN_DEVICE = "Dialog.RootTunDevice"
+        const val TETHER_EDITOR = "Dialog.TetherEditor"
+        const val TETHER_SCAN = "Dialog.TetherScan"
+        const val CACHE_ACTIONS = "Dialog.CacheActions"
+        const val CLOSE_CONNECTIONS = "Dialog.CloseConnections"
+        const val DELETE_SUBSCRIPTION = "Dialog.DeleteSubscription"
+        const val DELETE_OVERRIDE = "Dialog.DeleteOverride"
+    }
+
+    object Dns {
+        const val CLEAR_DNS = "Dns.ClearDnsCache"
+        const val CLEAR_FAKEIP = "Dns.ClearFakeIpCache"
+    }
+
+    object AgeKey {
+        const val COPY_SECRET = "AgeKey.CopySecret"
+        const val COPY_PUBLIC = "AgeKey.CopyPublic"
+    }
+
+    object Backup {
+        const val RESTORE_MERGE = "Backup.RestoreMerge"
+        const val RESTORE_OVERWRITE = "Backup.RestoreOverwrite"
+        const val EXPORT_LOCAL = "Backup.ExportLocal"
+        const val RESTORE_LOCAL = "Backup.RestoreLocal"
+        const val WEBDAV_URL = "Backup.WebDavUrl"
+        const val WEBDAV_USERNAME = "Backup.WebDavUsername"
+        const val WEBDAV_PASSWORD = "Backup.WebDavPassword"
+
+        fun webDavAction(name: String) = "Backup.WebDavAction.$name"
+    }
+
     object About {
         const val CHECK_UPDATE = "About.CheckUpdate"
         const val UPDATE_CHANNEL = "About.UpdateChannel"
@@ -33,7 +80,8 @@ object TestTags {
         const val SETTINGS = "Proxy.SettingsButton"
         const val SEARCH_FIELD = "Proxy.SearchField"
         const val SETTINGS_DIALOG = "Proxy.SettingsDialog"
-        const val SETTINGS_DONE = "Proxy.SettingsDone"
+        const val SETTINGS_CANCEL = "Proxy.SettingsCancel"
+        const val SETTINGS_CONFIRM = "Proxy.SettingsConfirm"
         const val MODE_ENTRY = "Proxy.ModeEntry"
         const val TUN_STACK_ENTRY = "Proxy.TunStackEntry"
         const val GROUP_LAYOUT = "Proxy.GroupLayout"
@@ -72,6 +120,8 @@ object TestTags {
         const val INTERVAL = "Subscription.IntervalField"
 
         fun item(uuid: String) = "Subscription.Item.$uuid"
+
+        fun delete(uuid: String) = "Subscription.Item.$uuid.DeleteButton"
     }
 
     object Overrides {
@@ -119,6 +169,8 @@ object TestTags {
 
     // 规则行按在完整列表中的序号（从 1 起）编号，搜索结果里沿用同一序号。
     object RuleOverride {
+        fun template(id: String) = "RuleOverride.Template.$id"
+        fun deleteTemplate(id: String) = "RuleOverride.Template.$id.Delete"
         const val ADD = "RuleOverride.AddButton"
         const val MORE = "RuleOverride.MoreButton"
         const val SAVE = "RuleOverride.SaveButton"
@@ -135,6 +187,9 @@ object TestTags {
     }
 
     object Settings {
+        const val CHOICE_DIALOG = "Settings.ChoiceDialog"
+
+        fun option(index: Int) = "Settings.Choice.$index"
         fun entry(key: String) = "Settings.Entry.$key"
     }
 

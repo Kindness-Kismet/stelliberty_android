@@ -179,7 +179,6 @@
     <string name="proxy_mode_global_hint">Global mode is active: only the GLOBAL group routes traffic. Selections in other groups take effect after switching back to rule mode.</string>
     <string name="proxy_refresh_icon">Refresh Icons</string>
     <string name="proxy_settings_title">Proxy Settings</string>
-    <string name="proxy_settings_done">Done</string>
     <string name="proxy_single_column">Single Column</string>
     <string name="proxy_node_count">%1$d/%2$d</string>
     <string name="proxy_expand_group">Expand group</string>
@@ -588,9 +587,6 @@
     <string name="backup_restore_merge_summary">Keep local data and add only subscriptions missing on this device</string>
     <string name="backup_restore_overwrite">Overwrite</string>
     <string name="backup_restore_overwrite_summary">Replace local subscriptions and settings with the backup. This cannot be undone</string>
-    <string name="backup_restore_done_title">Restore completed</string>
-    <string name="backup_restore_done_summary">The app needs to restart to load the restored data.</string>
-    <string name="backup_restart_now">Restart now</string>
     <string name="backup_section_local">Local backup</string>
     <string name="backup_export_local">Back up to file</string>
     <string name="backup_restore_local">Restore from file</string>
@@ -614,7 +610,6 @@
     <string name="app_update_on_startup_summary">Notify me when a newer version is available</string>
     <string name="app_update_dialog_title">New version %1$s</string>
     <string name="app_update_no_notes">No release notes provided</string>
-    <string name="app_update_not_now">Not now</string>
     <string name="app_update_download">Download</string>
     <string name="app_update_open_failed">Could not open the download page</string>
 

@@ -1,7 +1,5 @@
 package com.stelliberty.android.ui.screen.settings
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -15,14 +13,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.stelliberty.android.R
+import com.stelliberty.android.ui.component.DialogButtons
 import com.stelliberty.android.ui.component.ListEditDialog
-import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.TextButton
+import com.stelliberty.android.ui.component.dialogTestTag
+import com.stelliberty.android.ui.util.TestTags
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
 import top.yukonga.miuix.kmp.window.WindowDialog
@@ -161,6 +161,7 @@ private fun PortEditDialog(
     onConfirm: (Int?) -> Unit,
 ) {
     WindowDialog(
+        modifier = Modifier.dialogTestTag(TestTags.Dialog.PORT_EDITOR),
         show = show,
         title = title,
         summary = stringResource(R.string.network_port_zero_hint),
@@ -168,13 +169,16 @@ private fun PortEditDialog(
     ) {
         TextField(
             state = textState,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().testTag(TestTags.Dialog.INPUT),
             label = stringResource(R.string.network_port_label),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         )
         Spacer(Modifier.height(12.dp))
         EditDialogButtons(
             onDismiss = onDismiss,
+            confirmEnabled = textState.text.toString().trim().let { text ->
+                text.isEmpty() || text.toIntOrNull()?.let { it in 0..65535 } == true
+            },
             onConfirm = {
                 val text = textState.text.toString().trim()
                 val port = text.toIntOrNull()
@@ -196,6 +200,7 @@ private fun TextEditDialog(
     onConfirm: (String?) -> Unit,
 ) {
     WindowDialog(
+        modifier = Modifier.dialogTestTag(TestTags.Dialog.TEXT_EDITOR),
         show = show,
         title = title,
         summary = stringResource(R.string.override_empty_hint),
@@ -203,7 +208,7 @@ private fun TextEditDialog(
     ) {
         TextField(
             state = textState,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().testTag(TestTags.Dialog.INPUT),
             label = stringResource(R.string.network_input_value),
         )
         Spacer(Modifier.height(12.dp))
@@ -218,24 +223,14 @@ private fun TextEditDialog(
 private fun EditDialogButtons(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
+    confirmEnabled: Boolean = true,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        TextButton(
-            text = stringResource(R.string.common_cancel),
-            modifier = Modifier.weight(1f),
-            onClick = onDismiss,
-        )
-        TextButton(
-            text = stringResource(R.string.common_confirm),
-            modifier = Modifier.weight(1f),
-            colors = ButtonDefaults.textButtonColorsPrimary(),
-            onClick = {
-                onConfirm()
-                onDismiss()
-            },
-        )
-    }
+    DialogButtons(
+        onCancel = onDismiss,
+        confirmEnabled = confirmEnabled,
+        onConfirm = {
+            onConfirm()
+            onDismiss()
+        },
+    )
 }

@@ -1,9 +1,7 @@
 package com.stelliberty.android.ui.component
 
 import android.widget.Toast
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -29,9 +27,10 @@ import com.stelliberty.android.R
 import com.stelliberty.android.domain.model.AppUpdateResult
 import com.stelliberty.android.ui.util.TestTags
 import com.stelliberty.android.viewmodel.AppUpdateViewModel
-import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.preference.ArrowPreference
+import top.yukonga.miuix.kmp.squircle.squircleClip
 import top.yukonga.miuix.kmp.window.WindowDialog
 
 @Composable
@@ -63,29 +62,25 @@ fun AppUpdateDialog(viewModel: AppUpdateViewModel) {
                     .verticalScroll(rememberScrollState())
                     .testTag(TestTags.About.RELEASE_NOTES),
             )
-            Spacer(Modifier.height(16.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(
-                    text = stringResource(R.string.app_update_not_now),
-                    modifier = Modifier.weight(1f).testTag(TestTags.About.UPDATE_DISMISS),
-                    onClick = viewModel::dismissUpdate,
-                )
-                TextButton(
-                    text = stringResource(R.string.app_update_download),
-                    modifier = Modifier.weight(1f).testTag(TestTags.About.UPDATE_DOWNLOAD),
-                    colors = ButtonDefaults.textButtonColorsPrimary(),
+            Spacer(Modifier.height(12.dp))
+            Card(Modifier.fillMaxWidth()) {
+                ArrowPreference(
+                    title = stringResource(R.string.app_update_download),
+                    modifier = Modifier.squircleClip(16.dp).testTag(TestTags.About.UPDATE_DOWNLOAD),
                     onClick = {
                         if (info != null) {
                             try {
                                 uriHandler.openUri(info.releaseUrl)
-                                viewModel.dismissUpdate()
                             } catch (_: IllegalArgumentException) {
                                 Toast.makeText(context, R.string.app_update_open_failed, Toast.LENGTH_SHORT).show()
                             }
+                            viewModel.dismissUpdate()
                         }
                     },
                 )
             }
+            Spacer(Modifier.height(12.dp))
+            DialogButtons(onCancel = viewModel::dismissUpdate, cancelTestTag = TestTags.About.UPDATE_DISMISS)
         }
     }
 }

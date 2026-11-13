@@ -177,7 +177,6 @@
     <string name="proxy_mode_global_hint">当前为全局模式，仅 GLOBAL 组决定出口。其他代理组的选择切回规则模式后生效。</string>
     <string name="proxy_refresh_icon">刷新图标</string>
     <string name="proxy_settings_title">代理设置</string>
-    <string name="proxy_settings_done">完成</string>
     <string name="proxy_single_column">单列显示</string>
     <string name="proxy_node_count">%1$d/%2$d</string>
     <string name="proxy_expand_group">展开代理组</string>
@@ -586,9 +585,6 @@
     <string name="backup_restore_merge_summary">保留本机数据，只添加本机没有的订阅</string>
     <string name="backup_restore_overwrite">覆盖恢复</string>
     <string name="backup_restore_overwrite_summary">用备份替换本机的订阅与设置，无法撤销</string>
-    <string name="backup_restore_done_title">恢复完成</string>
-    <string name="backup_restore_done_summary">需要重启应用以加载恢复后的数据。</string>
-    <string name="backup_restart_now">立即重启</string>
     <string name="backup_section_local">本地备份</string>
     <string name="backup_export_local">备份到文件</string>
     <string name="backup_restore_local">从文件恢复</string>
@@ -612,7 +608,6 @@
     <string name="app_update_on_startup_summary">发现新版本时提醒</string>
     <string name="app_update_dialog_title">发现新版本 %1$s</string>
     <string name="app_update_no_notes">此版本未提供更新日志</string>
-    <string name="app_update_not_now">暂不更新</string>
     <string name="app_update_download">前往下载</string>
     <string name="app_update_open_failed">无法打开下载页面</string>
 

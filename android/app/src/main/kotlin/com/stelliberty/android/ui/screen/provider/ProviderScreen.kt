@@ -251,6 +251,7 @@ fun ProviderScreen(
     ProviderRefreshDialog(
         show = uiState.refresh != null,
         progress = uiState.refresh,
+        onCancel = viewModel::cancelRefresh,
     )
 }
 

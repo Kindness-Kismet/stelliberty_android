@@ -156,6 +156,13 @@ class ProviderViewModel : ViewModel() {
         }
     }
 
+    fun cancelRefresh() {
+        refreshJob?.cancel()
+        refreshJob = null
+        _uiState.update { it.copy(refresh = null) }
+        loadProviders()
+    }
+
     fun updateAll() {
         val repo = repository ?: return
         val snapshot = _uiState.value.providers

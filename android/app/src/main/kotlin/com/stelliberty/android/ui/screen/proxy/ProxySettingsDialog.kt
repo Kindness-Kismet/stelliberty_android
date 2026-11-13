@@ -8,21 +8,29 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.unit.dp
 import com.stelliberty.android.BuildConfig
 import com.stelliberty.android.R
 import com.stelliberty.android.platform.TunMode
+import com.stelliberty.android.ui.component.DialogButtons
 import com.stelliberty.android.ui.component.SingleChoicePreference
 import com.stelliberty.android.ui.util.TestTags
 import kotlinx.collections.immutable.toImmutableList
+import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Card
-import top.yukonga.miuix.kmp.basic.TextButton
-import top.yukonga.miuix.kmp.preference.ArrowPreference
+import top.yukonga.miuix.kmp.basic.Checkbox
 import top.yukonga.miuix.kmp.preference.SwitchPreference
 import top.yukonga.miuix.kmp.squircle.squircleClip
 import top.yukonga.miuix.kmp.window.WindowDialog
@@ -36,17 +44,28 @@ private val TUN_STACK_OPTIONS = listOf(
     "mips" to "MIPS",
 )
 
-// 选路与显示改动即时生效，对话框只作为入口，不设确认草稿。
+@Immutable
+private data class ProxySettingsDraft(
+    val modeIndex: Int,
+    val tunStackIndex: Int,
+    val groupTabs: Boolean,
+    val singleColumn: Boolean,
+    val hideUnavailable: Boolean,
+    val showGlobalGroup: Boolean,
+    val sortIndex: Int,
+    val reverseSort: Boolean,
+    val clearIconCache: Boolean = false,
+)
+
 @Composable
 internal fun ProxySettingsDialog(
     show: Boolean,
     onDismissRequest: () -> Unit,
     mode: String,
-    onSwitchMode: (String) -> Unit,
+    onApplyRouting: (String?, String?) -> Unit,
     tunStack: String,
     tunMode: TunMode,
     isRunning: Boolean,
-    onSwitchTunStack: (String) -> Unit,
     groupTabs: Boolean,
     onGroupTabsChange: (Boolean) -> Unit,
     singleColumn: Boolean,
@@ -54,7 +73,6 @@ internal fun ProxySettingsDialog(
     hideUnavailable: Boolean,
     onHideUnavailableChange: (Boolean) -> Unit,
     showGlobalGroup: Boolean,
-    globalModeActive: Boolean,
     onShowGlobalGroupChange: (Boolean) -> Unit,
     sortOption: Int,
     onSortOptionChange: (Int) -> Unit,
@@ -65,6 +83,14 @@ internal fun ProxySettingsDialog(
     val sortIndex = (sortOption / 2).coerceIn(0, 2)
     val reverseSort = sortOption % 2 != 0
     val tunStackEnabled = isRunning && tunMode != TunMode.RootTproxy
+    val initial = ProxySettingsDraft(
+        modeIndex, tunStackIndex, groupTabs, singleColumn, hideUnavailable, showGlobalGroup, sortIndex, reverseSort,
+    )
+    var draft by remember { mutableStateOf(initial) }
+    LaunchedEffect(show) {
+        if (show) draft = initial
+    }
+    val draftGlobalMode = MODE_OPTIONS[draft.modeIndex].first == "global"
 
     WindowDialog(
         show = show,
@@ -84,23 +110,17 @@ internal fun ProxySettingsDialog(
                     SingleChoicePreference(
                         title = stringResource(R.string.proxy_mode),
                         items = MODE_OPTIONS.map { it.second }.toImmutableList(),
-                        selectedIndex = modeIndex,
+                        selectedIndex = draft.modeIndex,
                         modifier = Modifier.testTag(TestTags.Proxy.MODE_ENTRY),
-                        onSelectedIndexChange = { index ->
-                            val value = MODE_OPTIONS[index].first
-                            if (!mode.equals(value, ignoreCase = true)) onSwitchMode(value)
-                        },
+                        onSelectedIndexChange = { draft = draft.copy(modeIndex = it) },
                     )
                     SingleChoicePreference(
                         title = stringResource(R.string.proxy_tun_stack),
                         items = TUN_STACK_OPTIONS.map { it.second }.toImmutableList(),
-                        selectedIndex = tunStackIndex,
+                        selectedIndex = draft.tunStackIndex,
                         modifier = Modifier.testTag(TestTags.Proxy.TUN_STACK_ENTRY),
                         enabled = tunStackEnabled,
-                        onSelectedIndexChange = { index ->
-                            val value = TUN_STACK_OPTIONS[index].first
-                            if (!tunStack.equals(value, ignoreCase = true)) onSwitchTunStack(value)
-                        },
+                        onSelectedIndexChange = { draft = draft.copy(tunStackIndex = it) },
                     )
                 }
                 Spacer(Modifier.height(12.dp))
@@ -111,28 +131,28 @@ internal fun ProxySettingsDialog(
                             stringResource(R.string.proxy_layout_horizontal),
                             stringResource(R.string.proxy_layout_vertical),
                         ).toImmutableList(),
-                        selectedIndex = if (groupTabs) 0 else 1,
+                        selectedIndex = if (draft.groupTabs) 0 else 1,
                         modifier = Modifier.testTag(TestTags.Proxy.GROUP_LAYOUT),
-                        onSelectedIndexChange = { onGroupTabsChange(it == 0) },
+                        onSelectedIndexChange = { draft = draft.copy(groupTabs = it == 0) },
                     )
                     SwitchPreference(
                         title = stringResource(R.string.proxy_single_column),
-                        checked = singleColumn,
+                        checked = draft.singleColumn,
                         modifier = Modifier.squircleClip(16.dp).testTag(TestTags.Proxy.SINGLE_COLUMN),
-                        onCheckedChange = onSingleColumnChange,
+                        onCheckedChange = { draft = draft.copy(singleColumn = it) },
                     )
                     SwitchPreference(
                         title = stringResource(R.string.proxy_hide_unavailable),
-                        checked = hideUnavailable,
+                        checked = draft.hideUnavailable,
                         modifier = Modifier.squircleClip(16.dp).testTag(TestTags.Proxy.HIDE_UNAVAILABLE),
-                        onCheckedChange = onHideUnavailableChange,
+                        onCheckedChange = { draft = draft.copy(hideUnavailable = it) },
                     )
                     SwitchPreference(
                         title = stringResource(R.string.proxy_show_global_group),
-                        checked = showGlobalGroup || globalModeActive,
-                        enabled = !globalModeActive,
+                        checked = draft.showGlobalGroup || draftGlobalMode,
+                        enabled = !draftGlobalMode,
                         modifier = Modifier.squircleClip(16.dp).testTag(TestTags.Proxy.SHOW_GLOBAL_GROUP),
-                        onCheckedChange = onShowGlobalGroupChange,
+                        onCheckedChange = { draft = draft.copy(showGlobalGroup = it) },
                     )
                 }
                 Spacer(Modifier.height(12.dp))
@@ -144,31 +164,51 @@ internal fun ProxySettingsDialog(
                             stringResource(R.string.proxy_sort_name),
                             stringResource(R.string.proxy_sort_delay),
                         ).toImmutableList(),
-                        selectedIndex = sortIndex,
+                        selectedIndex = draft.sortIndex,
                         modifier = Modifier.testTag(TestTags.Proxy.SORT_ENTRY),
-                        onSelectedIndexChange = { onSortOptionChange(it * 2 + if (reverseSort) 1 else 0) },
+                        onSelectedIndexChange = { draft = draft.copy(sortIndex = it) },
                     )
                     SwitchPreference(
                         title = stringResource(R.string.proxy_sort_reverse),
-                        checked = reverseSort,
+                        checked = draft.reverseSort,
                         modifier = Modifier.squircleClip(16.dp).testTag(TestTags.Proxy.SORT_REVERSE),
-                        onCheckedChange = { onSortOptionChange(sortIndex * 2 + if (it) 1 else 0) },
+                        onCheckedChange = { draft = draft.copy(reverseSort = it) },
                     )
                 }
                 Spacer(Modifier.height(12.dp))
                 Card(Modifier.fillMaxWidth()) {
-                    ArrowPreference(
+                    BasicComponent(
                         title = stringResource(R.string.proxy_refresh_icon),
                         modifier = Modifier.squircleClip(16.dp).testTag(TestTags.Proxy.REFRESH_ICONS),
-                        onClick = onClearIconCache,
+                        onClick = { draft = draft.copy(clearIconCache = !draft.clearIconCache) },
+                        endActions = {
+                            Checkbox(
+                                state = if (draft.clearIconCache) ToggleableState.On else ToggleableState.Off,
+                                onClick = { draft = draft.copy(clearIconCache = !draft.clearIconCache) },
+                            )
+                        },
                     )
                 }
             }
             Spacer(Modifier.height(12.dp))
-            TextButton(
-                text = stringResource(R.string.proxy_settings_done),
-                modifier = Modifier.fillMaxWidth().testTag(TestTags.Proxy.SETTINGS_DONE),
-                onClick = onDismissRequest,
+            DialogButtons(
+                onCancel = onDismissRequest,
+                cancelTestTag = TestTags.Proxy.SETTINGS_CANCEL,
+                confirmTestTag = TestTags.Proxy.SETTINGS_CONFIRM,
+                onConfirm = {
+                    onApplyRouting(
+                        MODE_OPTIONS[draft.modeIndex].first.takeIf { draft.modeIndex != modeIndex },
+                        TUN_STACK_OPTIONS[draft.tunStackIndex].first.takeIf { tunStackEnabled && draft.tunStackIndex != tunStackIndex },
+                    )
+                    if (draft.groupTabs != groupTabs) onGroupTabsChange(draft.groupTabs)
+                    if (draft.singleColumn != singleColumn) onSingleColumnChange(draft.singleColumn)
+                    if (draft.hideUnavailable != hideUnavailable) onHideUnavailableChange(draft.hideUnavailable)
+                    if (draft.showGlobalGroup != showGlobalGroup) onShowGlobalGroupChange(draft.showGlobalGroup)
+                    val nextSort = draft.sortIndex * 2 + if (draft.reverseSort) 1 else 0
+                    if (nextSort != sortOption) onSortOptionChange(nextSort)
+                    if (draft.clearIconCache) onClearIconCache()
+                    onDismissRequest()
+                },
             )
         }
     }

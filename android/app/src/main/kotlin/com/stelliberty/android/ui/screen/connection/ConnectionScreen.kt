@@ -51,6 +51,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.stelliberty.android.R
 import com.stelliberty.android.domain.model.ConnectionInfo
 import com.stelliberty.android.ui.component.AdaptiveTopAppBar
+import com.stelliberty.android.ui.component.DialogButtons
 import com.stelliberty.android.ui.component.SearchBarFake
 import com.stelliberty.android.ui.component.SearchBox
 import com.stelliberty.android.ui.component.SearchPager
@@ -58,6 +59,7 @@ import com.stelliberty.android.ui.component.SearchResultStatusEffect
 import com.stelliberty.android.ui.component.SearchStatus
 import com.stelliberty.android.ui.component.blur.BlurredBar
 import com.stelliberty.android.ui.component.blur.rememberBlurBackdrop
+import com.stelliberty.android.ui.component.dialogTestTag
 import com.stelliberty.android.ui.component.rememberSearchBarTopPadding
 import com.stelliberty.android.ui.component.rememberSearchScreenStatus
 import com.stelliberty.android.ui.icon.AppIcons
@@ -73,7 +75,6 @@ import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.squircle.squircleBackground
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -292,30 +293,19 @@ fun ConnectionScreen(
     }
 
     WindowDialog(
+        modifier = Modifier.dialogTestTag(TestTags.Dialog.CLOSE_CONNECTIONS),
         show = showCloseAllDialog,
         title = stringResource(R.string.connection_close_all_title),
         summary = stringResource(R.string.connection_close_all_summary),
         onDismissRequest = { showCloseAllDialog = false },
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            TextButton(
-                text = stringResource(R.string.common_cancel),
-                modifier = Modifier.weight(1f),
-                onClick = { showCloseAllDialog = false },
-            )
-            TextButton(
-                text = stringResource(R.string.common_confirm),
-                modifier = Modifier.weight(1f),
-                colors = top.yukonga.miuix.kmp.basic.ButtonDefaults.textButtonColorsPrimary(),
-                onClick = {
-                    viewModel.closeAllConnections()
-                    showCloseAllDialog = false
-                },
-            )
-        }
+        DialogButtons(
+            onCancel = { showCloseAllDialog = false },
+            onConfirm = {
+                showCloseAllDialog = false
+                viewModel.closeAllConnections()
+            },
+        )
     }
 }
 

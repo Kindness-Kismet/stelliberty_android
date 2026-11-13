@@ -39,16 +39,19 @@ testTag 挂在最外层节点，按钮文字在子节点，`get` 返回整棵子
 | 前缀 | 覆盖 |
 |---|---|
 | `Home.*` | 启停按钮、状态卡、延迟测试、流量卡、订阅卡 |
-| `Proxy.*` | 顶栏 `SearchButton` / `RefreshButton` / `SettingsButton`；设置对话框 `SettingsDialog` / `SettingsDone` 及各行 `ModeEntry` / `TunStackEntry` / `GroupLayout` / `SingleColumn` / `HideUnavailable` / `ShowGlobalGroup` / `SortEntry` / `SortReverse` / `RefreshIcons` |
+| `Proxy.*` | 顶栏 `SearchButton` / `RefreshButton` / `SettingsButton`；设置对话框 `SettingsDialog` / `SettingsCancel` / `SettingsConfirm` 及各行 `ModeEntry` / `TunStackEntry` / `GroupLayout` / `SingleColumn` / `HideUnavailable` / `ShowGlobalGroup` / `SortEntry` / `SortReverse` / `RefreshIcons` |
+| `Dialog.*` | 对话框根节点、通用 `Cancel` / `Confirm`、输入 `Input` 与热点接口扫描 `ScanInterfaces`；按钮默认次要取消、主色确定，单选类只有取消 |
+| `Backup.*` | 本地导出 / 恢复 `ExportLocal` / `RestoreLocal`，恢复模式 `RestoreMerge` / `RestoreOverwrite`，WebDAV 表单 `WebDavUrl` / `WebDavUsername` / `WebDavPassword` 与草稿动作 `WebDavAction.Test/Backup/Restore` |
+| `AgeKey.*` / `Dns.*` | 密钥复制 `CopySecret` / `CopyPublic`，缓存操作 `ClearDnsCache` / `ClearFakeIpCache`；点操作后关闭弹窗 |
 | `Proxy.GroupTab.<组名>` | 横向组标签 |
 | `Proxy.Group.<组名>` | 代理组行；`.TestButton` 是组测速（兼作右侧延迟标签），`.ToggleButton` 是展开，`.UnfixButton` 是解除固定 |
 | `Proxy.Node.<节点名>` | 节点项；`.TestButton` 是节点测速 |
-| `Subscription.*` | 新增、全部更新、进度弹窗（`ProgressDialog`）与取消按钮（`CancelUpdateButton`）、添加页与编辑页的名称（`NameField`）、地址（`UrlField`）、请求标识（`UserAgentField`）、密钥（`AgeKeyField`）、更新间隔（`IntervalField`）与自动测试延迟输入框（`AutoDelayField`）；`Subscription.Item.<uuid>` 是订阅行 |
+| `Subscription.*` | 新增、全部更新、进度弹窗（`ProgressDialog`）与取消按钮（`CancelUpdateButton`）、添加页与编辑页的名称（`NameField`）、地址（`UrlField`）、请求标识（`UserAgentField`）、密钥（`AgeKeyField`）、更新间隔（`IntervalField`）与自动测试延迟输入框（`AutoDelayField`）；`Subscription.Item.<uuid>` 是订阅行，`.DeleteButton` 为删除入口 |
 | `Overrides.*` | 新增、保存、名称与地址输入；`Item.<id>` 的编辑 / 更新 / 删除按钮，`Select.<id>` 的选择与上下移动 |
 | `ChainProxy.*` | 新增、保存、名称输入；`Custom.<id>` 的开关与删除按钮，`Hop.<序号>` 的上下移动与移除 |
-| `RuleOverride.*` | 新增、更多、保存；`Row.<序号>` 是规则行（序号从 1 起），`.Toggle` 是开关；`Menu.<序号>` 是更多菜单项；编辑页的内容、位置输入与删除按钮 |
-| `Settings.Entry.<key>` | 设置项，由 `groupedCardItems` 按 `CardItem.key` 自动生成，key 与 `settings.dump` 的键名一致 |
-| `About.*` | 更新检查 `CheckUpdate`、渠道入口 `UpdateChannel` 与选项 `Channel.STABLE/TEST`、启动检查 `UpdateStartup`、新版弹窗 `UpdateDialog`、日志 `ReleaseNotes`、稍后更新 `UpdateDismiss`、下载 `UpdateDownload` |
+| `RuleOverride.*` | 新增、更多、保存；`Row.<序号>` 是规则行（序号从 1 起），`.Toggle` 是开关；`Menu.<序号>` 是更多菜单项；编辑页的内容、位置输入与删除按钮；`Template.<id>` 与其 `.Delete` 只修改弹窗草稿，确定后应用 |
+| `Settings.Entry.<key>` | 设置项，由 `groupedCardItems` 按 `CardItem.key` 自动生成；key 以页面定义为准，可用 `list` 查询 |
+| `About.*` | 更新检查 `CheckUpdate`、渠道入口 `UpdateChannel` 与选项 `Channel.STABLE/TEST`、启动检查 `UpdateStartup`、新版弹窗 `UpdateDialog`、日志 `ReleaseNotes`、取消 `UpdateDismiss`、下载 `UpdateDownload` |
 | `AppProxy.Mode.<模式名>` | 分应用代理三种模式（`AllowAll` / `AllowSelected` / `DenySelected`） |
 | `AppProxy.AppList` | 当前筛选列表的已选数与总数 |
 | `AppProxy.App.<包名>` | 应用项，点一下切换勾选 |
@@ -93,5 +96,7 @@ URL、age 密钥这类标点密集的值优先用业务指令（`subscription.ad
 - 分应用代理的模式与勾选：`settings.set` 可写 `app_proxy_mode` / `app_proxy_packages`，验证界面联动时点 `AppProxy.*`
 
 ## 新增控件
+
+`debug-call.sh -m dialog.show_fixture -a app_update` 使用示例更新信息打开实际更新弹窗，供检查按钮、关闭和无浏览器时的反馈；只替换 debug 进程内的状态。
 
 在 `TestTags.kt` 登记后挂 `Modifier.testTag(...)`；设置项由 `groupedCardItems` 按 key 自动生成。测试 ID 是调试脚本的契约，改名时在 debug-app skill 里搜出引用一并更新。
