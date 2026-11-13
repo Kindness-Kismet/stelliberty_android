@@ -47,6 +47,7 @@
     <string name="error_vpn_denied">VPN 權限遭拒</string>
     <string name="error_start_failed">啟動失敗</string>
     <string name="error_root_failed">無法取得 Root 權限</string>
+    <string name="error_root_rules_failed">無法設定 Root 路由或 DNS 攔截規則，請查看應用程式日誌後重試。</string>
     <string name="error_mihomo_not_found">找不到 mihomo 執行檔</string>
     <string name="error_fork_failed">fork+exec 失敗</string>
     <string name="error_root_start_failed">root 啟動失敗</string>

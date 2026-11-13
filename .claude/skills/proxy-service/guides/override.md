@@ -14,9 +14,11 @@
 
 三模式共用 `profile.store-selected=false` / `store-fake-ip=true`。
 
+两个 ROOT 模式均启用 DNS、监听 `0.0.0.0:1053` 并使用 `redir-host`，由 `RootDnsHijacker` 接管系统 DNS；真实地址保证分应用排除项与应用自身可直连，局域网路由绕过不影响 DNS 解析进入内核。
+
 - **VPN**：`tun.enable=true` + `file-descriptor` + `dns-hijack=[0.0.0.0:53]` + `auto-route=false`，透传 stack / device。
 - **ROOT TUN**：`auto-route=true` + `auto-detect-interface=true` + `iproute2-table-index=2022` + `iproute2-rule-index=9000` + dns-hijack + `include/exclude-package` + **`route-exclude-address`**（私网 + 组播 + 保留段，复用 `IptablesIntranet.V4`，开启 IPv6 时叠加 `.V6`）。sing-tun `auto_route` 在该项为空时铺满 `0.0.0.0/0`，把 LAN 单播与 224/4 组播一起导进 TUN，同网段设备发现与 P2P 直连（妙享投屏）随之失效；VPN 靠 `bypass_private_route`、ROOT TPROXY 靠 iptables RETURN 处理同一问题。
-- **ROOT TPROXY**：`tun.enable=false` + `tproxy-port=7895` + `dns.listen=0.0.0.0:1053`；分应用走 iptables uid-owner，`routing-mark` 与 `include/exclude-package` 留空（`routing-mark` 与 Netd 冲突）。
+- **ROOT TPROXY**：`tun.enable=false` + `tproxy-port=7895`；分应用走 iptables uid-owner，内核绕过走 gid-owner，`routing-mark` 与 `include/exclude-package` 留空（`routing-mark` 与 Netd 冲突）。
 
 ## secret
 

@@ -49,13 +49,13 @@ object RootHelper {
         }
     }
 
-    fun startAsRoot(binary: String, args: Array<String>, workDir: String, logFile: String): Int {
+    fun startAsRoot(binary: String, args: Array<String>, workDir: String, logFile: String, proxyGid: Int): Int {
         val argsStr = args.joinToString(" ") { escapeShellSingleQuoted(it) }
         val command = "cd ${escapeShellSingleQuoted(workDir)} || exit 1; " +
                 "${escapeShellSingleQuoted(binary)} $argsStr > ${escapeShellSingleQuoted(logFile)} 2>&1 & echo \$!"
         AppLogger.info(TAG, "Starting as root: ${redactArgs(args)}")
         return try {
-            val process = ProcessBuilder("su", "-c", command)
+            val process = ProcessBuilder("su", "-g", proxyGid.toString(), "-c", command)
                 .redirectErrorStream(true)
                 .start()
             val reader = process.inputStream.bufferedReader()
@@ -104,6 +104,15 @@ object RootHelper {
         } catch (_: Exception) {
             false
         }
+    }
+
+    fun mihomoGroup(pid: Int): Int? {
+        val script = RootProcessScript.group(BuildConfig.APPLICATION_ID, pid)
+        return runCatching {
+            val process = ProcessBuilder("su", "-c", script).redirectErrorStream(true).start()
+            val result = awaitDrained(process, 5)
+            if (result.code == 0) result.output.toIntOrNull() else null
+        }.getOrNull()
     }
 
     fun stopMihomo(tunDevice: String, pid: Int? = null): Boolean {

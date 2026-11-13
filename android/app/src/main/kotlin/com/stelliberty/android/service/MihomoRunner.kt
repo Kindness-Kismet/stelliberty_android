@@ -114,7 +114,8 @@ class MihomoRunner(private val context: Context) {
                     binary.absolutePath,
                     args,
                     workDir.absolutePath,
-                    logFile.absolutePath
+                    logFile.absolutePath,
+                    proxyGid = context.applicationInfo.uid,
                 )
             } else {
                 ProcessHelper.nativeForkExec(

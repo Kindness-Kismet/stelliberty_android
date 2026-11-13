@@ -49,6 +49,7 @@
     <string name="error_vpn_denied">VPN permission denied</string>
     <string name="error_start_failed">Start failed</string>
     <string name="error_root_failed">Cannot obtain Root permission</string>
+    <string name="error_root_rules_failed">Could not configure Root routing or DNS interception. Check the app log and try again.</string>
     <string name="error_mihomo_not_found">mihomo binary not found</string>
     <string name="error_fork_failed">fork+exec failed</string>
     <string name="error_root_start_failed">root start failed</string>

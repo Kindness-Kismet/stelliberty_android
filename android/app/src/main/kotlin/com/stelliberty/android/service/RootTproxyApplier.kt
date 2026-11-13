@@ -14,18 +14,12 @@ object RootTproxyApplier {
 
     // 端口的唯一定义在热点劫持那边，这里只是转出来给别处用，不要另写一个数字。
     internal const val TPROXY_PORT = RootTetherHijacker.TPROXY_PORT
-    internal const val DNS_PORT = 1053
-
-    internal const val MIHOMO_BYPASS_UID = 0
 
     private const val CHAIN_PRE = "stelliberty_tproxy_pre"
     private const val CHAIN_OUT = "stelliberty_tproxy_out"
     private const val CHAIN_DIVERT = "stelliberty_tproxy_divert"
-    private const val CHAIN_DNS_PRE = "stelliberty_dns_pre"
-    private const val CHAIN_DNS_OUT = "stelliberty_dns_out"
 
     private val MANGLE_CHAINS = listOf(CHAIN_PRE, CHAIN_OUT, CHAIN_DIVERT)
-    private val NAT_CHAINS = listOf(CHAIN_DNS_PRE, CHAIN_DNS_OUT)
 
     internal const val COMMENT_TAG_PREFIX = "stelliberty:tproxy:"
 
@@ -39,11 +33,12 @@ object RootTproxyApplier {
         mode: AppProxyMode,
         tetherIfaces: List<String>,
         ipv6Enabled: Boolean,
-    ) {
+    ): Boolean {
         AppLogger.info(TAG, "apply: appUid=$appUid mode=$mode selected=${selectedUids.size} ifaces=$tetherIfaces ipv6=$ipv6Enabled")
         val script = buildApplyScript(appUid, selectedUids, mode, tetherIfaces, ipv6Enabled)
         val code = RootHelper.runRootScriptHeredoc(script, timeoutSeconds = 20)
         AppLogger.info(TAG, "apply finished code=$code")
+        return code == 0
     }
 
     fun teardown() {
@@ -53,19 +48,26 @@ object RootTproxyApplier {
     }
 
     // 重连时用它判断规则是否还齐全，齐全就跳过重装。规则可能被第三方模块清掉，所以不能假定还在。
-    fun anyRulesPresent(): Boolean {
+    fun rulesPresent(appUid: Int, ipv6Enabled: Boolean): Boolean {
         val w = RootTetherHijacker.IPT_WAIT_SECONDS
-        val script = """
-            #!/system/bin/sh
-            $IPT4 -t mangle -S 2>/dev/null | grep -q '$COMMENT_TAG_PREFIX' && exit 0
-            $IPT4 -t nat    -S 2>/dev/null | grep -q '$COMMENT_TAG_PREFIX' && exit 0
-            $IPT4 -t mangle -S 2>/dev/null | grep -q '$CHAIN_PRE' && exit 0
-            $IPT4 -t mangle -S 2>/dev/null | grep -q '$CHAIN_OUT' && exit 0
-            ip rule show 2>/dev/null | grep -q '^$PRIORITY:' && exit 0
-            exit 1
-        """.trimIndent()
+        val script = buildString {
+            appendLine("#!/system/bin/sh")
+            appendLine("set -e")
+            for (ipt in if (ipv6Enabled) TABLES else V4_ONLY_TABLES) {
+                appendLine("$ipt -t mangle -C PREROUTING -j $CHAIN_PRE")
+                appendLine("$ipt -t mangle -C OUTPUT -j $CHAIN_OUT")
+                appendLine("$ipt -t mangle -C $CHAIN_OUT -m owner --gid-owner $appUid -j RETURN ${tag("out-bypass-core")}")
+            }
+            appendLine("ip rule show | grep -q '^$PRIORITY:.*fwmark 0x1000000/0x1000000 lookup $TABLE'")
+            appendLine("ip route show table $TABLE | grep -q '^local default dev lo'")
+            if (ipv6Enabled) {
+                appendLine("ip -6 rule show | grep -q '^$PRIORITY:.*fwmark 0x1000000/0x1000000 lookup $TABLE'")
+                appendLine("ip -6 route show table $TABLE | grep -q '^local default dev lo'")
+            }
+            RootDnsHijacker.appendChecks(this, appUid, ipv6Enabled, includeForwarded = true)
+        }
         val code = RootHelper.runRootScriptHeredoc(script, timeoutSeconds = w + 5L)
-        return code != 1
+        return code == 0
     }
 
     private fun buildApplyScript(
@@ -80,6 +82,7 @@ object RootTproxyApplier {
         sb.appendLine("#!/system/bin/sh")
         sb.appendLine("set +e")
         sb.append(buildTeardownScript(includeShebang = false))
+        sb.appendLine("set -e")
         sb.appendLine()
         sb.appendLine("# === 1. ip rule + route ===")
         sb.appendLine("ip rule  add fwmark $MARK/$MASK lookup $TABLE priority $PRIORITY 2>/dev/null")
@@ -95,8 +98,6 @@ object RootTproxyApplier {
             sb.appendLine("$t -t mangle -N $CHAIN_PRE")
             sb.appendLine("$t -t mangle -N $CHAIN_OUT")
             sb.appendLine("$t -t mangle -N $CHAIN_DIVERT")
-            sb.appendLine("$t -t nat -N $CHAIN_DNS_PRE 2>/dev/null")
-            sb.appendLine("$t -t nat -N $CHAIN_DNS_OUT 2>/dev/null")
         }
 
         sb.appendLine()
@@ -109,9 +110,9 @@ object RootTproxyApplier {
         sb.appendLine()
         sb.appendLine("# === 4. PREROUTING 主链 (intranet RETURN + LOCAL RETURN + DIVERT + TPROXY) ===")
         appendIntranetReturns(sb, table = "mangle", chain = CHAIN_PRE, tagLabel = "pre-intranet", ipv6Enabled = ipv6Enabled)
-        sb.appendLine("$IPT4 -t mangle -A $CHAIN_PRE -m addrtype --dst-type LOCAL -j RETURN ${tag("pre-local")}")
+        appendAddressTypeReturn(sb, IPT4, CHAIN_PRE, "LOCAL", "-4", "pre-local")
         if (ipv6Enabled) {
-            sb.appendLine("$IPT6 -t mangle -A $CHAIN_PRE -m addrtype --dst-type LOCAL -j RETURN ${tag("pre-local-v6")} 2>/dev/null")
+            appendAddressTypeReturn(sb, IPT6, CHAIN_PRE, "LOCAL", "-6", "pre-local-v6")
         }
         for (t in tables) {
             sb.appendLine("$t -t mangle -A $CHAIN_PRE -p tcp -m socket -j $CHAIN_DIVERT ${tag("pre-divert-tcp")}")
@@ -160,12 +161,10 @@ object RootTproxyApplier {
         sb.appendLine()
         sb.appendLine("# === 5. OUTPUT 主链 (本机按 AppProxyMode 打 mark) ===")
         for (t in tables) {
-            sb.appendLine("$t -t mangle -A $CHAIN_OUT -m owner --uid-owner $MIHOMO_BYPASS_UID -j RETURN ${tag("out-bypass-root")}")
-            if (appUid != MIHOMO_BYPASS_UID) {
-                sb.appendLine("$t -t mangle -A $CHAIN_OUT -m owner --uid-owner $appUid -j RETURN ${tag("out-bypass-self")}")
-            }
-            sb.appendLine("$t -t mangle -A $CHAIN_OUT -m addrtype --dst-type LOCAL -j RETURN ${tag("out-local")}")
-            sb.appendLine("$t -t mangle -A $CHAIN_OUT -m addrtype --dst-type BROADCAST -j RETURN ${tag("out-broadcast")}")
+            sb.appendLine("$t -t mangle -A $CHAIN_OUT -m owner --gid-owner $appUid -j RETURN ${tag("out-bypass-core")}")
+            sb.appendLine("$t -t mangle -A $CHAIN_OUT -m owner --uid-owner $appUid -j RETURN ${tag("out-bypass-self")}")
+            appendAddressTypeReturn(sb, t, CHAIN_OUT, "LOCAL", if (t == IPT4) "-4" else "-6", "out-local")
+            if (t == IPT4) appendAddressTypeReturn(sb, t, CHAIN_OUT, "BROADCAST", "-4", "out-broadcast")
             sb.appendLine("$t -t mangle -A $CHAIN_OUT -p udp --dport 53 -j RETURN ${tag("out-dns-udp")}")
             sb.appendLine("$t -t mangle -A $CHAIN_OUT -p tcp --dport 53 -j RETURN ${tag("out-dns-tcp")}")
         }
@@ -213,40 +212,13 @@ object RootTproxyApplier {
         }
 
         sb.appendLine()
-        sb.appendLine("# === 6. DNS 劫持 (nat REDIRECT to mihomo dns.listen) ===")
-        sb.appendLine("$IPT4 -t nat -A $CHAIN_DNS_PRE -p udp --dport 53 -j REDIRECT --to-ports $DNS_PORT ${tag("dns-pre-udp")}")
-        sb.appendLine("$IPT4 -t nat -A $CHAIN_DNS_PRE -p tcp --dport 53 -j REDIRECT --to-ports $DNS_PORT ${tag("dns-pre-tcp")}")
-        if (ipv6Enabled) {
-            sb.appendLine("$IPT6 -t nat -A $CHAIN_DNS_PRE -p udp --dport 53 -j REDIRECT --to-ports $DNS_PORT ${tag("dns-pre-udp-v6")} 2>/dev/null")
-            sb.appendLine("$IPT6 -t nat -A $CHAIN_DNS_PRE -p tcp --dport 53 -j REDIRECT --to-ports $DNS_PORT ${tag("dns-pre-tcp-v6")} 2>/dev/null")
-        }
-
-        sb.appendLine("$IPT4 -t nat -A $CHAIN_DNS_OUT -m owner --uid-owner $MIHOMO_BYPASS_UID -j RETURN ${tag("dns-out-bypass-root")}")
-        if (appUid != MIHOMO_BYPASS_UID) {
-            sb.appendLine("$IPT4 -t nat -A $CHAIN_DNS_OUT -m owner --uid-owner $appUid -j RETURN ${tag("dns-out-bypass-self")}")
-        }
-        sb.appendLine("$IPT4 -t nat -A $CHAIN_DNS_OUT -p udp --dport 53 -j REDIRECT --to-ports $DNS_PORT ${tag("dns-out-udp")}")
-        sb.appendLine("$IPT4 -t nat -A $CHAIN_DNS_OUT -p tcp --dport 53 -j REDIRECT --to-ports $DNS_PORT ${tag("dns-out-tcp")}")
-        if (ipv6Enabled) {
-            sb.appendLine("$IPT6 -t nat -A $CHAIN_DNS_OUT -m owner --uid-owner $MIHOMO_BYPASS_UID -j RETURN ${tag("dns-out-bypass-root-v6")} 2>/dev/null")
-            if (appUid != MIHOMO_BYPASS_UID) {
-                sb.appendLine("$IPT6 -t nat -A $CHAIN_DNS_OUT -m owner --uid-owner $appUid -j RETURN ${tag("dns-out-bypass-self-v6")} 2>/dev/null")
-            }
-            sb.appendLine("$IPT6 -t nat -A $CHAIN_DNS_OUT -p udp --dport 53 -j REDIRECT --to-ports $DNS_PORT ${tag("dns-out-udp-v6")} 2>/dev/null")
-            sb.appendLine("$IPT6 -t nat -A $CHAIN_DNS_OUT -p tcp --dport 53 -j REDIRECT --to-ports $DNS_PORT ${tag("dns-out-tcp-v6")} 2>/dev/null")
-        }
+        RootDnsHijacker.appendApply(sb, appUid, ipv6Enabled, includeForwarded = true)
 
         sb.appendLine()
         sb.appendLine("# === 7. 挂主链 ===")
         for (t in tables) {
             sb.appendLine("$t -t mangle -I PREROUTING -j $CHAIN_PRE")
             sb.appendLine("$t -t mangle -I OUTPUT -j $CHAIN_OUT")
-        }
-        sb.appendLine("$IPT4 -t nat -I PREROUTING -j $CHAIN_DNS_PRE")
-        sb.appendLine("$IPT4 -t nat -I OUTPUT     -j $CHAIN_DNS_OUT")
-        if (ipv6Enabled) {
-            sb.appendLine("$IPT6 -t nat -I PREROUTING -j $CHAIN_DNS_PRE 2>/dev/null")
-            sb.appendLine("$IPT6 -t nat -I OUTPUT     -j $CHAIN_DNS_OUT 2>/dev/null")
         }
 
         sb.appendLine()
@@ -264,22 +236,19 @@ object RootTproxyApplier {
         for (t in TABLES) {
             sb.appendLine("$t -t mangle -D PREROUTING -j $CHAIN_PRE 2>/dev/null")
             sb.appendLine("$t -t mangle -D OUTPUT -j $CHAIN_OUT 2>/dev/null")
-            sb.appendLine("$t -t nat -D PREROUTING -j $CHAIN_DNS_PRE 2>/dev/null")
-            sb.appendLine("$t -t nat -D OUTPUT -j $CHAIN_DNS_OUT 2>/dev/null")
         }
+        RootDnsHijacker.appendTeardown(sb)
         sb.appendLine()
         // 必须先把所有链清空再统一删：`-X` 要求引用计数为 0，而 CHAIN_PRE 里挂着
         // `-j CHAIN_DIVERT`。清空与删除交替做，删 DIVERT 时 PRE 还没清，它就会被静默留下。
         sb.appendLine("# === flush 全部自建链 ===")
         for (t in TABLES) {
             for (c in MANGLE_CHAINS) sb.appendLine("$t -t mangle -F $c 2>/dev/null")
-            for (c in NAT_CHAINS) sb.appendLine("$t -t nat -F $c 2>/dev/null")
         }
         sb.appendLine()
         sb.appendLine("# === delete 全部自建链 ===")
         for (t in TABLES) {
             for (c in MANGLE_CHAINS) sb.appendLine("$t -t mangle -X $c 2>/dev/null")
-            for (c in NAT_CHAINS) sb.appendLine("$t -t nat -X $c 2>/dev/null")
         }
         sb.appendLine()
         sb.appendLine("# === ip rule + route ===")
@@ -311,6 +280,25 @@ object RootTproxyApplier {
                 sb.appendLine("$IPT6 -t $table -A $chain -d $net ! -p udp -j RETURN ${tag("$tagLabel-v6")} 2>/dev/null")
             }
         }
+    }
+
+    private fun appendAddressTypeReturn(
+        sb: StringBuilder,
+        iptables: String,
+        chain: String,
+        type: String,
+        family: String,
+        label: String,
+    ) {
+        val ruleTag = tag(label)
+        sb.appendLine("if ! $iptables -t mangle -A $chain -m addrtype --dst-type $type -j RETURN $ruleTag 2>/dev/null; then")
+        // 部分内核没有 xt_addrtype，从 local 表保留本机与广播地址的排除规则。
+        sb.appendLine("  local_routes=\$(ip $family route show table local)")
+        sb.appendLine("  local_addresses=\$(printf '%s\\n' \"\$local_routes\" | awk '\$1 == \"${type.lowercase()}\" {print \$2}')")
+        sb.appendLine("  for address in \$local_addresses; do")
+        sb.appendLine("    $iptables -t mangle -A $chain -d \"\$address\" -j RETURN $ruleTag")
+        sb.appendLine("  done")
+        sb.appendLine("fi")
     }
 
     private val IPT4 = "iptables -w ${RootTetherHijacker.IPT_WAIT_SECONDS}"

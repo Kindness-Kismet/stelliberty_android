@@ -93,11 +93,13 @@ object RuntimeOverrideBuilder {
         ?.takeIf { it > 0 }
 
     private fun buildDnsOverride(tunMode: TunMode, userDns: DnsOverride?): DnsOverride? {
-        if (tunMode != TunMode.RootTproxy) return userDns
+        if (tunMode == TunMode.Vpn) return userDns
         val base = userDns ?: DnsOverride()
         return base.copy(
             enable = true,
-            listen = "0.0.0.0:${RootTproxyApplier.DNS_PORT}",
+            listen = "0.0.0.0:${RootDnsHijacker.PORT}",
+            // netd 代查的 DNS 无法按应用区分，直连应用必须获得可路由的真实地址。
+            enhancedMode = "redir-host",
         )
     }
 

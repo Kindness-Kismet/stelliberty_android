@@ -2,6 +2,18 @@
 
 适用于 ROOT 路径：`StellibertyRootService` / `RootHelper` / `RootTetherHijacker` / `RootTproxyApplier` / `MihomoRunner` 的 root 分支。改这些文件、写 `su -c` 命令、动 iptables 或 ip rule 之前先读本文件；三模式共有的启动链与状态回报见 [lifecycle.md](lifecycle.md)，override 注入见 [override.md](override.md)。
 
+## 内核绕过与系统 DNS
+
+ROOT 内核通过 `su -g <应用 UID>` 保持 UID 0 并使用应用 UID 作为主 GID；iptables 按这个 GID 排除内核、按应用 UID 排除应用自身。系统 netd 同样使用 UID 0，按 UID 0 整体放行会漏掉系统 DNS。
+
+`RootDnsHijacker` 为两个 ROOT 模式接管本机 TCP / UDP 53 到 mihomo 的 1053 端口，局域网 DNS 同样接管，内核自己的 DNS 按 GID 绕过以免循环。ROOT TUN 只挂 OUTPUT，热点的 Bypass 策略保持有效；ROOT TPROXY 另挂 PREROUTING 接管转发 DNS。停止与模式切换统一清理两个地址族的 DNS 链。
+
+ROOT 的 DNS 增强模式固定为 `redir-host`，netd 代查无法按应用区分；分应用排除项及应用自身必须拿到真实地址，不能收到无法直连的 Fake-IP。DNS 映射仍为内核提供域名分流信息。
+
+DNS 与 TPROXY 安装脚本在清理旧规则后启用 `set -e`，关键命令失败即停止安装；Service 清理内核与规则并报告 Error。重连检查包括主链挂接、内核 GID 放行及 DNS 重定向，TPROXY 另核对策略路由，缺失时重装。
+
+内核缺少 `xt_addrtype` 时，从 local 路由表添加本机与广播地址排除；路由读取和地址解析分别赋值，任一步失败均停止安装。
+
 ## iptables 锁
 
 所有 iptables / ip6tables 调用带 **`-w <秒>`**（裸 `-w` 是无限等待，撞锁会让启动链永久挂起）。秒数已并进工具令牌（`IPT4` / `IPT6` / `IPT_BINS`），新增命令一律用令牌拼接；`runWithOutput` 自动注入，只识别带数字的 `-w`，超时放宽到 `IPT_WAIT_SECONDS + 5`，等锁的时间才不会被算成 su 错误。
@@ -29,6 +41,8 @@ ROOT 与 VPN 启动必须确认清理成功再继续。VPN 在 `hadRootPid || HA
 ## attach 重连
 
 `attachToExisting` 按同一规则校验归属，并携带已保存的 secret 请求 `/stelliberty/runtime`，只接受 200 与目标 PID。订阅一致性由 `startProxy` 在 attach 前比对持久化的与请求的 subscriptionId，不一致时 cleanup + 全新启动。
+
+已确认归属且 API 就绪的进程还要核对 `/proc/<pid>/status` 的主 GID；不符合应用 UID 时重启并重新安装规则。这个迁移只作用于确认仍在运行的内核，过期 PID 保持停止。
 
 app 重新打开（`onResume` → `verifyAndSyncState`）时，ROOT 模式走 `reattachRoot()`，发送带 `EXTRA_ATTACH_ONLY=true` 的 START intent；`startProxy(attachOnly=true)` 在 attach 失败时保持停止（清状态、置 Stopped、`stopSelf`），重启后自动拉起代理只由开机自启负责。`SERVICE_WAS_RUNNING` / `ROOT_MIHOMO_PID` 存在 SharedPreferences 里、跨重启保留，而重启会杀死 root mihomo，PID 随之过期。两层防护：
 

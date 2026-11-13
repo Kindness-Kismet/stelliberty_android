@@ -168,6 +168,8 @@ class StellibertyRootService : Service() {
             ProxyServiceBridge.updateState(ProxyServiceStatus(ProxyState.Starting, tunMode = tunMode))
 
             val storage = PlatformStorage(this@StellibertyRootService)
+            val appUid = applicationInfo.uid
+            val ipv6Enabled = storage.getString(StorageKeys.VPN_ALLOW_IPV6, "false") == "true"
             val tetherModeRequested = storage.getString(
                 StorageKeys.ROOT_TETHER_MODE,
                 RootTetherHijacker.Mode.BYPASS.storageValue,
@@ -200,9 +202,14 @@ class StellibertyRootService : Service() {
             if (submodeMismatch) {
                 AppLogger.info(TAG, "Submode changed while app was killed (active=$submodeActive, requested=${submode.storageValue}), restarting")
             }
+            var restartForProxyGroup = false
             if (existingPid > 0 && existingSecret.isNotEmpty() && !subscriptionMismatch && !tetherModeMismatch && !submodeMismatch) {
                 val ec = overrideStore.load().resolveExternalController()
-                if (runner.attachToExisting(existingPid, existingSecret, ec, subscriptionId)) {
+                val attached = runner.attachToExisting(existingPid, existingSecret, ec, subscriptionId)
+                if (attached) {
+                    restartForProxyGroup = RootHelper.mihomoGroup(existingPid) != appUid
+                }
+                if (attached && !restartForProxyGroup) {
                     val existingStartTime =
                         storage.getString(StorageKeys.ROOT_START_TIME, "").toLongOrNull() ?: Clock.System.now().toEpochMilliseconds()
                     AppLogger.info(TAG, "Reconnected to existing mihomo: pid=$existingPid submode=${submode.storageValue}")
@@ -214,11 +221,20 @@ class StellibertyRootService : Service() {
                             if (shouldReapplyOnAttach(storage, RootTetherHijacker::anyRulesPresent)) {
                                 applyTetherRulesActive(storage, tproxySupported)
                             }
+                            if (!RootDnsHijacker.rulesPresent(appUid, ipv6Enabled) &&
+                                !RootDnsHijacker.apply(appUid, ipv6Enabled)
+                            ) {
+                                failRoutingSetup(storage)
+                                return@launch
+                            }
                         }
 
                         Submode.Tproxy -> {
-                            if (shouldReapplyOnAttach(storage, RootTproxyApplier::anyRulesPresent)) {
-                                applyTproxyRules(storage)
+                            if (shouldReapplyOnAttach(storage) { RootTproxyApplier.rulesPresent(appUid, ipv6Enabled) } &&
+                                !applyTproxyRules(storage)
+                            ) {
+                                failRoutingSetup(storage)
+                                return@launch
                             }
                         }
                     }
@@ -241,10 +257,15 @@ class StellibertyRootService : Service() {
                     startProcessMonitor(workDir)
                     return@launch
                 }
-                AppLogger.info(TAG, "Existing process pid=$existingPid failed attach verification, cleaning up")
+                AppLogger.info(
+                    TAG,
+                    if (restartForProxyGroup) "Restarting existing mihomo to assign its proxy group"
+                    else "Existing process pid=$existingPid failed attach verification, cleaning up",
+                )
             }
 
-            if (attachOnly) {
+            // 已确认仍在运行的旧内核需要重启迁移 GID，过期 PID 仍保持停止。
+            if (attachOnly && !restartForProxyGroup) {
                 if (!isActive) {
                     AppLogger.info(TAG, "Attach-only start superseded, leaving state to the new start")
                     return@launch
@@ -364,9 +385,16 @@ class StellibertyRootService : Service() {
             storage.putString(StorageKeys.ROOT_TETHER_MODE_ACTIVE, tetherModeRequested)
             storage.putString(StorageKeys.ROOT_SUBMODE_ACTIVE, submode.storageValue)
 
-            when (submode) {
-                Submode.Tun -> applyTetherRules(storage, tproxyForTether)
+            val routingApplied = when (submode) {
+                Submode.Tun -> {
+                    applyTetherRules(storage, tproxyForTether)
+                    RootDnsHijacker.apply(appUid, ipv6Enabled)
+                }
                 Submode.Tproxy -> applyTproxyRules(storage)
+            }
+            if (!routingApplied) {
+                failRoutingSetup(storage)
+                return@launch
             }
 
             ProxyServiceBridge.updateState(
@@ -391,7 +419,7 @@ class StellibertyRootService : Service() {
         }
     }
 
-    private suspend fun applyTproxyRules(storage: PlatformStorage) {
+    private suspend fun applyTproxyRules(storage: PlatformStorage): Boolean {
         val appUid = applicationInfo.uid
         val ifaces = RootTetherHijacker.parseInterfaces(
             storage.getString(StorageKeys.ROOT_TETHER_IFACES, RootTetherHijacker.DEFAULT_IFACES)
@@ -404,7 +432,25 @@ class StellibertyRootService : Service() {
             AppListProvider(this@StellibertyRootService).resolveUids(packages)
         }
         val ipv6Enabled = storage.getString(StorageKeys.VPN_ALLOW_IPV6, "false") == "true"
-        RootTproxyApplier.apply(appUid, selectedUids, proxyMode, ifaces, ipv6Enabled)
+        return RootTproxyApplier.apply(appUid, selectedUids, proxyMode, ifaces, ipv6Enabled)
+    }
+
+    private suspend fun failRoutingSetup(storage: PlatformStorage) {
+        dynamicNotification.stop()
+        if (!stopRunner()) return
+        teardownAllRootRules()
+        runner.activeSubscriptionId?.let { ProfileFileOps.cleanupRootRuntime(this@StellibertyRootService, it) }
+        clearPersistedState(storage)
+        storage.putString(StorageKeys.SERVICE_WAS_RUNNING, "false")
+        ProxyServiceBridge.updateState(
+            ProxyServiceStatus(
+                ProxyState.Error,
+                errorMessage = getString(R.string.error_root_rules_failed),
+                tunMode = currentSubmode.tunMode,
+            )
+        )
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        stopSelf()
     }
 
     // 重连时先看规则是否还齐全，齐全就不重装，省掉一次拆除加重装。

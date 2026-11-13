@@ -17,6 +17,11 @@ internal object RootProcessScript {
 
     fun isAlive(packageName: String, pid: Int): String = identity(packageName) + "\nis_mihomo $pid"
 
+    fun group(packageName: String, pid: Int): String = identity(packageName) + "\n" + """
+        is_mihomo $pid || exit 1
+        awk '/^Gid:/ { print ${'$'}2 }' /proc/$pid/status
+    """.trimIndent()
+
     fun stop(packageName: String, tunDevice: String, pid: Int?): String {
         val candidates = pid?.toString() ?: "${'$'}(pidof libmihomo_runner.so)"
         return identity(packageName) + "\n" + """
