@@ -31,8 +31,9 @@ fun SystemIntegrationScreen(
     onNavigateRootSettings: () -> Unit = {},
     onNavigateAppProxy: () -> Unit = {},
 ) {
-    var tunMode by remember {
-        mutableIntStateOf(TunMode.fromStorage(storage.getString(StorageKeys.TUN_MODE, TunMode.Vpn.storageValue)).ordinal)
+    val storedTunMode = storage.getString(StorageKeys.TUN_MODE, TunMode.Vpn.storageValue)
+    var tunMode by remember(storedTunMode) {
+        mutableIntStateOf(TunMode.fromStorage(storedTunMode).ordinal)
     }
 
     SettingsSubPage(title = stringResource(R.string.system_integration_title), onBack = onBack) {

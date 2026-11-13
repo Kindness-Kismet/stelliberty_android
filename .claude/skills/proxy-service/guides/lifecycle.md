@@ -26,6 +26,8 @@
 
 ## 打开应用时自动连接
 
+MainActivity 回到前台先串行刷新 ROOT 权限，再调用 `verifyAndSyncState`；检测超时或执行异常保留授权缓存与所选模式，明确拒绝时仅在没有正在启停或运行的 ROOT 服务时回退 VPN。
+
 `AUTO_CONNECT_ON_LAUNCH`（设置 →「自动化」，默认关）与开机自启是两个独立开关：BootReceiver 只在 `SERVICE_WAS_RUNNING=true` 时恢复，自动连接与上次状态无关。实现挂在 `verifyAndSyncState` 内：两者回答的都是「app 打开时代理该不该跑」，放在一处才能与 ROOT attach 路径串行（`start()` 是异步的，attach intent 发出后 bridge 仍是 Stopped）。进程外的 BootReceiver 重复投递由 Service 的幂等串行兜底。
 
 1. 每进程只消费一次（controller 是 Koin single）：冷启动触发，回前台保持现状。

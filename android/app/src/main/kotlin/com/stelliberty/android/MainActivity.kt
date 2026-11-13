@@ -38,6 +38,7 @@ import com.stelliberty.android.platform.FilePicker
 import com.stelliberty.android.platform.PlatformStorage
 import com.stelliberty.android.platform.ProxyServiceBridge
 import com.stelliberty.android.platform.ProxyServiceController
+import com.stelliberty.android.platform.ProxyState
 import com.stelliberty.android.platform.StorageKeys
 import com.stelliberty.android.platform.TunMode
 import com.stelliberty.android.platform.WifiPolicyController
@@ -66,7 +67,11 @@ import io.github.g00fy2.quickie.ScanCustomCode
 import io.github.g00fy2.quickie.config.BarcodeFormat
 import io.github.g00fy2.quickie.config.ScannerConfig
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.get
 
 private const val STATE_DEEPLINK_NONCE = "deeplink_nonce"
@@ -89,6 +94,9 @@ class MainActivity : ComponentActivity() {
     private lateinit var wifiPermissionLauncher: ActivityResultLauncher<Array<String>>
     private lateinit var notificationPermissionLauncher: ActivityResultLauncher<String>
     private val notificationsEnabled = mutableStateOf(false)
+    private val hasRootState = mutableStateOf(false)
+    private var rootRefreshJob: Job? = null
+    private val rootRefreshMutex = Mutex()
     private var qrResultCallback: ((String?) -> Unit)? = null
     private var wifiPermissionCallback: ((Boolean) -> Unit)? = null
     private var latestThemeConfig: ThemeConfig? = null
@@ -221,22 +229,7 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        val hasRootState = mutableStateOf(
-            storage.getString(StorageKeys.HAS_ROOT, "false") == "true"
-        )
-        lifecycleScope.launch(Dispatchers.IO) {
-            val hasRoot = RootHelper.hasRootAccess()
-            storage.putString(StorageKeys.HAS_ROOT, if (hasRoot) "true" else "false")
-            if (!hasRoot) {
-                val current = TunMode.fromStorage(storage.getString(StorageKeys.TUN_MODE, TunMode.Vpn.storageValue))
-                if (current != TunMode.Vpn) {
-                    storage.putString(StorageKeys.TUN_MODE, TunMode.Vpn.storageValue)
-                    // 这次回退发生在启动之后，桥里已经填过 ROOT，不改的话首页会显示一个已经用不上的模式。
-                    ProxyServiceBridge.setSelectedTunMode(TunMode.Vpn)
-                }
-            }
-            hasRootState.value = hasRoot
-        }
+        hasRootState.value = storage.getString(StorageKeys.HAS_ROOT, "false") == "true"
 
         if (storage.getString(StorageKeys.HIDE_TASK_CARD, "false") == "true") {
             setExcludeFromRecents(true)
@@ -414,7 +407,31 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         refreshNotificationPermission()
         latestThemeConfig?.let(::updateEdgeToEdge)
-        serviceController.verifyAndSyncState()
+        rootRefreshJob?.cancel()
+        rootRefreshJob = lifecycleScope.launch {
+            val hasRoot = rootRefreshMutex.withLock {
+                withContext(Dispatchers.IO) { RootHelper.checkRootAccess() }
+            }
+            if (hasRoot != null) {
+                val storage: PlatformStorage = get()
+                storage.putString(StorageKeys.HAS_ROOT, hasRoot.toString())
+                hasRootState.value = hasRoot
+                val status = ProxyServiceBridge.state.value
+                val rootActive = status.tunMode != TunMode.Vpn &&
+                    status.state in setOf(ProxyState.Starting, ProxyState.Running, ProxyState.Stopping)
+                if (!hasRoot && !rootActive) {
+                    storage.putString(StorageKeys.TUN_MODE, TunMode.Vpn.storageValue)
+                    ProxyServiceBridge.setSelectedTunMode(TunMode.Vpn)
+                }
+            }
+            // 授权刷新完成后再重连或自动启动，避免使用旧权限与旧模式。
+            serviceController.verifyAndSyncState()
+        }
+    }
+
+    override fun onPause() {
+        rootRefreshJob?.cancel()
+        super.onPause()
     }
 
     private fun refreshNotificationPermission() {

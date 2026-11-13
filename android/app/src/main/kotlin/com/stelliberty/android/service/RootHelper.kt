@@ -32,20 +32,29 @@ object RootHelper {
 
     private const val DRAIN_JOIN_MS = 500L
 
-    fun hasRootAccess(): Boolean {
+    fun hasRootAccess(): Boolean = checkRootAccess() == true
+
+    // 超时或执行异常无法确认授权状态，调用方保留最近一次确定结果。
+    fun checkRootAccess(): Boolean? {
         return try {
             val process = ProcessBuilder("su", "-c", "id")
                 .redirectErrorStream(true)
                 .start()
-            val exited = process.waitFor(3, TimeUnit.SECONDS)
-            if (!exited) {
-                process.destroyForcibly()
-                return false
+            val result = awaitDrained(process, 3)
+            when {
+                result.code == -1 -> {
+                    AppLogger.warn(TAG, "Root access check timed out")
+                    null
+                }
+                result.code == 0 && result.output.contains("uid=0") -> true
+                else -> {
+                    AppLogger.warn(TAG, "Root access denied: code=${result.code} ${result.output.take(500)}")
+                    false
+                }
             }
-            val output = process.inputStream.bufferedReader().readText()
-            process.exitValue() == 0 && output.contains("uid=0")
-        } catch (_: Exception) {
-            false
+        } catch (e: Exception) {
+            AppLogger.warn(TAG, "Root access check inconclusive", e)
+            null
         }
     }
 
