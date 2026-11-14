@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -21,10 +22,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
@@ -50,7 +49,6 @@ import com.stelliberty.android.ui.component.CardSegment
 import com.stelliberty.android.ui.component.blur.BlurredBar
 import com.stelliberty.android.ui.component.blur.rememberBlurBackdrop
 import com.stelliberty.android.ui.icon.AppIcons
-import com.stelliberty.android.ui.platform.IconLoader
 import com.stelliberty.android.ui.theme.StatusColors
 import com.stelliberty.android.ui.util.TestTags
 import com.stelliberty.android.ui.util.WideContentBox
@@ -60,7 +58,6 @@ import com.stelliberty.android.viewmodel.ProxyViewModel
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toPersistentList
-import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
@@ -102,8 +99,6 @@ fun ProxyScreen(
     )
     val hideUnavailable = viewModel?.hideUnavailableNodes?.collectAsStateWithLifecycle()?.value == true
     val showGlobalGroup = viewModel?.showGlobalGroup?.collectAsStateWithLifecycle()?.value != false
-    val activeSubscription = viewModel?.activeSubscription?.collectAsStateWithLifecycle()?.value
-    val autoDelayInterval = viewModel?.autoTestDelayIntervalMinutes?.collectAsStateWithLifecycle()?.value ?: 0
     val scrollBehavior = MiuixScrollBehavior()
     val globalModeActive = uiState.mode == ProxyViewModel.MODE_GLOBAL
     val groups = remember(uiState.groups, globalModeActive, showGlobalGroup) {
@@ -121,8 +116,6 @@ fun ProxyScreen(
     }
 
     var showSettings by remember { mutableStateOf(false) }
-    var iconCacheVersion by remember { mutableIntStateOf(0) }
-    val coroutineScope = rememberCoroutineScope()
 
     val expandedGroups = viewModel?.expandedGroups?.collectAsStateWithLifecycle()?.value ?: persistentSetOf()
 
@@ -218,44 +211,37 @@ fun ProxyScreen(
                                 )
                             }
 
-                            IconButton(
-                                onClick = { showSettings = true },
-                                modifier = Modifier.testTag(TestTags.Proxy.SETTINGS),
-                                holdDownState = showSettings,
-                            ) {
-                                Icon(
-                                    imageVector = AppIcons.Settings,
-                                    contentDescription = stringResource(R.string.proxy_settings_title),
-                                    tint = MiuixTheme.colorScheme.onSurface,
+                            Box {
+                                IconButton(
+                                    onClick = { showSettings = true },
+                                    modifier = Modifier.testTag(TestTags.Proxy.SETTINGS),
+                                    holdDownState = showSettings,
+                                ) {
+                                    Icon(
+                                        imageVector = AppIcons.More,
+                                        contentDescription = stringResource(R.string.proxy_settings_title),
+                                        tint = MiuixTheme.colorScheme.onSurface,
+                                    )
+                                }
+                                ProxySettingsMenu(
+                                    show = showSettings,
+                                    onDismissRequest = { showSettings = false },
+                                    mode = mode,
+                                    onApplyRouting = onApplyRouting,
+                                    tunStack = tunStack,
+                                    tunMode = tunMode,
+                                    isRunning = isRunning,
+                                    groupTabs = groupTabs,
+                                    onGroupTabsChange = { viewModel?.updateGroupTabs(it) },
+                                    singleColumn = singleColumn,
+                                    onSingleColumnChange = { viewModel?.updateSingleColumn(it) },
+                                    hideUnavailable = hideUnavailable,
+                                    onHideUnavailableChange = { viewModel?.updateHideUnavailableNodes(it) },
+                                    showGlobalGroup = showGlobalGroup,
+                                    onShowGlobalGroupChange = { viewModel?.updateShowGlobalGroup(it) },
+                                    sortOption = sortOption,
+                                    onSortOptionChange = { viewModel?.updateSortOption(it) },
                                 )
-                            }
-                        },
-                    )
-                    ProxySettingsDialog(
-                        show = showSettings,
-                        onDismissRequest = { showSettings = false },
-                        mode = mode,
-                        onApplyRouting = onApplyRouting,
-                        tunStack = tunStack,
-                        tunMode = tunMode,
-                        isRunning = isRunning,
-                        groupTabs = groupTabs,
-                        onGroupTabsChange = { viewModel?.updateGroupTabs(it) },
-                        singleColumn = singleColumn,
-                        onSingleColumnChange = { viewModel?.updateSingleColumn(it) },
-                        hideUnavailable = hideUnavailable,
-                        onHideUnavailableChange = { viewModel?.updateHideUnavailableNodes(it) },
-                        showGlobalGroup = showGlobalGroup,
-                        onShowGlobalGroupChange = { viewModel?.updateShowGlobalGroup(it) },
-                        sortOption = sortOption,
-                        onSortOptionChange = { viewModel?.updateSortOption(it) },
-                        activeSubscriptionId = activeSubscription?.id,
-                        autoDelayIntervalMinutes = autoDelayInterval,
-                        onAutoDelayIntervalChange = { viewModel?.updateAutoTestDelayInterval(it) },
-                        onClearIconCache = {
-                            coroutineScope.launch {
-                                IconLoader.clear()
-                                iconCacheVersion++
                             }
                         },
                     )
@@ -395,7 +381,6 @@ fun ProxyScreen(
                                         ProxyGroupHeader(
                                             group = group,
                                             isExpanded = expanded,
-                                            iconCacheVersion = iconCacheVersion,
                                             isTesting = group.name in uiState.testingGroups,
                                             onTestDelay = { viewModel?.testGroupDelay(group.name) },
                                             onUnfix = { viewModel?.unfixProxy(group.name) },

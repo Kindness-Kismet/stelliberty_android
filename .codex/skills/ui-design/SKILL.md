@@ -29,3 +29,5 @@ user_invocable: true
 ## 测试 ID
 
 新增可交互控件在 [TestTags.kt](../../../android/app/src/main/kotlin/com/stelliberty/android/ui/util/TestTags.kt) 登记，命名「页面.控件」；设置项由 `groupedCardItems` 按 `CardItem` 的 key 自动生成。测试 ID 是调试脚本的契约，改名时同步更新 debug-app skill 里的引用（见其 `guides/control.md`）。
+
+miuix 原生级联菜单只暴露宿主 modifier，登记宿主 ID；内部自动生成的条目通过文案与选择语义定位，保持原生布局。

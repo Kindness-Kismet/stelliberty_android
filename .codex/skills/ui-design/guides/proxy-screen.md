@@ -36,15 +36,13 @@
 
 ## 顶栏与代理设置
 
-顶栏放全量测速、搜索与设置，组与节点随内核连接及轮询更新；设置打开 `WindowDialog`，内容按 5 张 Card 分块，底部固定「取消 / 确定」。
+顶栏放全量测速、搜索与更多菜单，组与节点随内核连接及轮询更新。更多菜单使用 miuix `WindowCascadingListPopup`，保留默认定位和动画，第一层为代理模式、TUN Stack、布局与显示、排序，并回显当前值。
 
-- 选路：代理模式与 TUN Stack，用 `SingleChoicePreference`（`summary` 回显当前值，点开二级单选 Dialog）。
-- 显示：布局模式（横 / 竖）、单列、只看可用、GLOBAL 组（全局模式下禁用）。
+- 子菜单由 `DropdownItem.children` 声明，父菜单保留在后方；收起行为交给原生组件，不添加专用返回行。点选立即应用并收起菜单。
+- 选路：代理模式与 TUN Stack 各有单选子菜单；服务停止或 ROOT TPROXY 模式下禁用 TUN Stack。
+- 布局与显示：横向 / 竖向单选，以及单列、只看可用、GLOBAL 组开关；全局模式下 GLOBAL 始终开启并禁用开关。
 - 排序：默认 / 名称 / 延迟单选加倒序开关；`sortOption` 以 `key * 2 + reverse` 编码，改任一项都经 `updateSortOption` 写同一个值。
-- 定时测速：当前订阅的分钟间隔，空值与 0 为关闭、最多 6 位；确认只更新订阅元数据，已有草稿同步同一字段，不触发订阅下载或内核重启。
-- 动作：勾选刷新图标，在确定时调用 `IconLoader.clear()` 并递增 `iconCacheVersion`。
-
-列表区用 `heightIn(max = 500.dp)` + `verticalScroll`，全部改动先保存为弹窗草稿，取消放弃，确定才应用。选路变更经 `HomeViewModel.applyProxyRouting` 一次保存 override 并调用 `restartWhenReady`；相同值不触发重启，模式与 TUN Stack 同时修改也只重启一次。对话框只传值与回调。
+- 自动测速间隔在订阅添加与编辑页管理。代理菜单只传值与回调；选路变更经 `HomeViewModel.applyProxyRouting` 保存 override 并调用 `restartWhenReady`，相同值不触发重启。
 
 ## 两个 mode 值
 

@@ -176,11 +176,9 @@
     <string name="proxy_start_first">请先启动代理服务</string>
     <string name="proxy_mode_direct_hint">当前为直连模式，所有流量不经代理。此处的选择会被保存，切回规则模式后生效。</string>
     <string name="proxy_mode_global_hint">当前为全局模式，仅 GLOBAL 组决定出口。其他代理组的选择切回规则模式后生效。</string>
-    <string name="proxy_refresh_icon">刷新图标</string>
     <string name="proxy_settings_title">代理设置</string>
+    <string name="proxy_display_settings">布局与显示</string>
     <string name="proxy_test_all_delays">测试所有节点延迟</string>
-    <string name="proxy_auto_delay_placeholder">分钟，0 为关闭</string>
-    <string name="proxy_no_active_subscription">没有活动订阅</string>
     <string name="proxy_single_column">单列显示</string>
     <string name="proxy_node_count">%1$d/%2$d</string>
     <string name="proxy_expand_group">展开代理组</string>

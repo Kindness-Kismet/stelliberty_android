@@ -152,14 +152,6 @@ object IconLoader {
             }
         }
     }
-
-    suspend fun clear() {
-        mutex.withLock {
-            cache.clear()
-            failures.clear()
-        }
-        runCatching { withContext(Dispatchers.IO) { IconDiskCache.clear() } }
-    }
 }
 
 private fun ByteArray.decodeToImageBitmap(): ImageBitmap =

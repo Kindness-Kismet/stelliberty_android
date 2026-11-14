@@ -5,9 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.stelliberty.android.data.store.ProxySelectionStore
 import com.stelliberty.android.domain.repository.MihomoRepository
-import com.stelliberty.android.domain.model.Subscription
 import com.stelliberty.android.domain.model.TestedDelay
-import com.stelliberty.android.domain.repository.SubscriptionRepository
 import com.stelliberty.android.platform.PlatformStorage
 import com.stelliberty.android.platform.StorageKeys
 import com.stelliberty.android.util.AppLogger
@@ -32,12 +30,9 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -79,32 +74,11 @@ class ProxyViewModel(
     private val proxySelections: ProxySelectionStore? = null,
     private val getActiveUuid: () -> String? = { null },
     private val storage: PlatformStorage? = null,
-    private val subscriptions: SubscriptionRepository? = null,
     autoDelayRuns: Flow<MihomoRepository> = emptyFlow(),
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProxyUiState())
     val uiState: StateFlow<ProxyUiState> = _uiState.asStateFlow()
-
-    val activeSubscription: StateFlow<Subscription?> = subscriptions?.activeSubscription ?: MutableStateFlow(null)
-    val autoTestDelayIntervalMinutes: StateFlow<Int> = activeSubscription
-        .map { it?.autoTestDelayIntervalMinutes ?: 0 }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, activeSubscription.value?.autoTestDelayIntervalMinutes ?: 0)
-
-    fun updateAutoTestDelayInterval(intervalMinutes: Int) {
-        val repository = subscriptions ?: return
-        val uuid = activeSubscription.value?.id ?: return
-        viewModelScope.launch {
-            try {
-                repository.setAutoTestDelayInterval(uuid, intervalMinutes)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                AppLogger.warn(TAG, "Failed to update auto delay interval", e)
-                _uiState.value = _uiState.value.copy(error = e.describe())
-            }
-        }
-    }
 
     private val _sortOption = MutableStateFlow(loadInitialSortOption())
     val sortOption: StateFlow<Int> = _sortOption.asStateFlow()
