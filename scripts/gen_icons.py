@@ -58,6 +58,7 @@ ICONS: dict[str, str] = {
     "Sort": "regular/editing/sort_ascending.svg",
     "StatusClock": "regular/system/time.svg",
     "StatusSubscription": "regular/devices/rss.svg",
+    "SubscriptionRefresh": "regular/system/refresh_1.svg",
     "TestDelay": "regular/devices/dashboard_2.svg",
     "Unpin": "regular/system/close_circle.svg",
     "Wifi": "regular/devices/wifi.svg",

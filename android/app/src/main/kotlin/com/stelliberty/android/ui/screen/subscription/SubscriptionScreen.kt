@@ -104,7 +104,7 @@ fun SubscriptionScreen(
                                 enabled = !uiState.isLoading,
                             ) {
                                 Icon(
-                                    imageVector = AppIcons.Refresh,
+                                    imageVector = AppIcons.SubscriptionRefresh,
                                     contentDescription = stringResource(R.string.subscription_update_all),
                                     tint = MiuixTheme.colorScheme.onSurface,
                                 )
@@ -376,7 +376,7 @@ private fun SubscriptionItem(
             ) {
                 Icon(
                     modifier = Modifier.size(20.dp),
-                    imageVector = AppIcons.Refresh,
+                    imageVector = AppIcons.SubscriptionRefresh,
                     contentDescription = stringResource(R.string.common_update),
                     tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
