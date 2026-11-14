@@ -207,7 +207,6 @@
     <string name="subscription_used_traffic">已用 %1$s / %2$s</string>
     <string name="subscription_no_traffic">未取得流量資訊</string>
     <string name="subscription_updated_at">更新於 %1$s</string>
-    <string name="subscription_last_error">上次更新失敗：%1$s</string>
     <string name="subscription_delete_title">刪除訂閱</string>
     <string name="subscription_delete_summary">確定要刪除「%1$s」嗎？將會移除設定檔與節點選擇記錄。</string>
 
@@ -304,7 +303,6 @@
     <string name="provider_updating_title">正在更新資源</string>
     <string name="provider_updating_single">正在更新 %1$s…</string>
     <string name="provider_updating_progress">%1$d / %2$d</string>
-    <string name="provider_update_failed">更新 %1$s 失敗: %2$s</string>
 
     <!-- Settings -->
     <string name="settings_title">設定</string>
@@ -637,7 +635,6 @@
     <string name="override_format">檔案格式</string>
     <string name="override_delete_title">刪除覆寫</string>
     <string name="override_delete_summary">確定要刪除「%1$s」嗎？使用它的訂閱會同時移除這個覆寫。</string>
-    <string name="override_update_all_result">更新完成，成功 %1$d 個，失敗 %2$d 個</string>
     <string name="override_error_name_required">請輸入覆寫名稱。</string>
     <string name="override_error_invalid_url">覆寫網址必須以 http:// 或 https:// 開頭。</string>
     <string name="override_error_file_required">請選擇本機覆寫檔案。</string>
@@ -720,4 +717,17 @@
     <string name="log_source_core">核心日誌</string>
     <string name="log_empty">沒有符合條件的日誌</string>
     <string name="error_clear_failed">清除日誌失敗：%1$s</string>
+    <string name="operation_update_success">更新成功</string>
+    <string name="operation_update_failed">更新失敗，請稍後再試</string>
+    <string name="operation_update_partial">已更新 %1$d 項，%2$d 項失敗</string>
+    <string name="operation_nothing_to_update">沒有需要更新的項目</string>
+    <string name="operation_in_progress">正在處理中</string>
+    <string name="operation_cancelled">已取消</string>
+    <string name="operation_import_success">新增成功</string>
+    <string name="operation_save_success">儲存成功</string>
+    <string name="operation_success">操作成功</string>
+    <string name="operation_import_failed">匯入失敗，請檢查設定檔</string>
+    <string name="operation_save_failed">儲存失敗，請再試一次</string>
+    <string name="operation_invalid_config">設定檔格式有誤</string>
+    <string name="operation_invalid_url">連結格式有誤</string>
 </resources>

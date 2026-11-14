@@ -23,6 +23,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.stelliberty.android.R
+import com.stelliberty.android.util.OperationFeedback
 import com.stelliberty.android.domain.model.OverrideFormat
 import com.stelliberty.android.domain.model.SubscriptionUpdateProxyMode
 import com.stelliberty.android.platform.FilePickResult
@@ -32,16 +33,13 @@ import com.stelliberty.android.ui.component.UpdateProxyModePreference
 import com.stelliberty.android.ui.component.blur.BlurredBar
 import com.stelliberty.android.ui.component.blur.rememberBlurBackdrop
 import com.stelliberty.android.ui.component.groupedCardItems
-import com.stelliberty.android.ui.theme.StatusColors
 import com.stelliberty.android.ui.util.TestTags
 import com.stelliberty.android.ui.util.horizontalCutoutPadding
 import com.stelliberty.android.viewmodel.OverrideProfileViewModel
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SmallTitle
-import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.blur.layerBackdrop
@@ -69,8 +67,6 @@ fun OverrideEditScreen(
         return
     }
 
-    ClearErrorOnExit(viewModel)
-
     var method by rememberSaveable { mutableStateOf(AddMethod.Remote) }
     var name by rememberSaveable(overrideId) { mutableStateOf(profile?.name.orEmpty()) }
     var url by rememberSaveable(overrideId) {
@@ -81,14 +77,12 @@ fun OverrideEditScreen(
         mutableStateOf(profile?.updateProxyMode ?: SubscriptionUpdateProxyMode.Core)
     }
     var picked by remember { mutableStateOf<FilePickResult?>(null) }
-    var localError by remember { mutableStateOf("") }
 
     val isRemote = profile?.isRemote ?: (method == AddMethod.Remote)
     val hasChanges = profile == null ||
             name != profile.name ||
             format != profile.format ||
             (profile.isRemote && (url != profile.sourceLocation || updateProxyMode != profile.updateProxyMode))
-    val fileRequiredText = stringResource(R.string.override_error_file_required)
 
     val scrollBehavior = MiuixScrollBehavior()
     val backdrop = rememberBlurBackdrop()
@@ -131,7 +125,6 @@ fun OverrideEditScreen(
                                 selectedIndex = methods.indexOf(method),
                                 onSelectedIndexChange = {
                                     method = methods[it]
-                                    localError = ""
                                 },
                             )
                         },
@@ -180,7 +173,6 @@ fun OverrideEditScreen(
                                     onPickFile { result ->
                                         if (result == null) return@onPickFile
                                         picked = result
-                                        localError = ""
                                         if (name.isBlank()) name = result.fileName.substringBeforeLast('.')
                                         format = if (result.fileName.endsWith(".js", ignoreCase = true)) {
                                             OverrideFormat.JavaScript
@@ -213,21 +205,6 @@ fun OverrideEditScreen(
                 },
             )
 
-            val error = localError.ifEmpty { uiState.error }
-            if (error.isNotEmpty()) {
-                item(key = "error") {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp)
-                            .padding(bottom = 6.dp),
-                        insideMargin = PaddingValues(16.dp),
-                    ) {
-                        Text(text = error, color = StatusColors.danger)
-                    }
-                }
-            }
-
             item(key = "save") {
                 TextButton(
                     text = stringResource(if (uiState.isLoading) R.string.common_processing else R.string.common_save),
@@ -237,7 +214,7 @@ fun OverrideEditScreen(
                             profile != null -> viewModel.edit(profile, name, url, format, updateProxyMode, onSaved)
                             method == AddMethod.Remote -> viewModel.addRemote(name, url, format, updateProxyMode, onSaved)
                             method == AddMethod.Blank -> viewModel.addBlank(name, format, onSaved)
-                            file == null -> localError = fileRequiredText
+                            file == null -> OperationFeedback.show(R.string.override_error_file_required)
                             else -> viewModel.addLocal(name, file.fileName, format, file.content, onSaved)
                         }
                     },

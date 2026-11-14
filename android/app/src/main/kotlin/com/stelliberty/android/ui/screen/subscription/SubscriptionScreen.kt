@@ -156,7 +156,6 @@ fun SubscriptionScreen(
                                                 optionCount = entries.size,
                                                 onClick = {
                                                     showAddMenu = false
-                                                    viewModel.clearError()
                                                     onClick()
                                                 },
                                             )
@@ -188,23 +187,6 @@ fun SubscriptionScreen(
                 if (uiState.subscriptions.isNotEmpty()) {
                     item(key = "top_padding") {
                         Spacer(modifier = Modifier.height(12.dp))
-                    }
-                }
-
-                if (uiState.error.isNotEmpty()) {
-                    item(key = "error") {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp)
-                                .padding(bottom = 12.dp),
-                            insideMargin = PaddingValues(16.dp),
-                        ) {
-                            Text(
-                                text = uiState.error,
-                                color = StatusColors.danger,
-                            )
-                        }
                     }
                 }
 
@@ -369,6 +351,7 @@ private fun SubscriptionItem(
             Spacer(Modifier.width(8.dp))
             IconButton(
                 onClick = onRefresh,
+                modifier = Modifier.testTag(TestTags.Subscription.update(subscription.id)),
                 enabled = !isLoading && !subscription.isLocalFile,
                 minHeight = 35.dp,
                 minWidth = 35.dp,
@@ -396,17 +379,6 @@ private fun SubscriptionItem(
                     tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
             }
-        }
-
-        subscription.lastError?.takeIf { it.isNotBlank() }?.let { error ->
-            Text(
-                text = stringResource(R.string.subscription_last_error, error),
-                modifier = Modifier.padding(top = 8.dp),
-                fontSize = 12.sp,
-                color = StatusColors.danger,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
         }
     }
 

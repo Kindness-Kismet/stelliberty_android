@@ -128,6 +128,8 @@ object TestTags {
 
         fun item(uuid: String) = "Subscription.Item.$uuid"
 
+        fun update(uuid: String) = "Subscription.Item.$uuid.UpdateButton"
+
         fun delete(uuid: String) = "Subscription.Item.$uuid.DeleteButton"
     }
 

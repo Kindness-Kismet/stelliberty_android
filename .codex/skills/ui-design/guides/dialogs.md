@@ -13,6 +13,10 @@
 - **工具栏菜单**用 `WindowListPopup + ListPopupColumn`，自定义菜单行复用 `PopupMenuItem` 包装 `DropdownImpl`；它支持菜单的固有尺寸测量，带前后操作区的 `BasicComponent` 不适用于此容器。互斥选项保留单选语义，开关用 Checkbox，普通动作用 Button；每行独立裁剪，锚点末端对齐，菜单单独启用测试 ID 导出。
 - **退出动画与草稿**：关闭先置 show=false，组件继续参与组合，在 onDismissFinished 清理临时内容；确认与 IME 提交共用校验，取消放弃草稿。
 
+## 操作反馈
+
+订阅、覆写与外部资源操作结果由导航层 `OperationFeedbackHost` 本地化后交给 Android 系统 Toast，使用简短文案；详情写日志，列表不保留原始错误块。宿主只在界面可见时收集消息，重复结果仍可再次提示。
+
 ## BottomSheet
 
 内容自己负责 inset 与高度过渡：

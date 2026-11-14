@@ -28,8 +28,8 @@ mihomo 只在进程启动时读一次 config.yaml，embed mode 下 `/configs` / 
 
 **自动更新闹钟是订阅列表的派生态**：唯一调度点 [ProfileUpdateScheduler](../../../../android/app/src/main/kotlin/com/stelliberty/android/service/ProfileUpdateScheduler.kt)，`StellibertyApplication.onCreate` 启动 collector，与 `SubscriptionStore.importedFlow` 对账（只为 `AutoUpdateMode = Interval` 且间隔不低于 15 分钟的非本地订阅布置，起点取 `LastUpdatedAt`（缺失时取 `CreatedAt`）与 `LastErrorAt` 中较晚者）：新增订阅、改间隔立即生效，删除时自动撤销闹钟。开机时 app 进程可能只为接收广播而启动，`ProfileReceiver` → ProfileWorker → `reconcileNow()` 借前台服务的存活窗口对账一次。进程重启后 `armed` 为空，列表里已不存在的孤儿闹钟无法枚举；它至多空跑一次 ProfileWorker（uuid 查不到即返回）且不再续期，因此无需额外持久化。
 
-**失败记录**：`ProfileProcessor` 的更新路径失败（取消除外）时在订阅锁内写入 `LastError` / `LastErrorAt`，成功获取时清掉，订阅卡片据此显示原因。起点必须计入 `LastErrorAt`：失败会改动列表并触发对账，只看 `LastUpdatedAt` 时闹钟会立刻再响，陷入失败循环。
+**失败记录**：`ProfileProcessor` 的更新路径失败（取消除外）时在订阅锁内写入 `LastError` / `LastErrorAt`，成功获取时清掉。字段保留用于诊断和调度，订阅卡片不展示原始错误；操作结果通过 `OperationFeedback` 交给 Android 系统 Toast，以简短文案呈现成功、失败、部分失败、取消和无需更新。起点必须计入 `LastErrorAt`：失败会改动列表并触发对账，只看 `LastUpdatedAt` 时闹钟会立刻再响，陷入失败循环。
 
-**启动时更新按进程计**：`AutoUpdateMode = Startup` 的非本地订阅由 `MainActivity.onCreate` 调 `SubscriptionViewModel.runStartupUpdates()` 更新。ViewModel 是进程级单例，每个进程只跑一次，Activity 重建、切回前台都不重复；开机广播、磁贴等不建 Activity 的入口不触发，进程随后首次打开界面时再执行。ViewModel 只将 UUID 批次交给 `ProfileWorker`，更新由 `ProfileUpdateTask` 逐条执行并在整轮结束后重启一次，不写手动进度与错误状态。自动更新只保留静音的前台服务通知，结果由订阅列表的时间与失败记录呈现。
+**启动时更新按进程计**：`AutoUpdateMode = Startup` 的非本地订阅由 `MainActivity.onCreate` 调 `SubscriptionViewModel.runStartupUpdates()` 更新。ViewModel 是进程级单例，每个进程只跑一次，Activity 重建、切回前台都不重复；开机广播、磁贴等不建 Activity 的入口不触发，进程随后首次打开界面时再执行。ViewModel 只将 UUID 批次交给 `ProfileWorker`，更新由 `ProfileUpdateTask` 逐条执行并在整轮结束后重启一次，不写手动进度状态。自动更新使用静音前台服务通知，界面可见时通过同一系统 Toast 汇总结果，后台结果不排队到下次打开。
 
 **后台限制与重试**：`startForegroundService` 或 `startForeground` 被系统拒绝时，将完整请求入队 `ProfileUpdateJobService`；JobScheduler 等待网络并在中止后重新投递未完成的 work item。两个执行入口共用 `ProfileUpdateTask` 与进程级批次锁，执行前核对订阅是否仍启用相应模式，定时任务还要检查到期时间。调度对账串行读取 store 当前值，避免旧快照覆盖新闹钟。

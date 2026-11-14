@@ -11,30 +11,24 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.stelliberty.android.R
 import com.stelliberty.android.domain.model.OverrideFormat
-import com.stelliberty.android.platform.showToast
 import com.stelliberty.android.ui.component.blur.BlurredBar
 import com.stelliberty.android.ui.component.blur.rememberBlurBackdrop
 import com.stelliberty.android.ui.icon.AppIcons
 import com.stelliberty.android.ui.theme.LocalAppDarkMode
-import com.stelliberty.android.ui.theme.StatusColors
 import com.stelliberty.android.ui.util.TestTags
 import com.stelliberty.android.ui.util.horizontalCutoutPadding
 import com.stelliberty.android.viewmodel.OverrideProfileViewModel
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SmallTopAppBar
-import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.scripta.editor.CodeEditor
@@ -56,11 +50,8 @@ fun OverrideFileEditorScreen(
     }
 
     val controller = rememberCodeEditorController()
-    val context = LocalContext.current
-    ClearErrorOnExit(viewModel)
 
     LaunchedEffect(overrideId) {
-        viewModel.clearError()
         controller.setDocument(viewModel.readContent(overrideId))
     }
 
@@ -84,7 +75,6 @@ fun OverrideFileEditorScreen(
                                 val version = controller.documentVersion
                                 viewModel.saveContent(overrideId, controller.getText(controller.lineEnding)) {
                                     controller.markSaved(version)
-                                    showToast(context.getString(R.string.file_manager_saved))
                                 }
                             },
                         ) {
@@ -111,22 +101,6 @@ fun OverrideFileEditorScreen(
                 .then(if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier)
                 .padding(top = innerPadding.calculateTopPadding()),
         ) {
-            if (uiState.error.isNotEmpty()) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp)
-                        .padding(bottom = 12.dp),
-                ) {
-                    Text(
-                        text = uiState.error,
-                        color = StatusColors.danger,
-                        fontSize = 13.sp,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                    )
-                }
-            }
-
             // scripta 没有 JavaScript 语法，按纯文本编辑。
             CompositionLocalProvider(LocalOverscrollFactory provides null) {
                 CodeEditor(

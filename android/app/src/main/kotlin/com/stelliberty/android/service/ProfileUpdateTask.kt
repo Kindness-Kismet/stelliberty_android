@@ -6,6 +6,7 @@ import com.stelliberty.android.data.store.SubscriptionStore
 import com.stelliberty.android.domain.model.SubscriptionAutoUpdateMode
 import com.stelliberty.android.platform.ProxyServiceController
 import com.stelliberty.android.util.AppLogger
+import com.stelliberty.android.util.OperationFeedback
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -27,6 +28,7 @@ class ProfileUpdateTask(
             else -> return@withLock
         }
         val updated = mutableListOf<String>()
+        var failed = 0
         for (uuid in targets.distinct()) {
             val subscription = store.findImported(uuid) ?: continue
             if (subscription.isLocalFile) continue
@@ -42,12 +44,13 @@ class ProfileUpdateTask(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                // 失败原因由 ProfileProcessor 保存到订阅卡片，自动任务不发布交互提示。
+                failed++
                 AppLogger.error(TAG, "Automatic profile update failed: $uuid", e)
             }
         }
         // 下载整批订阅后再重启，后续经 mixed-port 的请求才能保持连接。
         updated.forEach { controller.restartAfterProfileUpdate(it) }
+        if (updated.isNotEmpty() || failed > 0) OperationFeedback.updateResult(updated.size, failed)
     }
 
     private companion object {

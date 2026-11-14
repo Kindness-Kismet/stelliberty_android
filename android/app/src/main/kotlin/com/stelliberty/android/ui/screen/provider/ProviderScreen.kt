@@ -1,10 +1,5 @@
 package com.stelliberty.android.ui.screen.provider
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -24,7 +19,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -36,9 +30,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -49,10 +41,8 @@ import com.stelliberty.android.ui.component.AdaptiveTopAppBar
 import com.stelliberty.android.ui.component.blur.BlurredBar
 import com.stelliberty.android.ui.component.blur.rememberBlurBackdrop
 import com.stelliberty.android.ui.icon.AppIcons
-import com.stelliberty.android.ui.theme.StatusColors
 import com.stelliberty.android.ui.util.horizontalCutoutPadding
 import com.stelliberty.android.util.formatIsoTimeAsLocalShort
-import com.stelliberty.android.viewmodel.ProviderErrorKey
 import com.stelliberty.android.viewmodel.ProviderItemUi
 import com.stelliberty.android.viewmodel.ProviderViewModel
 import top.yukonga.miuix.kmp.basic.BasicComponent
@@ -78,9 +68,6 @@ fun ProviderScreen(
     var selectedTabIndex by rememberSaveable("provider_type_tab") { mutableIntStateOf(RULE_PROVIDERS_TAB) }
     val selectedIsRuleProvider = selectedTabIndex == RULE_PROVIDERS_TAB
     val visibleProviders = uiState.providers.filter { it.isRuleProvider == selectedIsRuleProvider }
-    val otherTabErrors = uiState.providerErrors.entries
-        .filter { it.key.isRuleProvider != selectedIsRuleProvider }
-        .sortedBy { it.key.name }
     val providerTabs = listOf(
         stringResource(R.string.provider_rule_providers),
         stringResource(R.string.provider_proxy_providers),
@@ -96,30 +83,6 @@ fun ProviderScreen(
                 .padding(bottom = 12.dp),
         )
     }
-    val otherTabErrorsContent: @Composable () -> Unit = {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp)
-                .padding(bottom = 12.dp),
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                otherTabErrors.forEach { (errorKey, message) ->
-                    Text(
-                        text = stringResource(R.string.provider_update_failed, errorKey.name, message),
-                        fontSize = 12.sp,
-                        color = StatusColors.danger,
-                    )
-                }
-            }
-        }
-    }
-
     val backdrop = rememberBlurBackdrop()
     val blurActive = backdrop != null
     val barColor = if (blurActive) Color.Transparent else MiuixTheme.colorScheme.surface
@@ -176,9 +139,6 @@ fun ProviderScreen(
                     ) {
                         Spacer(Modifier.height(12.dp))
                         providerTabsContent()
-                        if (otherTabErrors.isNotEmpty()) {
-                            otherTabErrorsContent()
-                        }
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -210,11 +170,6 @@ fun ProviderScreen(
                 item(key = "provider_type_tabs", contentType = "tabs") {
                     providerTabsContent()
                 }
-                if (otherTabErrors.isNotEmpty()) {
-                    item(key = "other_tab_errors", contentType = "error_summary") {
-                        otherTabErrorsContent()
-                    }
-                }
                 items(
                     items = visibleProviders,
                     key = { "${it.isRuleProvider}:${it.name}" },
@@ -228,9 +183,6 @@ fun ProviderScreen(
                     ) {
                         ProviderItem(
                             provider = provider,
-                            error = uiState.providerErrors[
-                                ProviderErrorKey(provider.name, provider.isRuleProvider)
-                            ],
                             onUpdate = {
                                 viewModel.updateProvider(provider.name, provider.isRuleProvider)
                             },
@@ -260,7 +212,6 @@ private const val RULE_PROVIDERS_TAB = 0
 @Composable
 private fun ProviderItem(
     provider: ProviderItemUi,
-    error: String?,
     onUpdate: () -> Unit,
 ) {
     Column {
@@ -297,23 +248,5 @@ private fun ProviderItem(
                 }
             },
         )
-        var lastError by remember { mutableStateOf(error) }
-        if (error != null) lastError = error
-        AnimatedVisibility(
-            visible = error != null,
-            enter = expandVertically() + fadeIn(),
-            exit = shrinkVertically() + fadeOut(),
-        ) {
-            Text(
-                text = stringResource(R.string.provider_update_failed, provider.name, lastError.orEmpty()),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .semantics { liveRegion = LiveRegionMode.Polite }
-                    .padding(horizontal = 16.dp)
-                    .padding(bottom = 12.dp),
-                fontSize = 12.sp,
-                color = StatusColors.danger,
-            )
-        }
     }
 }

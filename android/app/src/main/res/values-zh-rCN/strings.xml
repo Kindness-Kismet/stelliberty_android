@@ -207,7 +207,6 @@
     <string name="subscription_used_traffic">已用 %1$s / %2$s</string>
     <string name="subscription_no_traffic">未获取到流量信息</string>
     <string name="subscription_updated_at">更新于 %1$s</string>
-    <string name="subscription_last_error">上次更新失败：%1$s</string>
     <string name="subscription_delete_title">删除订阅</string>
     <string name="subscription_delete_summary">确定要删除「%1$s」吗？将会移除配置文件以及节点选择记录。</string>
 
@@ -304,7 +303,6 @@
     <string name="provider_updating_title">正在更新资源</string>
     <string name="provider_updating_single">正在更新 %1$s…</string>
     <string name="provider_updating_progress">%1$d / %2$d</string>
-    <string name="provider_update_failed">更新 %1$s 失败: %2$s</string>
 
     <!-- Settings -->
     <string name="settings_title">设置</string>
@@ -637,7 +635,6 @@
     <string name="override_format">文件格式</string>
     <string name="override_delete_title">删除覆写</string>
     <string name="override_delete_summary">确定要删除「%1$s」吗？使用它的订阅会同时移除这个覆写。</string>
-    <string name="override_update_all_result">更新完成，成功 %1$d 个，失败 %2$d 个</string>
     <string name="override_error_name_required">请输入覆写名称。</string>
     <string name="override_error_invalid_url">覆写地址必须以 http:// 或 https:// 开头。</string>
     <string name="override_error_file_required">请选择本地覆写文件。</string>
@@ -720,4 +717,17 @@
     <string name="log_source_core">核心日志</string>
     <string name="log_empty">暂无符合条件的日志</string>
     <string name="error_clear_failed">清空日志失败：%1$s</string>
+    <string name="operation_update_success">更新成功</string>
+    <string name="operation_update_failed">更新失败，请稍后重试</string>
+    <string name="operation_update_partial">已更新 %1$d 项，%2$d 项失败</string>
+    <string name="operation_nothing_to_update">没有需要更新的项目</string>
+    <string name="operation_in_progress">正在处理中</string>
+    <string name="operation_cancelled">已取消</string>
+    <string name="operation_import_success">添加成功</string>
+    <string name="operation_save_success">保存成功</string>
+    <string name="operation_success">操作成功</string>
+    <string name="operation_import_failed">导入失败，请检查配置</string>
+    <string name="operation_save_failed">保存失败，请重试</string>
+    <string name="operation_invalid_config">配置格式有误</string>
+    <string name="operation_invalid_url">链接格式有误</string>
 </resources>

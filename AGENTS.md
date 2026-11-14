@@ -131,7 +131,7 @@ mihomo 经 submodule 锁定 YuKongA 的 `Mishka` 原始提交，独有修复保�
 
 只放跨子系统都成立的。子系统各自的约束在对应 skill，见下方分派表。
 
-**错误兜底**：用户面向异常走 `Throwable.describe()`（`message ?: simpleName ?: "Unknown error"`），避免 Ktor `ConnectException()` 等无参异常漏到 UI 显示 "null"。**类型化错误的 message 只写英文技术描述**（供日志），用户可见文案由 UI 层按类型映射（`SubscriptionViewModel.localizedMessage`）——data 层拿不到 locale。订阅 fetch 的状态码与空 body 检查在 Go 侧（`fetch.go`），只能返回英文字符串，故 `ProfileProcessor.translateCoreError` 按已知文案（`http status N` / `empty response body` / `validate config:` 前缀）还原成 typed `ImportError` / `ConfigValidationException`——**改 Go 那几条文案必须同步改这里**，漏改不报错，只是用户又看到英文原文。ViewModel 的 `error` 字段同理只存原因，「加载失败: 」这类前缀由屏幕 `stringResource` 拼。
+**错误兜底**：用户面向异常走 `Throwable.describe()`（`message ?: simpleName ?: "Unknown error"`），避免 Ktor `ConnectException()` 等无参异常漏到 UI 显示 "null"。**类型化错误的 message 只写英文技术描述**（供日志），操作结果按错误类型映射资源 ID，由 `OperationFeedbackHost` 本地化——data 层拿不到 locale。订阅 fetch 的状态码与空 body 检查在 Go 侧（`fetch.go`），只能返回英文字符串，故 `ProfileProcessor.translateCoreError` 按已知文案（`http status N` / `empty response body` / `validate config:` 前缀）还原成 typed `ImportError` / `ConfigValidationException`——**改 Go 那几条文案必须同步改这里**，漏改不报错，但错误会失去对应类型，界面只能显示通用失败提示。ViewModel 的 `error` 字段同理只存原因，「加载失败: 」这类前缀由屏幕 `stringResource` 拼。
 
 **后台卡片隐藏**：`HIDE_TASK_CARD` 由 `MainActivity` 读取并经 `ActivityManager.AppTask.setExcludeFromRecents()` 应用，运行时切换经 callback 透传即时生效。写成 manifest `android:excludeFromRecents="true"` 会失去用户可切换语义；App/屏幕暴露 callback、不直接调 Android API。当前实现依赖单 Activity task（`appTasks.firstOrNull()`）；若引入 document/multi-task 入口，必须改为按当前 `taskId` 匹配。
 

@@ -34,7 +34,6 @@ import com.stelliberty.android.ui.component.AdaptiveTopAppBar
 import com.stelliberty.android.ui.component.blur.BlurredBar
 import com.stelliberty.android.ui.component.blur.rememberBlurBackdrop
 import com.stelliberty.android.ui.icon.AppIcons
-import com.stelliberty.android.ui.theme.StatusColors
 import com.stelliberty.android.ui.util.TestTags
 import com.stelliberty.android.ui.util.horizontalCutoutPadding
 import com.stelliberty.android.viewmodel.OverrideProfileViewModel
@@ -86,9 +85,6 @@ fun SubscriptionOverridesScreen(
     val selectedIds = displayed.filter { it in selected }
     val hasChanges = selectedIds != initialSelected || displayed != initialOrder
 
-    LaunchedEffect(Unit) { overrideViewModel.clearError() }
-    ClearErrorOnExit(overrideViewModel)
-
     val scrollBehavior = MiuixScrollBehavior()
     val backdrop = rememberBlurBackdrop()
     val blurActive = backdrop != null
@@ -134,20 +130,6 @@ fun SubscriptionOverridesScreen(
             contentPadding = PaddingValues(top = innerPadding.calculateTopPadding()),
         ) {
             item(key = "top_padding") { Spacer(Modifier.height(12.dp)) }
-
-            if (overrideState.error.isNotEmpty()) {
-                item(key = "error") {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp)
-                            .padding(bottom = 12.dp),
-                        insideMargin = PaddingValues(16.dp),
-                    ) {
-                        Text(text = overrideState.error, color = StatusColors.danger)
-                    }
-                }
-            }
 
             if (displayed.isEmpty()) {
                 item(key = "empty") {

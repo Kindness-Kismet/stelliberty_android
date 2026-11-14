@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,7 +42,6 @@ import com.stelliberty.android.ui.component.blur.BlurredBar
 import com.stelliberty.android.ui.component.blur.rememberBlurBackdrop
 import com.stelliberty.android.ui.component.dialogTestTag
 import com.stelliberty.android.ui.icon.AppIcons
-import com.stelliberty.android.ui.theme.StatusColors
 import com.stelliberty.android.ui.util.TestTags
 import com.stelliberty.android.ui.util.horizontalCutoutPadding
 import com.stelliberty.android.util.formatEpochMillisAsLocal
@@ -100,7 +98,7 @@ fun OverrideListScreen(
                             }
                         }
                         IconButton(
-                            onClick = { viewModel.clearError(); onAdd() },
+                            onClick = onAdd,
                             modifier = Modifier.testTag(TestTags.Overrides.ADD),
                         ) {
                             Icon(
@@ -126,20 +124,6 @@ fun OverrideListScreen(
         ) {
             item(key = "top_padding") { Spacer(Modifier.height(12.dp)) }
 
-            if (uiState.error.isNotEmpty()) {
-                item(key = "error") {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp)
-                            .padding(bottom = 12.dp),
-                        insideMargin = PaddingValues(16.dp),
-                    ) {
-                        Text(text = uiState.error, color = StatusColors.danger)
-                    }
-                }
-            }
-
             if (uiState.profiles.isEmpty()) {
                 item(key = "empty") {
                     Text(
@@ -158,8 +142,8 @@ fun OverrideListScreen(
                 OverrideItem(
                     profile = profile,
                     isLoading = uiState.isLoading,
-                    onClick = { viewModel.clearError(); onEditFile(profile.id) },
-                    onEdit = { viewModel.clearError(); onEdit(profile.id) },
+                    onClick = { onEditFile(profile.id) },
+                    onEdit = { onEdit(profile.id) },
                     onRefresh = { viewModel.update(profile.id) },
                     onDelete = { viewModel.delete(profile.id) },
                 )
@@ -318,14 +302,6 @@ internal fun BackButton(onBack: () -> Unit) {
                 scaleX = if (layoutDirection == LayoutDirection.Rtl) -1f else 1f
             },
         )
-    }
-}
-
-// 子页面共用这个 ViewModel，错误只属于出错的那一页，离开时清掉，免得带回列表。
-@Composable
-internal fun ClearErrorOnExit(viewModel: OverrideProfileViewModel) {
-    DisposableEffect(viewModel) {
-        onDispose { viewModel.clearError() }
     }
 }
 

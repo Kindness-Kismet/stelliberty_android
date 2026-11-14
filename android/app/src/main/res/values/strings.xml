@@ -209,7 +209,6 @@
     <string name="subscription_used_traffic">Used %1$s / %2$s</string>
     <string name="subscription_no_traffic">No traffic info</string>
     <string name="subscription_updated_at">Updated at %1$s</string>
-    <string name="subscription_last_error">Last update failed: %1$s</string>
     <string name="subscription_delete_title">Delete subscription</string>
     <string name="subscription_delete_summary">Delete \"%1$s\"? This will remove the config files and selection history.</string>
 
@@ -306,7 +305,6 @@
     <string name="provider_updating_title">Updating provider</string>
     <string name="provider_updating_single">Updating %1$s…</string>
     <string name="provider_updating_progress">%1$d / %2$d</string>
-    <string name="provider_update_failed">Failed to update %1$s: %2$s</string>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
@@ -639,7 +637,6 @@
     <string name="override_format">File Format</string>
     <string name="override_delete_title">Delete Override</string>
     <string name="override_delete_summary">Delete \"%1$s\"? Subscriptions using it will drop this override.</string>
-    <string name="override_update_all_result">Update completed: %1$d succeeded, %2$d failed</string>
     <string name="override_error_name_required">Enter an override name.</string>
     <string name="override_error_invalid_url">Override address must start with http:// or https://.</string>
     <string name="override_error_file_required">Select a local override file.</string>
@@ -722,4 +719,17 @@
     <string name="log_source_core">Core logs</string>
     <string name="log_empty">No matching logs</string>
     <string name="error_clear_failed">Failed to clear logs: %1$s</string>
+    <string name="operation_update_success">Updated successfully</string>
+    <string name="operation_update_failed">Update failed. Please try again</string>
+    <string name="operation_update_partial">Updated %1$d, failed %2$d</string>
+    <string name="operation_nothing_to_update">Nothing to update</string>
+    <string name="operation_in_progress">An operation is in progress</string>
+    <string name="operation_cancelled">Cancelled</string>
+    <string name="operation_import_success">Added successfully</string>
+    <string name="operation_save_success">Saved successfully</string>
+    <string name="operation_success">Done</string>
+    <string name="operation_import_failed">Import failed. Check the configuration</string>
+    <string name="operation_save_failed">Save failed. Please try again</string>
+    <string name="operation_invalid_config">Invalid configuration</string>
+    <string name="operation_invalid_url">Invalid URL</string>
 </resources>

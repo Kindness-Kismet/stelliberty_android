@@ -106,6 +106,7 @@ import com.stelliberty.android.ui.screen.settings.SystemIntegrationScreen
 import com.stelliberty.android.ui.screen.settings.ThemeSettingsScreen
 import com.stelliberty.android.ui.screen.settings.VpnSettingsScreen
 import com.stelliberty.android.ui.screen.settings.WifiPolicyScreen
+import com.stelliberty.android.ui.component.OperationFeedbackHost
 import com.stelliberty.android.ui.screen.subscription.RuleOverrideSummary
 import com.stelliberty.android.ui.screen.subscription.SubscriptionAddUrlScreen
 import com.stelliberty.android.ui.screen.subscription.SubscriptionEditScreen
@@ -670,6 +671,7 @@ fun AppNavigation(
 
     subscriptionViewModel?.let { SubscriptionUpdateProgressDialog(it) }
     appUpdateViewModel?.let { AppUpdateDialog(it) }
+    OperationFeedbackHost()
 }
 
 @Composable

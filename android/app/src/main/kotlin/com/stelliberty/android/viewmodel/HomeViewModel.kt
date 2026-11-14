@@ -19,6 +19,8 @@ import com.stelliberty.android.platform.ProxyState
 import com.stelliberty.android.platform.TunMode
 import com.stelliberty.android.platform.showToast
 import com.stelliberty.android.util.FormatUtils
+import com.stelliberty.android.util.AppLogger
+import com.stelliberty.android.util.OperationFeedback
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -318,12 +320,28 @@ class HomeViewModel(
         val requestId = ++providerTrafficRequestId
         setProviderTrafficLoading(repo, subscriptionId, requestId)
         providerTrafficJob = viewModelScope.launch {
-            val names = repo.getProviders().getOrNull()?.providers.orEmpty()
+            val providers = repo.getProviders()
+            if (!isCurrentProviderTrafficRequest(repo, subscriptionId, requestId)) return@launch
+            if (providers.isFailure) {
+                AppLogger.warn("HomeViewModel", "Failed to load providers for update", providers.exceptionOrNull())
+                _uiState.update { it.copy(isProviderTrafficLoading = false) }
+                OperationFeedback.updateResult(0, 1)
+                return@launch
+            }
+            val names = providers.getOrThrow().providers
                 .filterValues { !it.vehicleType.equals(VEHICLE_TYPE_COMPATIBLE, ignoreCase = true) }
                 .map { (fallbackName, provider) -> provider.name.ifBlank { fallbackName } }
             if (!isCurrentProviderTrafficRequest(repo, subscriptionId, requestId)) return@launch
-            names.map { name -> async { repo.updateProvider(name) } }.awaitAll()
+            val results = names.map { name ->
+                async {
+                    repo.updateProvider(name).onFailure {
+                        AppLogger.warn("HomeViewModel", "Provider update failed: $name", it)
+                    }
+                }
+            }.awaitAll()
             if (!isCurrentProviderTrafficRequest(repo, subscriptionId, requestId)) return@launch
+            val succeeded = results.count { it.isSuccess }
+            OperationFeedback.updateResult(succeeded, results.size - succeeded)
             loadProviderTrafficSnapshot(repo, subscriptionId, requestId)
         }
     }

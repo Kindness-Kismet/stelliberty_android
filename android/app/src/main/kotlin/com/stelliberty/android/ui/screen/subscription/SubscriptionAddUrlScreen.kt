@@ -281,22 +281,6 @@ fun SubscriptionAddUrlScreen(
                     colors = ButtonDefaults.textButtonColorsPrimary(),
                 )
             }
-            if (uiState.error.isNotEmpty()) {
-                item(key = "error") {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp),
-                        insideMargin = PaddingValues(16.dp),
-                    ) {
-                        Text(
-                            text = uiState.error,
-                            fontSize = 14.sp,
-                            color = MiuixTheme.colorScheme.primary,
-                        )
-                    }
-                }
-            }
             item(key = "bottom_spacer") {
                 Spacer(
                     Modifier
