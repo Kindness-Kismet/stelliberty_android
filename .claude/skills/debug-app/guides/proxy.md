@@ -30,14 +30,17 @@ embed mode 下 `PATCH /configs` 返回 404，改 mode 走 `override.user.json` +
 
 ## 节点与测速
 
-以下指令需要 mihomo 在跑。
+测速与选择指令需要 mihomo 在跑，排期设置与状态读取可在停止状态使用。
 
 | method | 参数 | 作用 |
 |---|---|---|
 | `proxy.list` | — | 列出所有组：`名字(类型)->当前节点` |
 | `proxy.select` | `group`（extra）+ `node`（arg 或 extra） | 在组内选节点 |
-| `proxy.test_group` | 组名（arg） | 测组延迟 |
-| `proxy.test_node` | 节点名（arg） | 测节点延迟 |
+| `proxy.test_group` | 组名（arg） | 测该组全部成员，完成后返回 |
+| `proxy.test_node` | 节点名（arg） | 测 runtime 或 provider 节点延迟 |
+| `proxy.test_all` | — | 去重后测全部代理组成员，完成后返回 |
+| `proxy.set_auto_delay` | 分钟数（arg），0 关闭 | 更新当前订阅的定时测速间隔，可在停止状态设置 |
+| `proxy.get_test_state` | — | 读取正在测速的节点、内存结果、排期与界面状态，可在停止状态读取 |
 
 ```bash
 debug-call.sh -s <dev> -m proxy.list
@@ -49,4 +52,6 @@ debug-call.sh -s <dev> -m proxy.test_group -a PROXY
 
 选择指令在发请求前捕获订阅 id，完成后同时核对 repository 与活跃订阅，保存和页面刷新在主线程执行；切换过程中返回失败，避免把旧节点选择写入新订阅。
 
-provider 节点在代理页上测速：`test_node` 走 `/proxies/{name}/delay`，proxy-provider 的节点在这个命名空间之外，会返回 404。
+单测与批测共享并发预算，真实请求开始后节点按钮转圈，结果逐个更新；provider 节点使用专属健康检查接口。
+
+`set_auto_delay` 只更新订阅元数据，不下载或重启；周期设置按订阅保存，延迟结果和下一次执行时间只放内存。首次测速等待完整周期，后台每轮完成后重新排期，停止代理或关闭定时会撤销闹钟。

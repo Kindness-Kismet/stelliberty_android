@@ -1,6 +1,7 @@
 package com.stelliberty.android.ui.screen.subscription
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -25,17 +26,24 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.stelliberty.android.BuildConfig
 import com.stelliberty.android.R
 import com.stelliberty.android.domain.model.Subscription
 import com.stelliberty.android.ui.component.AdaptiveTopAppBar
+import com.stelliberty.android.ui.component.DialogButtons
+import com.stelliberty.android.ui.component.ListPopupDefaults.MenuPositionProvider
+import com.stelliberty.android.ui.component.PopupMenuItem
 import com.stelliberty.android.ui.component.blur.BlurredBar
 import com.stelliberty.android.ui.component.blur.rememberBlurBackdrop
+import com.stelliberty.android.ui.component.dialogTestTag
 import com.stelliberty.android.ui.icon.AppIcons
 import com.stelliberty.android.ui.theme.StatusColors
 import com.stelliberty.android.ui.util.TestTags
@@ -44,15 +52,15 @@ import com.stelliberty.android.util.FormatUtils
 import com.stelliberty.android.util.formatEpochMillisAsLocal
 import com.stelliberty.android.viewmodel.ProfileOperation
 import com.stelliberty.android.viewmodel.SubscriptionViewModel
-import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.ListPopupColumn
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
+import top.yukonga.miuix.kmp.basic.PopupPositionProvider
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.squircle.squircleBackground
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -60,17 +68,21 @@ import top.yukonga.miuix.kmp.utils.PressFeedbackType
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 import top.yukonga.miuix.kmp.window.WindowDialog
+import top.yukonga.miuix.kmp.window.WindowListPopup
 
 @Composable
 fun SubscriptionScreen(
     viewModel: SubscriptionViewModel,
     bottomPadding: Dp = 0.dp,
-    onNavigateAdd: () -> Unit = {},
+    onPickFile: () -> Unit = {},
+    onNavigateUrl: () -> Unit = {},
+    onScanQR: (() -> Unit)? = null,
     onNavigateEdit: (uuid: String) -> Unit = {},
     onActiveChanged: (() -> Unit)? = null,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scrollBehavior = MiuixScrollBehavior()
+    var showAddMenu by remember { mutableStateOf(false) }
 
     val backdrop = rememberBlurBackdrop()
     val blurActive = backdrop != null
@@ -92,21 +104,65 @@ fun SubscriptionScreen(
                                 enabled = !uiState.isLoading,
                             ) {
                                 Icon(
-                                    imageVector = AppIcons.Refresh,
+                                    imageVector = AppIcons.SubscriptionRefresh,
                                     contentDescription = stringResource(R.string.subscription_update_all),
                                     tint = MiuixTheme.colorScheme.onSurface,
                                 )
                             }
                         }
-                        IconButton(
-                            onClick = { viewModel.clearError(); onNavigateAdd() },
-                            modifier = Modifier.testTag(TestTags.Subscription.ADD),
-                        ) {
-                            Icon(
-                                imageVector = AppIcons.Add,
-                                contentDescription = stringResource(R.string.subscription_add),
-                                tint = MiuixTheme.colorScheme.onSurface,
-                            )
+                        Box {
+                            IconButton(
+                                onClick = { showAddMenu = true },
+                                holdDownState = showAddMenu,
+                                enabled = !uiState.isLoading,
+                                modifier = Modifier.testTag(TestTags.Subscription.ADD),
+                            ) {
+                                Icon(
+                                    imageVector = AppIcons.Add,
+                                    contentDescription = stringResource(R.string.subscription_add),
+                                    tint = MiuixTheme.colorScheme.onSurface,
+                                )
+                            }
+                            WindowListPopup(
+                                show = showAddMenu,
+                                popupPositionProvider = MenuPositionProvider,
+                                alignment = PopupPositionProvider.Align.TopEnd,
+                                onDismissRequest = { showAddMenu = false },
+                            ) {
+                                val entries = buildList {
+                                    add(Triple(R.string.subscription_file, TestTags.Subscription.ADD_FILE, onPickFile))
+                                    add(Triple(R.string.subscription_url, TestTags.Subscription.ADD_URL, onNavigateUrl))
+                                    onScanQR?.let {
+                                        add(Triple(R.string.subscription_qr, TestTags.Subscription.ADD_QR, it))
+                                    }
+                                }
+                                Box(
+                                    Modifier
+                                        .semantics { testTagsAsResourceId = BuildConfig.DEBUG }
+                                        .testTag(TestTags.Subscription.ADD_MENU),
+                                ) {
+                                    ListPopupColumn {
+                                        entries.forEachIndexed { index, (title, tag, onClick) ->
+                                            PopupMenuItem(
+                                                title = stringResource(title),
+                                                modifier = Modifier.testTag(tag),
+                                                icon = when (title) {
+                                                    R.string.subscription_file -> AppIcons.File
+                                                    R.string.subscription_url -> AppIcons.Link
+                                                    else -> AppIcons.QrCode
+                                                },
+                                                enabled = !uiState.isLoading,
+                                                index = index,
+                                                optionCount = entries.size,
+                                                onClick = {
+                                                    showAddMenu = false
+                                                    onClick()
+                                                },
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
                     },
                 )
@@ -131,23 +187,6 @@ fun SubscriptionScreen(
                 if (uiState.subscriptions.isNotEmpty()) {
                     item(key = "top_padding") {
                         Spacer(modifier = Modifier.height(12.dp))
-                    }
-                }
-
-                if (uiState.error.isNotEmpty()) {
-                    item(key = "error") {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp)
-                                .padding(bottom = 12.dp),
-                            insideMargin = PaddingValues(16.dp),
-                        ) {
-                            Text(
-                                text = uiState.error,
-                                color = StatusColors.danger,
-                            )
-                        }
                     }
                 }
 
@@ -312,6 +351,7 @@ private fun SubscriptionItem(
             Spacer(Modifier.width(8.dp))
             IconButton(
                 onClick = onRefresh,
+                modifier = Modifier.testTag(TestTags.Subscription.update(subscription.id)),
                 enabled = !isLoading && !subscription.isLocalFile,
                 minHeight = 35.dp,
                 minWidth = 35.dp,
@@ -319,7 +359,7 @@ private fun SubscriptionItem(
             ) {
                 Icon(
                     modifier = Modifier.size(20.dp),
-                    imageVector = AppIcons.Refresh,
+                    imageVector = AppIcons.SubscriptionRefresh,
                     contentDescription = stringResource(R.string.common_update),
                     tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
@@ -327,6 +367,7 @@ private fun SubscriptionItem(
             Spacer(Modifier.width(8.dp))
             IconButton(
                 onClick = { showDeleteDialog = true },
+                modifier = Modifier.testTag(TestTags.Subscription.delete(subscription.id)),
                 minHeight = 35.dp,
                 minWidth = 35.dp,
                 backgroundColor = MiuixTheme.colorScheme.secondaryContainer,
@@ -339,43 +380,21 @@ private fun SubscriptionItem(
                 )
             }
         }
-
-        subscription.lastError?.takeIf { it.isNotBlank() }?.let { error ->
-            Text(
-                text = stringResource(R.string.subscription_last_error, error),
-                modifier = Modifier.padding(top = 8.dp),
-                fontSize = 12.sp,
-                color = StatusColors.danger,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
     }
 
     WindowDialog(
+        modifier = Modifier.dialogTestTag(TestTags.Dialog.DELETE_SUBSCRIPTION),
         show = showDeleteDialog,
         title = stringResource(R.string.subscription_delete_title),
         summary = stringResource(R.string.subscription_delete_summary, displayName),
         onDismissRequest = { showDeleteDialog = false },
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            TextButton(
-                text = stringResource(R.string.common_cancel),
-                modifier = Modifier.weight(1f),
-                onClick = { showDeleteDialog = false },
-            )
-            TextButton(
-                text = stringResource(R.string.common_confirm),
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.textButtonColorsPrimary(),
-                onClick = {
-                    showDeleteDialog = false
-                    onDelete()
-                },
-            )
-        }
+        DialogButtons(
+            onCancel = { showDeleteDialog = false },
+            onConfirm = {
+                showDeleteDialog = false
+                onDelete()
+            },
+        )
     }
 }

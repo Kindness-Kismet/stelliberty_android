@@ -1,7 +1,6 @@
 package com.stelliberty.android.viewmodel
 
 import android.content.Context
-import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -16,8 +15,9 @@ import com.stelliberty.android.domain.model.SubscriptionUpdateProxyMode
 import com.stelliberty.android.domain.repository.SubscriptionRepository
 import com.stelliberty.android.platform.ProfileFileManager
 import com.stelliberty.android.platform.ProxyServiceController
+import com.stelliberty.android.service.ProfileWorker
 import com.stelliberty.android.util.AppLogger
-import com.stelliberty.android.util.describe
+import com.stelliberty.android.util.OperationFeedback
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.CancellationException
@@ -37,8 +37,6 @@ data class SubscriptionUiState(
     val subscriptions: ImmutableList<Subscription> = persistentListOf(),
     val currentId: String? = null,
     val isLoading: Boolean = false,
-    val error: String = "",
-    val showAddDialog: Boolean = false,
     val importProgress: ImportProgress? = null,
     val updateAll: UpdateAllProgress? = null,
     val operation: ProfileOperation? = null,
@@ -75,21 +73,10 @@ class SubscriptionViewModel(
         }
     }
 
-    fun showAddDialog() {
-        _uiState.value = _uiState.value.copy(showAddDialog = true)
-    }
-
-    fun hideAddDialog() {
-        _uiState.value = _uiState.value.copy(showAddDialog = false)
-    }
-
-    fun clearError() {
-        _uiState.value = _uiState.value.copy(error = "")
-    }
-
     // 必须同步清掉进度状态让对话框立刻消失：协程取消是异步的，如果正卡在不可取消的提交阶段
     // 或者文件读写上，等收尾时再清会让用户觉得点了取消没反应。
     fun cancelCurrentUpdate() {
+        if (isBusy()) OperationFeedback.show(R.string.operation_cancelled)
         clearProgress()
         currentJob?.cancel()
     }
@@ -105,8 +92,7 @@ class SubscriptionViewModel(
         autoTestDelayMinutes: Int = 0,
         onComplete: () -> Unit = {},
     ) {
-        hideAddDialog()
-        runPipeline(ProfileOperation.Import, errorKey = R.string.error_import_failed) {
+        runPipeline(ProfileOperation.Import) {
             val sub = repository.create(
                 name = name,
                 sourceLocation = url,
@@ -126,7 +112,7 @@ class SubscriptionViewModel(
     }
 
     fun addFromFile(fileName: String, content: String, onComplete: () -> Unit = {}) {
-        runPipeline(ProfileOperation.Import, errorKey = R.string.error_import_failed) {
+        runPipeline(ProfileOperation.Import) {
             val name = fileName.removeSuffix(".yaml").removeSuffix(".yml")
             val sub = repository.create(name = name, sourceLocation = "", isLocalFile = true)
             pendingOnFailure(sub.id) {
@@ -140,12 +126,10 @@ class SubscriptionViewModel(
     fun fetchSubscription(id: String) {
         val sub = _uiState.value.subscriptions.find { it.id == id } ?: return
         if (sub.isLocalFile) {
-            viewModelScope.launch {
-                _uiState.value = _uiState.value.copy(error = context.getString(R.string.subscription_file_only_no_update))
-            }
+            OperationFeedback.show(R.string.subscription_file_only_no_update)
             return
         }
-        runPipeline(ProfileOperation.Update, errorKey = R.string.error_update_failed) {
+        runPipeline(ProfileOperation.Update) {
             processor.update(id, ::reportProgress)
             serviceController.restartAfterProfileUpdate(id)
         }
@@ -172,22 +156,29 @@ class SubscriptionViewModel(
     fun runStartupUpdates() {
         if (startupUpdatesStarted) return
         startupUpdatesStarted = true
-        updateSubscriptions(
+        ProfileWorker.startUpdates(
+            context,
             repository.subscriptions.value.filter {
                 !it.isLocalFile && it.autoUpdateMode == SubscriptionAutoUpdateMode.Startup
-            }
+            }.map { it.id },
         )
     }
 
     // 逐条等它做完，只为让进度条一次只前进一格。让配置生效的那次重启排在整轮结束之后且只做一次：
     // 中途重启会断网，后面还要下载的订阅会跟着一起失败。
     private fun updateSubscriptions(targets: List<Subscription>) {
-        if (targets.isEmpty()) return
-        if (isBusy()) return
+        if (targets.isEmpty()) {
+            OperationFeedback.updateResult(0, 0)
+            return
+        }
+        if (isBusy()) {
+            OperationFeedback.show(R.string.operation_in_progress)
+            return
+        }
 
-        _uiState.value = _uiState.value.copy(operation = ProfileOperation.Update, error = "")
+        _uiState.value = _uiState.value.copy(operation = ProfileOperation.Update)
         currentJob = viewModelScope.launch {
-            val failures = mutableListOf<String>()
+            var failed = 0
             val updated = mutableListOf<String>()
             val total = targets.size
             try {
@@ -207,20 +198,15 @@ class SubscriptionViewModel(
                         throw e
                     } catch (e: Throwable) {
                         AppLogger.warn(TAG, "Batch update failed for ${sub.id}", e)
-                        val label = if (e is ConfigValidationException) {
-                            context.getString(R.string.error_validation_failed, e.describe())
-                        } else {
-                            context.getString(R.string.error_update_failed, localizedMessage(e))
-                        }
-                        failures += "${sub.name}: $label"
+                        failed++
                     }
                 }
                 _uiState.value = _uiState.value.copy(
                     updateAll = null,
                     operation = null,
-                    error = if (failures.isEmpty()) "" else failures.joinToString("\n"),
                 )
                 updated.forEach { serviceController.restartAfterProfileUpdate(it) }
+                OperationFeedback.updateResult(updated.size, failed)
             } catch (e: CancellationException) {
                 AppLogger.info(TAG, "Batch profile update cancelled")
                 clearProgress()
@@ -243,7 +229,7 @@ class SubscriptionViewModel(
         autoTestDelayMinutes: Int,
         onComplete: () -> Unit = {},
     ) {
-        runPipeline(ProfileOperation.Edit, errorKey = R.string.error_save_failed) {
+        runPipeline(ProfileOperation.Edit) {
             repository.patch(
                 uuid, name, source, autoUpdateMode, intervalMinutes, userAgent, ageSecretKey, updateProxyMode,
                 autoTestDelayMinutes,
@@ -259,13 +245,14 @@ class SubscriptionViewModel(
 
     private fun runPipeline(
         op: ProfileOperation,
-        @StringRes errorKey: Int,
         block: suspend () -> Unit,
     ) {
-        if (isBusy()) return
+        if (isBusy()) {
+            OperationFeedback.show(R.string.operation_in_progress)
+            return
+        }
         _uiState.value = _uiState.value.copy(
             isLoading = true,
-            error = "",
             importProgress = null,
             operation = op,
         )
@@ -274,6 +261,13 @@ class SubscriptionViewModel(
             try {
                 block()
                 AppLogger.info(TAG, "Profile operation $op completed")
+                OperationFeedback.show(
+                    when (op) {
+                        ProfileOperation.Import -> R.string.operation_import_success
+                        ProfileOperation.Update -> R.string.operation_update_success
+                        ProfileOperation.Edit -> R.string.operation_save_success
+                    },
+                )
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     importProgress = null,
@@ -285,30 +279,28 @@ class SubscriptionViewModel(
                 throw e
             } catch (e: Throwable) {
                 AppLogger.error(TAG, "Profile operation $op failed", e)
-                val message = if (e is ConfigValidationException) {
-                    context.getString(R.string.error_validation_failed, e.describe())
-                } else {
-                    context.getString(errorKey, localizedMessage(e))
-                }
+                OperationFeedback.show(
+                    when (e) {
+                        is ImportError.InvalidName -> R.string.error_import_invalid_name
+                        is ImportError.IntervalTooSmall -> R.string.error_import_interval_too_small
+                        is ImportError.InvalidScheme -> R.string.operation_invalid_url
+                        is ConfigValidationException -> R.string.operation_invalid_config
+                        else -> when (op) {
+                            ProfileOperation.Import -> R.string.operation_import_failed
+                            ProfileOperation.Update -> R.string.operation_update_failed
+                            ProfileOperation.Edit -> R.string.operation_save_failed
+                        }
+                    },
+                )
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     importProgress = null,
                     operation = null,
-                    error = message,
                 )
             } finally {
                 currentJob = null
             }
         }
-    }
-
-    private fun localizedMessage(e: Throwable): String = when (e) {
-        is ImportError.HttpStatus -> context.getString(R.string.error_import_http_status, e.code)
-        is ImportError.EmptyBody -> context.getString(R.string.error_import_empty_body)
-        is ImportError.InvalidScheme -> context.getString(R.string.error_import_invalid_scheme, e.source)
-        is ImportError.InvalidName -> context.getString(R.string.error_import_invalid_name)
-        is ImportError.IntervalTooSmall -> context.getString(R.string.error_import_interval_too_small)
-        else -> e.describe()
     }
 
     private suspend fun pendingOnFailure(uuid: String, block: suspend () -> Unit) {

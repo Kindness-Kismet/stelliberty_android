@@ -19,6 +19,8 @@ import com.stelliberty.android.platform.ProxyState
 import com.stelliberty.android.platform.TunMode
 import com.stelliberty.android.platform.showToast
 import com.stelliberty.android.util.FormatUtils
+import com.stelliberty.android.util.AppLogger
+import com.stelliberty.android.util.OperationFeedback
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -318,12 +320,28 @@ class HomeViewModel(
         val requestId = ++providerTrafficRequestId
         setProviderTrafficLoading(repo, subscriptionId, requestId)
         providerTrafficJob = viewModelScope.launch {
-            val names = repo.getProviders().getOrNull()?.providers.orEmpty()
+            val providers = repo.getProviders()
+            if (!isCurrentProviderTrafficRequest(repo, subscriptionId, requestId)) return@launch
+            if (providers.isFailure) {
+                AppLogger.warn("HomeViewModel", "Failed to load providers for update", providers.exceptionOrNull())
+                _uiState.update { it.copy(isProviderTrafficLoading = false) }
+                OperationFeedback.updateResult(0, 1)
+                return@launch
+            }
+            val names = providers.getOrThrow().providers
                 .filterValues { !it.vehicleType.equals(VEHICLE_TYPE_COMPATIBLE, ignoreCase = true) }
                 .map { (fallbackName, provider) -> provider.name.ifBlank { fallbackName } }
             if (!isCurrentProviderTrafficRequest(repo, subscriptionId, requestId)) return@launch
-            names.map { name -> async { repo.updateProvider(name) } }.awaitAll()
+            val results = names.map { name ->
+                async {
+                    repo.updateProvider(name).onFailure {
+                        AppLogger.warn("HomeViewModel", "Provider update failed: $name", it)
+                    }
+                }
+            }.awaitAll()
             if (!isCurrentProviderTrafficRequest(repo, subscriptionId, requestId)) return@launch
+            val succeeded = results.count { it.isSuccess }
+            OperationFeedback.updateResult(succeeded, results.size - succeeded)
             loadProviderTrafficSnapshot(repo, subscriptionId, requestId)
         }
     }
@@ -638,20 +656,20 @@ class HomeViewModel(
 
     // 停止状态下也能改：写设置和代理是否在跑没关系，重启的事交给控制器判断。
     // 别改成直接重启，那会把用户没打算启动的代理拉起来。
-    fun switchMode(mode: String) {
-        val current = overrideStore.load()
-        overrideStore.save(current.copy(mode = mode))
-        _uiState.value = _uiState.value.copy(mode = mode)
-        serviceController.restartWhenReady(getActiveSubscriptionId())
-    }
+    fun switchMode(mode: String) = applyProxyRouting(mode, null)
 
-    fun switchTunStack(stack: String) {
-        if (_uiState.value.tunMode == TunMode.RootTproxy) return
+    fun applyProxyRouting(mode: String?, tunStack: String?) {
+        val stack = tunStack?.takeUnless { _uiState.value.tunMode == TunMode.RootTproxy }
+        if (mode == null && stack == null) return
         val current = overrideStore.load()
-        val nextTun = (current.tun ?: TunOverride()).copy(stack = stack)
-        overrideStore.save(current.copy(tun = nextTun))
-        _uiState.value = _uiState.value.copy(tunStack = stack)
-        serviceController.restart(getActiveSubscriptionId())
+        val next = current.copy(
+            mode = mode ?: current.mode,
+            tun = if (stack == null) current.tun else (current.tun ?: TunOverride()).copy(stack = stack),
+        )
+        if (next == current) return
+        overrideStore.save(next)
+        _uiState.value = _uiState.value.copy(mode = mode ?: _uiState.value.mode, tunStack = stack ?: _uiState.value.tunStack)
+        serviceController.restartWhenReady(getActiveSubscriptionId())
     }
 
     fun reloadConfig() {

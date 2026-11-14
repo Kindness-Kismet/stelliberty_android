@@ -23,30 +23,28 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.stelliberty.android.R
+import com.stelliberty.android.util.OperationFeedback
 import com.stelliberty.android.domain.model.OverrideFormat
 import com.stelliberty.android.domain.model.SubscriptionUpdateProxyMode
 import com.stelliberty.android.platform.FilePickResult
 import com.stelliberty.android.ui.component.AdaptiveTopAppBar
 import com.stelliberty.android.ui.component.CardItem
+import com.stelliberty.android.ui.component.UpdateProxyModePreference
 import com.stelliberty.android.ui.component.blur.BlurredBar
 import com.stelliberty.android.ui.component.blur.rememberBlurBackdrop
 import com.stelliberty.android.ui.component.groupedCardItems
-import com.stelliberty.android.ui.theme.StatusColors
 import com.stelliberty.android.ui.util.TestTags
 import com.stelliberty.android.ui.util.horizontalCutoutPadding
 import com.stelliberty.android.viewmodel.OverrideProfileViewModel
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SmallTitle
-import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
-import top.yukonga.miuix.kmp.preference.SwitchPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
@@ -69,25 +67,22 @@ fun OverrideEditScreen(
         return
     }
 
-    ClearErrorOnExit(viewModel)
-
     var method by rememberSaveable { mutableStateOf(AddMethod.Remote) }
     var name by rememberSaveable(overrideId) { mutableStateOf(profile?.name.orEmpty()) }
     var url by rememberSaveable(overrideId) {
         mutableStateOf(profile?.takeIf { it.isRemote }?.sourceLocation.orEmpty())
     }
     var format by rememberSaveable(overrideId) { mutableStateOf(profile?.format ?: OverrideFormat.Yaml) }
-    val savedViaProxy = profile?.let { it.updateProxyMode != SubscriptionUpdateProxyMode.Direct } ?: true
-    var updateViaProxy by rememberSaveable(overrideId) { mutableStateOf(savedViaProxy) }
+    var updateProxyMode by rememberSaveable(overrideId) {
+        mutableStateOf(profile?.updateProxyMode ?: SubscriptionUpdateProxyMode.Core)
+    }
     var picked by remember { mutableStateOf<FilePickResult?>(null) }
-    var localError by remember { mutableStateOf("") }
 
     val isRemote = profile?.isRemote ?: (method == AddMethod.Remote)
     val hasChanges = profile == null ||
             name != profile.name ||
             format != profile.format ||
-            (profile.isRemote && (url != profile.sourceLocation || updateViaProxy != savedViaProxy))
-    val fileRequiredText = stringResource(R.string.override_error_file_required)
+            (profile.isRemote && (url != profile.sourceLocation || updateProxyMode != profile.updateProxyMode))
 
     val scrollBehavior = MiuixScrollBehavior()
     val backdrop = rememberBlurBackdrop()
@@ -130,7 +125,6 @@ fun OverrideEditScreen(
                                 selectedIndex = methods.indexOf(method),
                                 onSelectedIndexChange = {
                                     method = methods[it]
-                                    localError = ""
                                 },
                             )
                         },
@@ -179,7 +173,6 @@ fun OverrideEditScreen(
                                     onPickFile { result ->
                                         if (result == null) return@onPickFile
                                         picked = result
-                                        localError = ""
                                         if (name.isBlank()) name = result.fileName.substringBeforeLast('.')
                                         format = if (result.fileName.endsWith(".js", ignoreCase = true)) {
                                             OverrideFormat.JavaScript
@@ -205,49 +198,23 @@ fun OverrideEditScreen(
                         )
                     })
                     if (isRemote) {
-                        add(CardItem("overrideUpdateViaProxy") {
-                            SwitchPreference(
-                                title = stringResource(R.string.subscription_update_via_proxy),
-                                summary = stringResource(R.string.override_update_via_proxy_summary),
-                                checked = updateViaProxy,
-                                onCheckedChange = { updateViaProxy = it },
-                            )
+                        add(CardItem("overrideUpdateProxyMode") {
+                            UpdateProxyModePreference(mode = updateProxyMode, onModeChange = { updateProxyMode = it })
                         })
                     }
                 },
             )
 
-            val error = localError.ifEmpty { uiState.error }
-            if (error.isNotEmpty()) {
-                item(key = "error") {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp)
-                            .padding(bottom = 6.dp),
-                        insideMargin = PaddingValues(16.dp),
-                    ) {
-                        Text(text = error, color = StatusColors.danger)
-                    }
-                }
-            }
-
             item(key = "save") {
                 TextButton(
                     text = stringResource(if (uiState.isLoading) R.string.common_processing else R.string.common_save),
                     onClick = {
-                        // 开关没动就原样写回，保留 PC 上设的 SystemProxy。
-                        val proxyMode = when {
-                            profile != null && updateViaProxy == savedViaProxy -> profile.updateProxyMode
-                            updateViaProxy -> SubscriptionUpdateProxyMode.Core
-                            else -> SubscriptionUpdateProxyMode.Direct
-                        }
                         val file = picked
                         when {
-                            profile != null -> viewModel.edit(profile, name, url, format, proxyMode, onSaved)
-                            method == AddMethod.Remote -> viewModel.addRemote(name, url, format, proxyMode, onSaved)
+                            profile != null -> viewModel.edit(profile, name, url, format, updateProxyMode, onSaved)
+                            method == AddMethod.Remote -> viewModel.addRemote(name, url, format, updateProxyMode, onSaved)
                             method == AddMethod.Blank -> viewModel.addBlank(name, format, onSaved)
-                            file == null -> localError = fileRequiredText
+                            file == null -> OperationFeedback.show(R.string.override_error_file_required)
                             else -> viewModel.addLocal(name, file.fileName, format, file.content, onSaved)
                         }
                     },

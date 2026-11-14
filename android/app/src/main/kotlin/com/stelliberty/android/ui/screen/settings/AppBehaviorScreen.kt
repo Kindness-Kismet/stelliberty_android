@@ -25,6 +25,8 @@ fun AppBehaviorScreen(
     storage: PlatformStorage,
     bootStartManager: BootStartManager?,
     onHideTaskCardChange: ((Boolean) -> Unit)?,
+    notificationsEnabled: Boolean = false,
+    onNotificationsChange: ((Boolean) -> Unit)? = null,
     onBack: () -> Unit = {},
     onNavigateWifiPolicy: () -> Unit = {},
 ) {
@@ -103,6 +105,16 @@ fun AppBehaviorScreen(
         groupedCardItems(
             keyPrefix = "app_behavior_general",
             items = buildList {
+                if (onNotificationsChange != null) {
+                    add(CardItem("appNotifications") {
+                        SwitchPreference(
+                            title = stringResource(R.string.settings_app_notifications),
+                            summary = stringResource(R.string.settings_app_notifications_summary),
+                            checked = notificationsEnabled,
+                            onCheckedChange = onNotificationsChange,
+                        )
+                    })
+                }
                 add(CardItem("dynamicNotification") {
                     SwitchPreference(
                         title = stringResource(R.string.settings_dynamic_notification),

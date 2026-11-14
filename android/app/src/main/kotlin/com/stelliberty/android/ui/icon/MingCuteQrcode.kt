@@ -1,0 +1,26 @@
+// 由 scripts/gen_icons.py 从 MingCute 生成，勿手改。源：regular/devices/qrcode.svg
+package com.stelliberty.android.ui.icon
+
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathFillType
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.PathParser
+import androidx.compose.ui.unit.dp
+
+internal val MingCuteQrcode: ImageVector by lazy {
+    ImageVector.Builder(
+        name = "Qrcode",
+        defaultWidth = 24.dp,
+        defaultHeight = 24.dp,
+        viewportWidth = 24f,
+        viewportHeight = 24f,
+        autoMirror = false,
+    ).apply {
+        addPath(
+            pathData = PathParser().parsePathString("M11 19.057c-.063 1.1-.843 1.88-1.943 1.943H4.943c-.445-.026-.846-.153-1.198-.435-.47-.377-.711-.915-.745-1.508v-4.114c.026-.445.153-.846.435-1.198.377-.47.915-.711 1.508-.745h4.114c1.1.063 1.88.843 1.943 1.943Zm-5.994-4.051v3.988h3.988v-3.988Zm14.028-1.265c.262-.978 1.67-.978 1.932 0L21 14v6c-.03.451-.288.844-.741.966-.656.176-1.217-.327-1.259-.966v-6Zm-3 4.5c.226-.842 1.396-.996 1.832-.241.101.175.121.302.134.5V20c-.024.36-.178.68-.5.866a1 1 0 0 1-.759.1c-.453-.122-.711-.515-.741-.966v-1.5Zm-3-4.5c.262-.978 1.67-.978 1.932 0L15 14v6c-.03.451-.288.844-.741.966-.656.176-1.217-.327-1.259-.966v-6Zm3 0c.226-.842 1.396-.996 1.832-.241.101.175.121.302.134.5v1.5c-.024.36-.178.68-.5.866a1 1 0 0 1-.759.1c-.453-.122-.711-.515-.741-.966V14ZM21 9.057c-.063 1.1-.843 1.88-1.943 1.943h-4.114c-.445-.026-.846-.153-1.198-.435-.47-.377-.711-.915-.745-1.508V4.943c.026-.445.153-.846.435-1.198.377-.47.915-.711 1.508-.745h4.114c1.1.063 1.88.843 1.943 1.943Zm-5.994-4.051v3.988h3.988V5.006Zm-4.441-1.261c.282.352.409.753.435 1.198v4.114c-.063 1.1-.843 1.88-1.943 1.943H4.943c-.593-.034-1.131-.275-1.508-.745-.282-.352-.409-.753-.435-1.198V4.943c.063-1.1.843-1.88 1.943-1.943h4.114c.593.034 1.131.275 1.508.745M5.006 5.006v3.988h3.988V5.006Z").toNodes(),
+            pathFillType = PathFillType.NonZero,
+            fill = SolidColor(Color.Black),
+        )
+    }.build()
+}

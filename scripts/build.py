@@ -13,11 +13,11 @@ import subprocess
 import time
 from pathlib import Path
 
+from build_support.patching import apply_native_patches
 from prebuild import (
     PREBUILD_MARKER,
     Console,
     Toolchain,
-    apply_native_patches,
     detect_toolchain,
     fail,
     gradle_root,
@@ -39,7 +39,7 @@ def prepare_build(console: Console, project_root: Path) -> Toolchain:
         console.info("preparing build resources")
         if subprocess.run(command, cwd=project_root).returncode != 0:
             fail("prebuild failed")
-    apply_native_patches(project_root)
+    apply_native_patches(project_root, verbose=console.verbose)
     return detect_toolchain(console, project_root)
 
 

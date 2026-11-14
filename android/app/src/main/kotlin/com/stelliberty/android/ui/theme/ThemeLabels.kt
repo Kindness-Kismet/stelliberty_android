@@ -59,19 +59,3 @@ fun BottomBarMode.label(): String = stringResource(
         BottomBarMode.IconOnly -> R.string.settings_theme_bottom_bar_icon_only
     },
 )
-
-@Composable
-fun TopBarBlurStyle.label(): String = stringResource(
-    when (this) {
-        TopBarBlurStyle.Gaussian -> R.string.settings_theme_blur_style_gaussian
-        TopBarBlurStyle.Progressive -> R.string.settings_theme_blur_style_progressive
-    },
-)
-
-@Composable
-fun TopBarBlurStyle.summary(): String = stringResource(
-    when (this) {
-        TopBarBlurStyle.Gaussian -> R.string.settings_theme_blur_style_gaussian_summary
-        TopBarBlurStyle.Progressive -> R.string.settings_theme_blur_style_progressive_summary
-    },
-)

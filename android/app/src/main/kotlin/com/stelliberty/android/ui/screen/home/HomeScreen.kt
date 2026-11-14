@@ -65,6 +65,10 @@ fun HomeScreen(
     val barColor = if (blurActive) Color.Transparent else MiuixTheme.colorScheme.surface
     var showSubscriptionTraffic by rememberSaveable { mutableStateOf(false) }
     var showSpeedDetail by rememberSaveable { mutableStateOf(false) }
+    var requestedAction by rememberSaveable { mutableStateOf<HomeControlAction?>(null) }
+    LaunchedEffect(uiState.isRunning, uiState.isStarting, uiState.isStopping) {
+        if (!uiState.isStarting && !uiState.isStopping) requestedAction = null
+    }
     val topConnectionRates by (
             viewModel?.topConnectionRates?.collectAsStateWithLifecycle()
                 ?: remember { mutableStateOf(null) }
@@ -110,12 +114,13 @@ fun HomeScreen(
                 statusSection(
                     state = uiState,
                     uptime = uptime,
+                    requestedAction = requestedAction,
                 )
                 actionButtonsSection(
-                    onRestart = onRestart,
-                    onStop = onStop,
-                    onReload = onReload,
-                    onStart = onStartProxy,
+                    onRestart = { requestedAction = HomeControlAction.Restart; onRestart() },
+                    onStop = { requestedAction = HomeControlAction.Stop; onStop() },
+                    onReload = { requestedAction = HomeControlAction.Reload; onReload() },
+                    onStart = { requestedAction = HomeControlAction.Start; onStartProxy() },
                     isRunning = uiState.isRunning,
                     isStarting = uiState.isStarting,
                     isStopping = uiState.isStopping,

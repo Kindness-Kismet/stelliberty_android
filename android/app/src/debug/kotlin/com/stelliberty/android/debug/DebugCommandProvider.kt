@@ -7,12 +7,15 @@ import android.net.Uri
 import android.os.Binder
 import android.os.Bundle
 import android.os.Process
-import org.koin.core.context.GlobalContext
 import com.stelliberty.android.platform.PlatformStorage
+import org.koin.core.context.GlobalContext
 
 class DebugCommandProvider : ContentProvider() {
 
-    override fun onCreate(): Boolean = true
+    override fun onCreate(): Boolean {
+        DebugAnimationSpeed.install()
+        return true
+    }
 
     override fun call(method: String, arg: String?, extras: Bundle?): Bundle {
         if (!isAuthorizedCaller()) {
@@ -25,6 +28,8 @@ class DebugCommandProvider : ContentProvider() {
         return runCatching {
             when (method) {
                 in PAGE_METHODS -> runPageCommand(arg, extras)
+                in DIALOG_METHODS -> runDialogFixtureCommand(arg, extras)
+                in ANIMATION_METHODS -> runAnimationCommand(method.removePrefix("animation."), arg, extras)
                 in PROXY_METHODS -> runProxyCommand(context, method.removePrefix("proxy."), arg, extras)
                 in SUBSCRIPTION_METHODS -> runSubscriptionCommand(method.removePrefix("subscription."), arg, extras)
                 in OVERRIDE_METHODS -> runOverrideCommand(method.removePrefix("override."), arg, extras)

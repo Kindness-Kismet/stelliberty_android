@@ -20,6 +20,8 @@ import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 
+from build_support.patching import apply_native_patches
+
 MIN_JDK = 26
 JDK_DIR = Path("build/jdk")
 GO_DIR = Path("build/go")
@@ -286,18 +288,6 @@ def submodule_paths(project_root: Path) -> list[str]:
     return re.findall(r"^\s*path\s*=\s*(.+?)\s*$", gitmodules.read_text(encoding="utf-8"), re.M)
 
 
-def apply_native_patches(project_root: Path) -> None:
-    # 补丁随主仓库分发，本机与 CI 使用同一份内核源码；已应用的补丁直接跳过。
-    for patch in sorted((project_root / "scripts/patches").glob("mihomo-*.patch")):
-        command = ["git", "-C", str(project_root / "third_party/mihomo"), "apply", "--unidiff-zero"]
-        applied = subprocess.run([*command, "--reverse", "--check", str(patch)], capture_output=True)
-        if applied.returncode == 0:
-            continue
-        subprocess.run([*command, "--check", str(patch)], check=True)
-        subprocess.run([*command, str(patch)], check=True)
-        print(f"[ ok ] applied {patch.name}")
-
-
 def _blocking_dirs(project_root: Path, paths: list[str]) -> list[str]:
     """非空但没有 .git 的 submodule 目录：git clone 会以「destination path already exists」失败。
 
@@ -333,6 +323,7 @@ def ensure_submodules(project_root: Path, *, verbose: bool = False) -> None:
             + "; move them aside, then re-run"
         )
 
+    _run_git(project_root, "submodule", "sync", "--recursive")
     status = _run_git(project_root, "submodule", "status", capture=True)
     # 前缀 '-' = 未初始化，'+' = 与父仓库记录的 commit 不一致
     stale = [
@@ -532,7 +523,7 @@ def main() -> int:
     root = resolve_project_root()
     if not args.skip_submodules:
         ensure_submodules(root, verbose=args.verbose)
-    apply_native_patches(root)
+    apply_native_patches(root, verbose=args.verbose)
     ensure_gradle_wrapper(root)
     jdk = ensure_portable_jdk(root, force=args.force, verbose=args.verbose)
     print(f"[ ok ] JAVA_HOME={jdk.home.relative_to(root).as_posix()}")

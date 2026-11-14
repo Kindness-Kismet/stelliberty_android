@@ -12,6 +12,8 @@
 !/LICENSE
 !/.github/CHANGELOG.md
 !/.github/docs/README.zh-CN.md
+!/.github/licenses/MingCute-LICENSE.txt
+!/.github/licenses/NOTICE.md
 !/.github/workflows/*.yml
 
 # 只保留技能正文、指引和可执行脚本，排除会话、备份与私人配置。
@@ -28,7 +30,7 @@
 !/.pi/settings.json
 
 !/scripts/**/*.py
-!/scripts/patches/*.patch
+!/scripts/build_support/patches/*.patch
 
 # Gradle 配置保留，启动脚本与启动器由 prebuild.py 按锁定版本下载。
 !/android/build.gradle.kts

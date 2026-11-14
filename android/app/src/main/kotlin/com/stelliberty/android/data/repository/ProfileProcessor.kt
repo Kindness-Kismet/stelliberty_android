@@ -88,7 +88,7 @@ class ProfileProcessor(
             try {
                 val started = TimeSource.Monotonic.markNow()
                 val proxyUrl = if (snapshot.isLocalFile) null
-                else proxyResolver.resolveForSubscription(snapshot.updateProxyMode)
+                else proxyResolver.resolveForSubscription(snapshot.updateProxyMode, snapshot.sourceLocation)
                 AppLogger.info(
                     TAG,
                     "Fetching profile $uuid: update=$isUpdate, source=${if (snapshot.isLocalFile) "file" else "url"}, " +

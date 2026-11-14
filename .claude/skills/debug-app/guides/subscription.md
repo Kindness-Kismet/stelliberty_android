@@ -6,7 +6,7 @@
 
 | method | 参数 | 作用 |
 |---|---|---|
-| `subscription.add` | `url`（arg 或 extra）、`name`、`auto_update`（`disabled` / `startup` / `interval`，缺省时按 `interval` 是否大于 0 推断）、`interval`（分钟）、`auto_delay`（自动测试延迟间隔，分钟）、`age_key`（extra，均可选） | 导入并完成校验 |
+| `subscription.add` | `url`（arg 或 extra）、`name`、`auto_update`（`disabled` / `startup` / `interval`，缺省时按 `interval` 是否大于 0 推断）、`interval`（分钟）、`auto_delay`（自动测试延迟间隔，分钟）、`update_proxy`（`direct` / `system` / `core`，缺省 `core`）、`age_key`（extra，均可选） | 导入并完成校验 |
 | `subscription.list` | — | 列出全部，`*` 标记 active |
 | `subscription.activate` | uuid 前缀或订阅名（arg） | 设为 active |
 | `subscription.update` | uuid 前缀或订阅名（arg） | 重新下载并校验 |
@@ -29,7 +29,7 @@ debug-call.sh -s <dev> -m subscription.activate -a Probe
 
 ## 导入后的 active
 
-与 UI 一致：只有首次导入（列表原本为空）自动激活，其余用 `activate`。导入的订阅默认经内核更新（`UpdateProxyMode = Core`），与添加页默认值一致。
+与 UI 一致：只有首次导入（列表原本为空）自动激活，其余用 `activate`。导入的订阅默认经内核更新（`UpdateProxyMode = Core`），与添加页默认值一致；`update_proxy` 可改为直连或系统代理。
 
 ## 会重启代理的指令
 

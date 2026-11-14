@@ -5,10 +5,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.stelliberty.android.data.store.ProxySelectionStore
 import com.stelliberty.android.domain.repository.MihomoRepository
+import com.stelliberty.android.domain.model.TestedDelay
 import com.stelliberty.android.platform.PlatformStorage
 import com.stelliberty.android.platform.StorageKeys
 import com.stelliberty.android.util.AppLogger
 import com.stelliberty.android.util.describe
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.ImmutableSet
@@ -29,6 +31,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -64,6 +67,7 @@ data class ProxyUiState(
     val error: String = "",
     val mode: String = "",
     val isProxyRunning: Boolean = false,
+    val isTestingAllDelays: Boolean = false,
 )
 
 class ProxyViewModel(
@@ -127,6 +131,7 @@ class ProxyViewModel(
 
     private class Session(val repository: MihomoRepository, val uuid: String?, val scope: CoroutineScope) {
         var selectionsRestored = false
+        val groupTests = mutableMapOf<String, Int>()
     }
 
     private var session: Session? = null
@@ -187,7 +192,22 @@ class ProxyViewModel(
         loadJob = null
         nodeProviderMap = emptyMap()
         _uiState.value = ProxyUiState(isProxyRunning = repo != null)
-        if (repo != null) loadProxies()
+        val current = session ?: return
+        current.scope.launch {
+            var previousResults = emptyMap<String, TestedDelay>()
+            combine(current.repository.testingNodes, current.repository.delayResults) { nodes, results -> nodes to results }
+                .collect { (nodes, results) ->
+                    if (isCurrent(current)) {
+                        val changedResults = results.filter { (name, delay) -> previousResults[name] != delay }
+                        _uiState.value = _uiState.value.copy(
+                            testingNodes = nodes.toPersistentSet(),
+                            groups = _uiState.value.groups.map { it.withLiveDelays(changedResults) }.toPersistentList(),
+                        )
+                    }
+                    previousResults = results
+                }
+        }
+        loadProxies()
     }
 
     fun loadProxies() {
@@ -205,6 +225,7 @@ class ProxyViewModel(
     }
 
     private suspend fun loadProxies(current: Session) = coroutineScope {
+        val delayRevision = current.repository.delayResults.value.values.maxOfOrNull { it.revision } ?: 0L
         val groupsDeferred = async { current.repository.getGroups() }
         val proxiesDeferred = async { current.repository.getProxies() }
         val providersDeferred = async { current.repository.getProviders() }
@@ -283,7 +304,9 @@ class ProxyViewModel(
                     .toPersistentList() to providerOf
             }
             if (!isCurrent(current)) return@onSuccess
-            val groups = mapped.first
+            // 刷新开始后的测量覆盖旧快照，其余延迟采用内核当前的健康检查记录。
+            val recentDelays = current.repository.delayResults.value.filterValues { it.revision > delayRevision }
+            val groups = mapped.first.map { it.withLiveDelays(recentDelays) }.toPersistentList()
             nodeProviderMap = mapped.second
             _uiState.value = _uiState.value.copy(groups = groups, mode = mode)
             if (!current.selectionsRestored) {
@@ -348,12 +371,11 @@ class ProxyViewModel(
 
     fun testGroupDelay(group: String) {
         val current = session ?: return
+        if (!isCurrent(current)) return
         if (group in _uiState.value.testingGroups) return
         val nodes = groupOf(group)?.all ?: return
         if (nodes.isEmpty()) return
-        _uiState.value = _uiState.value.copy(
-            testingGroups = (_uiState.value.testingGroups + group).toPersistentSet(),
-        )
+        updateTestingGroups(current, listOf(group), testing = true)
 
         current.scope.launch {
             try {
@@ -361,44 +383,69 @@ class ProxyViewModel(
                 if (!isCurrent(current)) return@launch
                 loadProxies()
             } finally {
-                if (isCurrent(current)) {
-                    _uiState.value = _uiState.value.copy(
-                        testingGroups = (_uiState.value.testingGroups - group).toPersistentSet(),
-                    )
-                }
+                updateTestingGroups(current, listOf(group), testing = false)
             }
         }
     }
 
-    fun testNodeDelay(nodeName: String) {
+    fun testAllDelays() {
         val current = session ?: return
-        if (nodeName in _uiState.value.testingNodes) return
-        _uiState.value = _uiState.value.copy(
-            testingNodes = (_uiState.value.testingNodes + nodeName).toPersistentSet(),
-        )
-
+        if (!isCurrent(current)) return
+        if (_uiState.value.isTestingAllDelays) return
+        val groups = _uiState.value.groups
+        val nodes = groups.flatMapTo(LinkedHashSet()) { it.all }
+        if (nodes.isEmpty()) return
+        val names = groups.map { it.name }
+        updateTestingGroups(current, names, testing = true)
+        _uiState.value = _uiState.value.copy(isTestingAllDelays = true)
         current.scope.launch {
             try {
-                val provider = nodeProviderMap[nodeName]
-                if (provider != null) {
-                    current.repository.getProviderProxyDelay(provider, nodeName)
-                } else {
-                    current.repository.getProxyDelay(nodeName)
-                }
+                val alreadyTesting = current.repository.testingNodes.value
+                current.repository.testDelays(nodes.filterNot { it in alreadyTesting }, nodeProviderMap)
                 if (!isCurrent(current)) return@launch
                 loadProxies()
             } finally {
-                if (isCurrent(current)) {
-                    _uiState.value = _uiState.value.copy(
-                        testingNodes = (_uiState.value.testingNodes - nodeName).toPersistentSet(),
-                    )
-                }
+                updateTestingGroups(current, names, testing = false)
+                if (isCurrent(current)) _uiState.value = _uiState.value.copy(isTestingAllDelays = false)
             }
+        }
+    }
+
+    // 全量测速可以与已经开始的组测速重叠，最后一轮结束才停止组的进度显示。
+    private fun updateTestingGroups(current: Session, groups: Collection<String>, testing: Boolean) {
+        if (!isCurrent(current)) return
+        groups.forEach { name ->
+            val count = (current.groupTests[name] ?: 0) + if (testing) 1 else -1
+            if (count > 0) current.groupTests[name] = count else current.groupTests.remove(name)
+        }
+        _uiState.value = _uiState.value.copy(testingGroups = current.groupTests.keys.toPersistentSet())
+    }
+
+    fun testNodeDelay(nodeName: String) {
+        val current = session ?: return
+        if (!isCurrent(current)) return
+        if (nodeName in _uiState.value.testingNodes) return
+        current.scope.launch {
+            val provider = nodeProviderMap[nodeName]
+            if (provider != null) {
+                current.repository.getProviderProxyDelay(provider, nodeName)
+            } else {
+                current.repository.getProxyDelay(nodeName)
+            }
+            if (!isCurrent(current)) return@launch
+            loadProxies()
         }
     }
 
     private fun groupOf(name: String): ProxyGroupUi? =
         _uiState.value.groups.firstOrNull { it.name == name }
+
+    private fun ProxyGroupUi.withLiveDelays(results: Map<String, TestedDelay>): ProxyGroupUi {
+        if (results.isEmpty()) return this
+        val delays = this.delays.toPersistentMap().builder()
+        all.forEach { name -> results[name]?.let { delays[name] = it.delay } }
+        return copy(delays = delays.build())
+    }
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = "")

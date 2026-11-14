@@ -58,9 +58,9 @@ class SubscriptionStore(fileManager: ProfileFileManager, scope: CoroutineScope) 
     fun current(): Subscription? = currentId()?.let(::findImported)
 
     // 运行期是否要补 mixed-port：有订阅经内核更新时才需要；还没有订阅时按新订阅的默认值（经内核）算。
-    fun anyUpdatesViaProxy(): Boolean {
+    fun anyUpdatesViaCore(): Boolean {
         val all = imported() + pending()
-        return all.isEmpty() || all.any { it.usesProxyForUpdate }
+        return all.isEmpty() || all.any { it.updatesViaCore }
     }
 
     suspend fun putImported(subscription: Subscription) {

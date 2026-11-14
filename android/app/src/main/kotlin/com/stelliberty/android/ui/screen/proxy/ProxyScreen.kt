@@ -6,10 +6,9 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,10 +21,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
@@ -39,23 +36,18 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.stelliberty.android.BuildConfig
 import com.stelliberty.android.R
 import com.stelliberty.android.platform.TunMode
 import com.stelliberty.android.platform.showToast
 import com.stelliberty.android.ui.component.AdaptiveTopAppBar
 import com.stelliberty.android.ui.component.CardSegment
-import com.stelliberty.android.ui.component.ListPopupDefaults.MenuPositionProvider
 import com.stelliberty.android.ui.component.blur.BlurredBar
 import com.stelliberty.android.ui.component.blur.rememberBlurBackdrop
 import com.stelliberty.android.ui.icon.AppIcons
-import com.stelliberty.android.ui.platform.IconLoader
 import com.stelliberty.android.ui.theme.StatusColors
 import com.stelliberty.android.ui.util.TestTags
 import com.stelliberty.android.ui.util.WideContentBox
@@ -65,15 +57,9 @@ import com.stelliberty.android.viewmodel.ProxyViewModel
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toPersistentList
-import kotlinx.coroutines.launch
-import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
-import top.yukonga.miuix.kmp.basic.DropdownImpl
-import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
-import top.yukonga.miuix.kmp.basic.ListPopupColumn
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
-import top.yukonga.miuix.kmp.basic.PopupPositionProvider
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
@@ -81,7 +67,6 @@ import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
-import top.yukonga.miuix.kmp.window.WindowListPopup
 
 @Composable
 fun ProxyScreen(
@@ -92,8 +77,7 @@ fun ProxyScreen(
     mode: String = "",
     tunStack: String = "",
     tunMode: TunMode = TunMode.Vpn,
-    onSwitchMode: (String) -> Unit = {},
-    onSwitchTunStack: (String) -> Unit = {},
+    onApplyRouting: (String?, String?) -> Unit = { _, _ -> },
 ) {
     val uiState = viewModel?.uiState?.collectAsStateWithLifecycle()?.value ?: ProxyUiState()
     val context = LocalContext.current
@@ -129,11 +113,7 @@ fun ProxyScreen(
         else -> null
     }
 
-    val showPopup = remember { mutableStateOf(false) }
-    var choiceMenu by remember { mutableIntStateOf(0) }
-    val showSortPopup = remember { mutableStateOf(false) }
-    var iconCacheVersion by remember { mutableIntStateOf(0) }
-    val coroutineScope = rememberCoroutineScope()
+    var showSettings by remember { mutableStateOf(false) }
 
     val expandedGroups = viewModel?.expandedGroups?.collectAsStateWithLifecycle()?.value ?: persistentSetOf()
 
@@ -163,41 +143,34 @@ fun ProxyScreen(
                         color = barColor,
                         scrollBehavior = scrollBehavior,
                         navigationIcon = {
-                            if (groupTabs && selectedGroup != null) {
-                                Row {
-                                    if (selectedGroup.isFixed) {
-                                        IconButton(
-                                            onClick = { viewModel?.unfixProxy(selectedGroup.name) },
-                                            modifier = Modifier.testTag(TestTags.Proxy.groupUnfix(selectedGroup.name)),
-                                        ) {
-                                            Icon(
-                                                imageVector = AppIcons.Unpin,
-                                                contentDescription = stringResource(R.string.proxy_unfix),
-                                                tint = StatusColors.warning,
-                                            )
-                                        }
-                                    }
-                                    val isTesting = selectedGroup.name in uiState.testingGroups
-                                    IconButton(
-                                        onClick = { viewModel?.testGroupDelay(selectedGroup.name) },
-                                        enabled = !isTesting,
-                                        modifier = Modifier.testTag(TestTags.Proxy.groupTest(selectedGroup.name)),
-                                    ) {
-                                        if (isTesting) {
-                                            CircularProgressIndicator(size = 20.dp, strokeWidth = 2.dp)
-                                        } else {
-                                            Icon(
-                                                imageVector = AppIcons.TestDelay,
-                                                contentDescription = stringResource(R.string.proxy_test_group_delay),
-                                                modifier = Modifier.size(24.dp),
-                                                tint = MiuixTheme.colorScheme.onSurface,
-                                            )
-                                        }
-                                    }
+                            if (groupTabs && selectedGroup?.isFixed == true) {
+                                IconButton(
+                                    onClick = { viewModel?.unfixProxy(selectedGroup.name) },
+                                    modifier = Modifier.testTag(TestTags.Proxy.groupUnfix(selectedGroup.name)),
+                                ) {
+                                    Icon(
+                                        imageVector = AppIcons.Unpin,
+                                        contentDescription = stringResource(R.string.proxy_unfix),
+                                        tint = StatusColors.warning,
+                                    )
                                 }
                             }
                         },
                         actions = {
+                            val canTestAllDelays = isRunning && uiState.groups.isNotEmpty() && !uiState.isTestingAllDelays
+                            IconButton(
+                                onClick = { viewModel?.testAllDelays() },
+                                enabled = canTestAllDelays,
+                                modifier = Modifier.testTag(TestTags.Proxy.TEST_ALL_DELAYS),
+                            ) {
+                                Icon(
+                                    imageVector = AppIcons.TestDelay,
+                                    contentDescription = stringResource(R.string.proxy_test_all_delays),
+                                    modifier = Modifier.size(24.dp),
+                                    tint = if (canTestAllDelays) MiuixTheme.colorScheme.onSurface
+                                    else MiuixTheme.colorScheme.disabledOnSecondaryVariant,
+                                )
+                            }
                             IconButton(
                                 onClick = {
                                     searchVisible = !searchVisible
@@ -215,188 +188,35 @@ fun ProxyScreen(
 
                             Box {
                                 IconButton(
-                                    onClick = { showSortPopup.value = true },
-                                    modifier = Modifier.testTag(TestTags.Proxy.SORT),
-                                    holdDownState = showSortPopup.value,
-                                ) {
-                                    Icon(
-                                        imageVector = AppIcons.Sort,
-                                        contentDescription = stringResource(R.string.proxy_sort_title),
-                                        tint = MiuixTheme.colorScheme.onSurface,
-                                    )
-                                }
-
-                                WindowListPopup(
-                                    show = showSortPopup.value,
-                                    popupPositionProvider = MenuPositionProvider,
-                                    alignment = PopupPositionProvider.Align.TopEnd,
-                                    onDismissRequest = { showSortPopup.value = false },
-                                ) {
-                                    ListPopupColumn {
-                                        val sortResIds = listOf(
-                                            R.string.proxy_sort_default,
-                                            R.string.proxy_sort_name,
-                                            R.string.proxy_sort_delay,
-                                        )
-                                        val currentKey = sortOption / 2
-                                        val isReverse = sortOption % 2 != 0
-                                        val groupSize = sortResIds.size + 1
-
-                                        sortResIds.forEachIndexed { index, resId ->
-                                            DropdownImpl(
-                                                text = stringResource(resId),
-                                                optionSize = groupSize,
-                                                isSelected = currentKey == index,
-                                                index = index,
-                                                onSelectedIndexChange = {
-                                                    viewModel?.updateSortOption(
-                                                        index * 2 + if (isReverse) 1 else 0
-                                                    )
-                                                    showSortPopup.value = false
-                                                },
-                                            )
-                                        }
-                                        HorizontalDivider(
-                                            modifier = Modifier
-                                                .padding(horizontal = 20.dp, vertical = 4.dp),
-                                            thickness = 1.5.dp,
-                                        )
-                                        DropdownImpl(
-                                            text = stringResource(R.string.proxy_sort_reverse),
-                                            optionSize = groupSize,
-                                            isSelected = isReverse,
-                                            index = sortResIds.size,
-                                            onSelectedIndexChange = {
-                                                viewModel?.updateSortOption(
-                                                    currentKey * 2 + if (!isReverse) 1 else 0
-                                                )
-                                                showSortPopup.value = false
-                                            },
-                                        )
-                                    }
-                                }
-                            }
-
-                            Box {
-                                IconButton(
-                                    onClick = { showPopup.value = true },
-                                    modifier = Modifier.testTag(TestTags.Proxy.MORE),
-                                    holdDownState = showPopup.value,
+                                    onClick = { showSettings = true },
+                                    modifier = Modifier.testTag(TestTags.Proxy.SETTINGS),
+                                    holdDownState = showSettings,
                                 ) {
                                     Icon(
                                         imageVector = AppIcons.More,
-                                        contentDescription = stringResource(R.string.common_more),
+                                        contentDescription = stringResource(R.string.proxy_settings_title),
                                         tint = MiuixTheme.colorScheme.onSurface,
                                     )
                                 }
-
-                                WindowListPopup(
-                                    show = showPopup.value,
-                                    popupPositionProvider = MenuPositionProvider,
-                                    alignment = PopupPositionProvider.Align.TopEnd,
-                                    onDismissRequest = { showPopup.value = false },
-                                ) {
-                                    val entries = buildList {
-                                        add(MenuEntry(
-                                            text = "${stringResource(R.string.proxy_mode)}: ${MODE_OPTIONS.firstOrNull { it.first == mode.lowercase() }?.second ?: mode}",
-                                            selected = false, enabled = true,
-                                        ) { choiceMenu = 1 })
-                                        add(MenuEntry(
-                                            text = "${stringResource(R.string.proxy_tun_stack)}: ${TUN_STACK_OPTIONS.firstOrNull { it.first == tunStack.lowercase() }?.second ?: tunStack}",
-                                            selected = false, enabled = isRunning && tunMode != TunMode.RootTproxy,
-                                        ) { choiceMenu = 2 })
-                                        add(MenuEntry(
-                                            text = stringResource(R.string.proxy_group_tabs),
-                                            selected = groupTabs, enabled = true,
-                                        ) { viewModel?.updateGroupTabs(!groupTabs) })
-                                        add(
-                                            MenuEntry(
-                                                text = stringResource(R.string.proxy_single_column),
-                                                selected = singleColumn,
-                                                enabled = true,
-                                            ) { viewModel?.updateSingleColumn(!singleColumn) },
-                                        )
-                                        add(
-                                            MenuEntry(
-                                                text = stringResource(R.string.proxy_hide_unavailable),
-                                                selected = hideUnavailable,
-                                                enabled = true,
-                                            ) { viewModel?.updateHideUnavailableNodes(!hideUnavailable) },
-                                        )
-                                        add(
-                                            MenuEntry(
-                                                text = stringResource(R.string.proxy_show_global_group),
-                                                selected = showGlobalGroup || globalModeActive,
-                                                enabled = !globalModeActive,
-                                            ) { viewModel?.updateShowGlobalGroup(!showGlobalGroup) },
-                                        )
-                                        add(
-                                            MenuEntry(
-                                                text = stringResource(R.string.proxy_refresh_icon),
-                                                selected = false,
-                                                enabled = true,
-                                            ) {
-                                                coroutineScope.launch { IconLoader.clear() }
-                                                iconCacheVersion++
-                                            },
-                                        )
-                                    }
-                                    ListPopupColumn {
-                                        entries.forEachIndexed { index, entry ->
-                                            if (index == 2) {
-                                                HorizontalDivider(Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
-                                            }
-                                            val tag = when (index) {
-                                                0 -> TestTags.Proxy.MODE_ENTRY
-                                                1 -> TestTags.Proxy.TUN_STACK_ENTRY
-                                                2 -> TestTags.Proxy.GROUP_LAYOUT
-                                                else -> ""
-                                            }
-                                            Box(
-                                                if (tag.isEmpty()) Modifier else Modifier
-                                                    .semantics { testTagsAsResourceId = BuildConfig.DEBUG }
-                                                    .testTag(tag),
-                                            ) {
-                                                DropdownImpl(
-                                                    text = entry.text,
-                                                    optionSize = entries.size,
-                                                    isSelected = entry.selected,
-                                                    index = index,
-                                                    enabled = entry.enabled,
-                                                    onSelectedIndexChange = {
-                                                        entry.onClick()
-                                                        showPopup.value = false
-                                                    },
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                                WindowListPopup(
-                                    show = choiceMenu != 0,
-                                    popupPositionProvider = MenuPositionProvider,
-                                    alignment = PopupPositionProvider.Align.TopEnd,
-                                    onDismissRequest = { choiceMenu = 0 },
-                                ) {
-                                    val options = if (choiceMenu == 1) MODE_OPTIONS else TUN_STACK_OPTIONS
-                                    val selected = if (choiceMenu == 1) mode else tunStack
-                                    ListPopupColumn {
-                                        options.forEachIndexed { index, option ->
-                                            DropdownImpl(
-                                                text = option.second,
-                                                optionSize = options.size,
-                                                isSelected = selected.equals(option.first, ignoreCase = true),
-                                                index = index,
-                                                onSelectedIndexChange = {
-                                                    if (choiceMenu == 1) onSwitchMode(option.first)
-                                                    else onSwitchTunStack(option.first)
-                                                    choiceMenu = 0
-                                                },
-                                            )
-                                        }
-                                    }
-                                }
-
+                                ProxySettingsMenu(
+                                    show = showSettings,
+                                    onDismissRequest = { showSettings = false },
+                                    mode = mode,
+                                    onApplyRouting = onApplyRouting,
+                                    tunStack = tunStack,
+                                    tunMode = tunMode,
+                                    isRunning = isRunning,
+                                    groupTabs = groupTabs,
+                                    onGroupTabsChange = { viewModel?.updateGroupTabs(it) },
+                                    singleColumn = singleColumn,
+                                    onSingleColumnChange = { viewModel?.updateSingleColumn(it) },
+                                    hideUnavailable = hideUnavailable,
+                                    onHideUnavailableChange = { viewModel?.updateHideUnavailableNodes(it) },
+                                    showGlobalGroup = showGlobalGroup,
+                                    onShowGlobalGroupChange = { viewModel?.updateShowGlobalGroup(it) },
+                                    sortOption = sortOption,
+                                    onSortOptionChange = { viewModel?.updateSortOption(it) },
+                                )
                             }
                         },
                     )
@@ -536,7 +356,6 @@ fun ProxyScreen(
                                         ProxyGroupHeader(
                                             group = group,
                                             isExpanded = expanded,
-                                            iconCacheVersion = iconCacheVersion,
                                             isTesting = group.name in uiState.testingGroups,
                                             onTestDelay = { viewModel?.testGroupDelay(group.name) },
                                             onUnfix = { viewModel?.unfixProxy(group.name) },
@@ -580,21 +399,6 @@ fun ProxyScreen(
         }
     }
 }
-private class MenuEntry(
-    val text: String,
-    val selected: Boolean,
-    val enabled: Boolean,
-    val onClick: () -> Unit,
-)
-
-private val MODE_OPTIONS = listOf("rule" to "Rule", "global" to "Global", "direct" to "Direct")
-
-private val TUN_STACK_OPTIONS = listOf(
-    "mixed" to "Mixed",
-    "gvisor" to "gVisor",
-    "system" to "System",
-    "mips" to "MIPS",
-)
 
 private fun filterGroups(
     groups: ImmutableList<ProxyGroupUi>,

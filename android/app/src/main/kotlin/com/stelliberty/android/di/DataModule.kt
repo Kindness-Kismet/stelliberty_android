@@ -49,7 +49,7 @@ val dataModule = module {
     single<AppUpdateRepository> { AppUpdateRepositoryImpl(get()) }
     single { RuleLatencyTester(get()) }
     single { MihomoConnectionManager(get()) }
-    single { AutoDelayTester(get(), get(), get()) }
+    single { AutoDelayTester(get(), get(), get(), get()) }
 
     single {
         SubscriptionRepositoryImpl(

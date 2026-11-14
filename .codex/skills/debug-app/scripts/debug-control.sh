@@ -62,7 +62,16 @@ fi
 # 每次操作都重新 dump：上一次点击很可能已经改变了界面，复用旧快照会按过期坐标点。
 # MSYS_NO_PATHCONV：Git Bash 会把设备路径 /sdcard/... 改写成 <Git 安装目录>/sdcard/...，
 # dump 于是写到别处，本地只拿到 0 字节文件。exec-out 取内容避免 shell 层再插 CR。
-MSYS_NO_PATHCONV=1 "${ADB[@]}" shell uiautomator dump /sdcard/debug-ui.xml >/dev/null 2>&1
+for attempt in 1 2 3; do
+    DUMP_RESULT="$(MSYS_NO_PATHCONV=1 "${ADB[@]}" shell uiautomator dump /sdcard/debug-ui.xml 2>&1)"
+    if [[ "$DUMP_RESULT" == *"dumped to:"* ]]; then
+        break
+    fi
+    if [[ "$attempt" == 3 ]]; then
+        printf 'UI dump failed: %s\n' "$DUMP_RESULT" >&2
+        exit 1
+    fi
+done
 MSYS_NO_PATHCONV=1 "${ADB[@]}" exec-out cat /sdcard/debug-ui.xml > "$DUMP" 2>/dev/null
 
 if [[ ! -s "$DUMP" ]]; then
@@ -119,7 +128,7 @@ def center(node):
 def subtree_text(node):
     parts = []
     for n in node.iter():
-        t = n.get("text", "").strip()
+        t = " ".join(n.get("text", "").split())
         if t:
             parts.append(t)
     return " ".join(parts)

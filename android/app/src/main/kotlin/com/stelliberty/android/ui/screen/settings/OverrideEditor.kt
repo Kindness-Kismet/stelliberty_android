@@ -1,7 +1,5 @@
 package com.stelliberty.android.ui.screen.settings
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -15,16 +13,21 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.stelliberty.android.R
+import com.stelliberty.android.ui.component.DialogButtons
 import com.stelliberty.android.ui.component.ListEditDialog
-import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.TextButton
+import com.stelliberty.android.ui.component.SingleChoicePreference
+import com.stelliberty.android.ui.component.dialogTestTag
+import com.stelliberty.android.ui.util.TestTags
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 import top.yukonga.miuix.kmp.basic.TextField
-import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
 import top.yukonga.miuix.kmp.window.WindowDialog
 
 internal enum class OverrideEditorKind { Port, Text, List }
@@ -102,23 +105,23 @@ internal fun OverrideEditorDialogs(state: OverrideEditorState) {
     )
 }
 
-// 覆写下拉项：首项「未修改」对应 null，其余 labels 与 values 一一对应。
+// 首项「未修改」对应 null，其余 labels 与 values 一一对应。
 @Immutable
-internal class OverrideChoices(val labels: List<String>, val values: List<String>)
+internal class OverrideChoices(val labels: ImmutableList<String>, val values: ImmutableList<String>)
 
 internal val LOG_LEVEL_CHOICES = OverrideChoices(
-    labels = listOf("Info", "Warning", "Error", "Debug", "Silent"),
-    values = listOf("info", "warning", "error", "debug", "silent"),
+    labels = persistentListOf("Info", "Warning", "Error", "Debug", "Silent"),
+    values = persistentListOf("info", "warning", "error", "debug", "silent"),
 )
 
 internal val DNS_ENHANCED_MODE_CHOICES = OverrideChoices(
-    labels = listOf("Normal", "FakeIP", "Redir-Host"),
-    values = listOf("normal", "fake-ip", "redir-host"),
+    labels = persistentListOf("Normal", "FakeIP", "Redir-Host"),
+    values = persistentListOf("normal", "fake-ip", "redir-host"),
 )
 
 internal val FIND_PROCESS_MODE_CHOICES = OverrideChoices(
-    labels = listOf("Off", "Strict", "Always"),
-    values = listOf("off", "strict", "always"),
+    labels = persistentListOf("Off", "Strict", "Always"),
+    values = persistentListOf("off", "strict", "always"),
 )
 
 @Composable
@@ -127,13 +130,11 @@ internal fun OverrideChoicePreference(
     choices: OverrideChoices,
     value: String?,
     onValueChange: (String?) -> Unit,
-    summary: String? = null,
     enabled: Boolean = true,
 ) {
-    OverlayDropdownPreference(
+    SingleChoicePreference(
         title = title,
-        summary = summary,
-        items = listOf(stringResource(R.string.common_not_modified)) + choices.labels,
+        items = (listOf(stringResource(R.string.common_not_modified)) + choices.labels).toImmutableList(),
         selectedIndex = choices.values.indexOf(value) + 1,
         onSelectedIndexChange = { index -> onValueChange(choices.values.getOrNull(index - 1)) },
         enabled = enabled,
@@ -161,6 +162,7 @@ private fun PortEditDialog(
     onConfirm: (Int?) -> Unit,
 ) {
     WindowDialog(
+        modifier = Modifier.dialogTestTag(TestTags.Dialog.PORT_EDITOR),
         show = show,
         title = title,
         summary = stringResource(R.string.network_port_zero_hint),
@@ -168,13 +170,16 @@ private fun PortEditDialog(
     ) {
         TextField(
             state = textState,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().testTag(TestTags.Dialog.INPUT),
             label = stringResource(R.string.network_port_label),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         )
         Spacer(Modifier.height(12.dp))
         EditDialogButtons(
             onDismiss = onDismiss,
+            confirmEnabled = textState.text.toString().trim().let { text ->
+                text.isEmpty() || text.toIntOrNull()?.let { it in 0..65535 } == true
+            },
             onConfirm = {
                 val text = textState.text.toString().trim()
                 val port = text.toIntOrNull()
@@ -196,6 +201,7 @@ private fun TextEditDialog(
     onConfirm: (String?) -> Unit,
 ) {
     WindowDialog(
+        modifier = Modifier.dialogTestTag(TestTags.Dialog.TEXT_EDITOR),
         show = show,
         title = title,
         summary = stringResource(R.string.override_empty_hint),
@@ -203,7 +209,7 @@ private fun TextEditDialog(
     ) {
         TextField(
             state = textState,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().testTag(TestTags.Dialog.INPUT),
             label = stringResource(R.string.network_input_value),
         )
         Spacer(Modifier.height(12.dp))
@@ -218,24 +224,14 @@ private fun TextEditDialog(
 private fun EditDialogButtons(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
+    confirmEnabled: Boolean = true,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        TextButton(
-            text = stringResource(R.string.common_cancel),
-            modifier = Modifier.weight(1f),
-            onClick = onDismiss,
-        )
-        TextButton(
-            text = stringResource(R.string.common_confirm),
-            modifier = Modifier.weight(1f),
-            colors = ButtonDefaults.textButtonColorsPrimary(),
-            onClick = {
-                onConfirm()
-                onDismiss()
-            },
-        )
-    }
+    DialogButtons(
+        onCancel = onDismiss,
+        confirmEnabled = confirmEnabled,
+        onConfirm = {
+            onConfirm()
+            onDismiss()
+        },
+    )
 }

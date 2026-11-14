@@ -19,10 +19,6 @@ object IconDiskCache {
         cacheFile(url)?.writeBytes(bytes)
     }
 
-    fun clear() {
-        cacheDir?.listFiles()?.forEach { it.delete() }
-    }
-
     private fun cacheFile(url: String): File? {
         val dir = cacheDir ?: return null
         return File(dir, url.hashCode().toUInt().toString(16))

@@ -4,7 +4,7 @@
 
 - 默认用文字 + 下划线的横向标签，选中态用主题主色，标签透明，点击时无涟漪与容器背景。布局偏好存在 `PROXY_GROUP_TABS`。选中组按名字保存：全局模式会调整组顺序，搜索也会改变下标。
 - 标签栏消费剩余的横向滚动与惯性，拖到边缘时外层主页保持不动；纵向余量交给外层。
-- 横向模式直接展示节点，组测速与解除固定放在顶栏，标签位于顶栏下方（放进内容的 stickyHeader 会被顶栏遮住）。标签用横向懒列表，滚动位置与内容列表分开保存。每组内容用 `SaveableStateProvider` 保存位置，并在 ViewModel 缓存偏移（宽屏外壳会重建组合树）；展开集合也由 ViewModel 持有。切组用整视口淡入淡出；淡出的列表使用动画内容参数里的组快照，淡出期间显示的始终是旧组。
+- 横向模式直接展示节点，解除固定放在顶栏左侧，测速统一使用右侧全量入口；标签位于顶栏下方（放进内容的 stickyHeader 会被顶栏遮住）。标签用横向懒列表，滚动位置与内容列表分开保存。每组内容用 `SaveableStateProvider` 保存位置，并在 ViewModel 缓存偏移（宽屏外壳会重建组合树）；展开集合也由 ViewModel 持有。切组用整视口淡入淡出；淡出的列表使用动画内容参数里的组快照，淡出期间显示的始终是旧组。
 - 全局模式固定选中并展示 GLOBAL，与「显示 GLOBAL」开关无关。当前组消失或被搜索过滤掉时，展示第一个可见组。
 
 ## 展开与节点布局
@@ -30,13 +30,19 @@
 
 ## 图标
 
-- 横向标签布局的顶栏测速图标用 `AppIcons.TestDelay`（MingCute dashboard_2_line）。分组卡片右侧用延迟标签，节点卡片的延迟区域无背景。未测速显示「—」，点击即测速，测速中显示 `CircularProgressIndicator`。
+- 顶栏统一使用 `AppIcons.TestDelay`（MingCute dashboard_2_line）测试所有节点延迟；全量测速期间保留图标、使用禁用色并禁止重复点击。分组卡片右侧用延迟标签，节点卡片的延迟区域无背景。未测速显示「—」，点击即测速；单个、批量与定时测速统一按当前仓库的实际请求状态，在节点延迟按钮处显示 `CircularProgressIndicator`。
 - 展开按钮用 `AppIcons.ChevronRight`（right_small），旋转为向下或向上。
 - 换图标时改 `gen_icons.py` 的 ICONS 表后重跑，调用点保持不变。
 
-## 更多菜单
+## 顶栏与代理设置
 
-出站模式与 TUN Stack 放在右上角「更多」菜单顶部，用分隔线与下方四个显示开关（单列 / 只看可用 / GLOBAL 组 / 刷新图标）隔开：前两项改的是选路行为。条目文案带当前值（`代理模式: Rule`）。菜单条目用 `buildList` + `forEachIndexed` 计算 `index` / `optionSize`，有条件项时（TUN Stack 在未运行或 ROOT TPROXY 下 `enabled=false`）`DropdownImpl` 的圆角分段才正确。写 override + 重启归 `HomeViewModel.switchMode` / `switchTunStack`（配置修改单点），菜单只传值与回调。
+顶栏放全量测速、搜索与更多菜单，组与节点随内核连接及轮询更新。更多菜单使用 miuix `WindowCascadingListPopup`，保留默认定位和动画，第一层为代理模式、TUN Stack、布局与显示、排序，并回显当前值。
+
+- 子菜单由 `DropdownItem.children` 声明，父菜单保留在后方；收起行为交给原生组件，不添加专用返回行。点选立即应用并收起菜单。
+- 选路：代理模式与 TUN Stack 各有单选子菜单；服务停止或 ROOT TPROXY 模式下禁用 TUN Stack。
+- 布局与显示：横向 / 竖向单选，以及单列、只看可用、GLOBAL 组开关；全局模式下 GLOBAL 始终开启并禁用开关。
+- 排序：默认 / 名称 / 延迟单选加倒序开关；`sortOption` 以 `key * 2 + reverse` 编码，改任一项都经 `updateSortOption` 写同一个值。
+- 自动测速间隔在订阅添加与编辑页管理。代理菜单只传值与回调；选路变更经 `HomeViewModel.applyProxyRouting` 保存 override 并调用 `restartWhenReady`，相同值不触发重启。
 
 ## 两个 mode 值
 

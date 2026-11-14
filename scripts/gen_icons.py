@@ -36,16 +36,29 @@ ICONS: dict[str, str] = {
     "ChevronRight": "regular/arrow/right_small.svg",
     "Close": "regular/system/close.svg",
     "Delete": "regular/system/delete_2.svg",
+    "Filter": "regular/business/filter_3.svg",
+    "File": "regular/files/file.svg",
+    "Global": "regular/locations/earth.svg",
     "Info": "regular/system/information.svg",
+    "Layers": "regular/design/layer.svg",
+    "Layout": "regular/design/layout.svg",
+    "Link": "regular/files/link.svg",
     "More": "regular/system/more_1.svg",
     "MoveDown": "regular/arrow/down_small.svg",
     "MoveUp": "regular/arrow/up_small.svg",
     "Pin": "regular/files/pin.svg",
+    "QrCode": "regular/devices/qrcode.svg",
     "Refresh": "regular/system/refresh_2.svg",
     "Restore": "regular/files/download.svg",
+    "Route": "regular/locations/route.svg",
     "Search": "regular/files/search.svg",
     "SearchCleanup": "regular/system/close_circle.svg",
+    "Settings": "regular/system/settings_3.svg",
+    "SingleColumn": "regular/design/rows_2.svg",
     "Sort": "regular/editing/sort_ascending.svg",
+    "StatusClock": "regular/system/time.svg",
+    "StatusSubscription": "regular/devices/rss.svg",
+    "SubscriptionRefresh": "regular/system/refresh_1.svg",
     "TestDelay": "regular/devices/dashboard_2.svg",
     "Unpin": "regular/system/close_circle.svg",
     "Wifi": "regular/devices/wifi.svg",
@@ -67,6 +80,17 @@ def vector_name(rel: str) -> str:
     stem = tail.rsplit("/", 1)[-1].removesuffix(".svg")
     name = "MingCute" + "".join(part.capitalize() for part in stem.split("_"))
     return name + "Filled" if style == "filled" else name
+
+# 快照图标仅生成入口映射，矢量来源与许可见 .github/licenses/NOTICE.md。
+FIXED_ICONS = {
+    "Appearance": "MingCuteAppearance",
+    "BlurOn": "MingCuteBlurOn",
+    "DarkMode": "MingCuteDarkMode",
+    "GitHub": "MingCuteGithubLine",
+    "Language": "MingCuteLanguage",
+    "LibraryBooks": "MingCuteLibraryBooks",
+    "SwipeHorizontal": "MingCuteSwipeHorizontal",
+}
 
 CAP = {"butt": "Butt", "round": "Round", "square": "Square"}
 JOIN = {"miter": "Miter", "round": "Round", "bevel": "Bevel"}
@@ -107,6 +131,11 @@ def parse_paths(svg: str, rel: str) -> tuple[float, float, list[dict[str, str]]]
         sys.exit(f"error: {rel} 的 viewBox 非法：{root.get('viewBox')}")
     width, height = float(box[2]), float(box[3])
 
+    # 新版 MingCute 把颜色写在 <svg> 上供 path 继承，只读 path 会当成无填充无描边。
+    root_fill = (root.get("fill") or "none").strip()
+    root_stroke = (root.get("stroke") or "none").strip()
+    root_stroke_width = (root.get("stroke-width") or "1").strip()
+
     paths: list[dict[str, str]] = []
     for node in root.iter():
         tag = node.tag.replace(SVG_NS, "")
@@ -120,10 +149,10 @@ def parse_paths(svg: str, rel: str) -> tuple[float, float, list[dict[str, str]]]
         paths.append(
             {
                 "d": re.sub(r"\s+", " ", data).strip(),
-                "fill": (node.get("fill") or "none").strip(),
+                "fill": (node.get("fill") or root_fill).strip(),
                 "fill_rule": (node.get("fill-rule") or "nonzero").strip(),
-                "stroke": (node.get("stroke") or "none").strip(),
-                "stroke_width": (node.get("stroke-width") or "1").strip(),
+                "stroke": (node.get("stroke") or root_stroke).strip(),
+                "stroke_width": (node.get("stroke-width") or root_stroke_width).strip(),
                 "linecap": (node.get("stroke-linecap") or "butt").strip(),
                 "linejoin": (node.get("stroke-linejoin") or "miter").strip(),
             }
@@ -200,15 +229,16 @@ internal val {val}: ImageVector by lazy {{
 
 
 def render_entry() -> str:
+    icons = {name: vector_name(rel) for name, rel in ICONS.items()} | FIXED_ICONS
     props = "\n".join(
-        f"    val {name}: ImageVector get() = {vector_name(rel)}" for name, rel in sorted(ICONS.items())
+        f"    val {name}: ImageVector get() = {vector}" for name, vector in sorted(icons.items())
     )
     return f"""// 由 scripts/gen_icons.py 生成，勿手改。改图标请改脚本里的 ICONS 表后重跑。
 package {OUT_PACKAGE}
 
 import androidx.compose.ui.graphics.vector.ImageVector
 
-/** 全应用图标入口，路径来自 MingCute。`Nav*Active` 是 filled 风格，其余为 regular（线性描边）。 */
+// 全应用图标入口；Nav*Active 使用填充态，其余使用线框态。
 object AppIcons {{
 {props}
 }}

@@ -1,0 +1,26 @@
+// 由 scripts/gen_icons.py 从 MingCute 生成，勿手改。源：regular/devices/rss.svg
+package com.stelliberty.android.ui.icon
+
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathFillType
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.PathParser
+import androidx.compose.ui.unit.dp
+
+internal val MingCuteRss: ImageVector by lazy {
+    ImageVector.Builder(
+        name = "Rss",
+        defaultWidth = 24.dp,
+        defaultHeight = 24.dp,
+        viewportWidth = 24f,
+        viewportHeight = 24f,
+        autoMirror = false,
+    ).apply {
+        addPath(
+            pathData = PathParser().parsePathString("m8.975 14.064.418.216c.985.72.742 2.274-.418 2.656l-.475.077-.475-.077-.418-.216c-.985-.72-.742-2.274.418-2.656l.475-.077Zm.257-7.034c3.542.302 6.601 2.884 7.496 6.325.182.7.269 1.418.273 2.14.002.441.014.909-.334 1.235a1.01 1.01 0 0 1-1.565-.259c-.167-.311-.101-.628-.103-.966a6.494 6.494 0 0 0-1.381-4.011A6.53 6.53 0 0 0 9.61 9.095a6.6 6.6 0 0 0-1.115-.094c-.338-.002-.655.064-.966-.103-.77-.411-.654-1.585.181-1.839.392-.119 1.141-.061 1.522-.029m-.634 3.501a5.55 5.55 0 0 1 4.623 3.731q.185.556.248 1.14c.058.531.08 1.108-.423 1.436a1.01 1.01 0 0 1-.999.054c-.68-.346-.495-1.027-.629-1.644a3.51 3.51 0 0 0-2.666-2.666c-.516-.112-1.105.022-1.496-.414-.505-.562-.202-1.49.537-1.646.205-.044.667-.006.805.009m9.887-7.495c1.469.238 2.456 1.466 2.515 2.924v12.08c-.032.788-.314 1.52-.877 2.083s-1.295.845-2.083.877H5.96c-.631-.025-1.221-.201-1.734-.577-.773-.566-1.188-1.437-1.226-2.383V5.96C3.067 4.29 4.29 3.067 5.96 3h12.08ZM6.04 5c-.622.025-1.015.418-1.04 1.04v11.92c.009.23.057.44.195.628.204.28.509.398.845.412h11.92c.283-.011.54-.09.745-.295s.284-.462.295-.745V6.04c-.025-.622-.418-1.015-1.04-1.04Z").toNodes(),
+            pathFillType = PathFillType.NonZero,
+            fill = SolidColor(Color.Black),
+        )
+    }.build()
+}

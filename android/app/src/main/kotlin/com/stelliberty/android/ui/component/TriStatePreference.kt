@@ -5,7 +5,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.stelliberty.android.R
-import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
+import kotlinx.collections.immutable.persistentListOf
 
 @Composable
 fun TriStatePreference(
@@ -19,7 +19,7 @@ fun TriStatePreference(
     val enabledLabel = stringResource(R.string.common_enabled)
     val disabledLabel = stringResource(R.string.common_disabled)
     val items = remember(notModified, enabledLabel, disabledLabel) {
-        listOf(notModified, enabledLabel, disabledLabel)
+        persistentListOf(notModified, enabledLabel, disabledLabel)
     }
     val selectedIndex = when (value) {
         null -> 0
@@ -27,7 +27,7 @@ fun TriStatePreference(
         false -> 2
     }
 
-    OverlayDropdownPreference(
+    SingleChoicePreference(
         title = title,
         modifier = modifier,
         items = items,

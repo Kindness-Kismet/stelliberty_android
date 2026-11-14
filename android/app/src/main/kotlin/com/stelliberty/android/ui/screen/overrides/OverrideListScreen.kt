@@ -1,6 +1,5 @@
 package com.stelliberty.android.ui.screen.overrides
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -15,7 +14,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,15 +37,15 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.stelliberty.android.R
 import com.stelliberty.android.domain.model.OverrideProfile
 import com.stelliberty.android.ui.component.AdaptiveTopAppBar
+import com.stelliberty.android.ui.component.DialogButtons
 import com.stelliberty.android.ui.component.blur.BlurredBar
 import com.stelliberty.android.ui.component.blur.rememberBlurBackdrop
+import com.stelliberty.android.ui.component.dialogTestTag
 import com.stelliberty.android.ui.icon.AppIcons
-import com.stelliberty.android.ui.theme.StatusColors
 import com.stelliberty.android.ui.util.TestTags
 import com.stelliberty.android.ui.util.horizontalCutoutPadding
 import com.stelliberty.android.util.formatEpochMillisAsLocal
 import com.stelliberty.android.viewmodel.OverrideProfileViewModel
-import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
@@ -55,7 +53,6 @@ import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
@@ -101,7 +98,7 @@ fun OverrideListScreen(
                             }
                         }
                         IconButton(
-                            onClick = { viewModel.clearError(); onAdd() },
+                            onClick = onAdd,
                             modifier = Modifier.testTag(TestTags.Overrides.ADD),
                         ) {
                             Icon(
@@ -127,20 +124,6 @@ fun OverrideListScreen(
         ) {
             item(key = "top_padding") { Spacer(Modifier.height(12.dp)) }
 
-            if (uiState.error.isNotEmpty()) {
-                item(key = "error") {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp)
-                            .padding(bottom = 12.dp),
-                        insideMargin = PaddingValues(16.dp),
-                    ) {
-                        Text(text = uiState.error, color = StatusColors.danger)
-                    }
-                }
-            }
-
             if (uiState.profiles.isEmpty()) {
                 item(key = "empty") {
                     Text(
@@ -159,8 +142,8 @@ fun OverrideListScreen(
                 OverrideItem(
                     profile = profile,
                     isLoading = uiState.isLoading,
-                    onClick = { viewModel.clearError(); onEditFile(profile.id) },
-                    onEdit = { viewModel.clearError(); onEdit(profile.id) },
+                    onClick = { onEditFile(profile.id) },
+                    onEdit = { onEdit(profile.id) },
                     onRefresh = { viewModel.update(profile.id) },
                     onDelete = { viewModel.delete(profile.id) },
                 )
@@ -266,30 +249,19 @@ private fun OverrideItem(
     }
 
     WindowDialog(
+        modifier = Modifier.dialogTestTag(TestTags.Dialog.DELETE_OVERRIDE),
         show = showDeleteDialog,
         title = stringResource(R.string.override_delete_title),
         summary = stringResource(R.string.override_delete_summary, profile.name),
         onDismissRequest = { showDeleteDialog = false },
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            TextButton(
-                text = stringResource(R.string.common_cancel),
-                modifier = Modifier.weight(1f),
-                onClick = { showDeleteDialog = false },
-            )
-            TextButton(
-                text = stringResource(R.string.common_confirm),
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.textButtonColorsPrimary(),
-                onClick = {
-                    showDeleteDialog = false
-                    onDelete()
-                },
-            )
-        }
+        DialogButtons(
+            onCancel = { showDeleteDialog = false },
+            onConfirm = {
+                showDeleteDialog = false
+                onDelete()
+            },
+        )
     }
 }
 
@@ -330,14 +302,6 @@ internal fun BackButton(onBack: () -> Unit) {
                 scaleX = if (layoutDirection == LayoutDirection.Rtl) -1f else 1f
             },
         )
-    }
-}
-
-// 子页面共用这个 ViewModel，错误只属于出错的那一页，离开时清掉，免得带回列表。
-@Composable
-internal fun ClearErrorOnExit(viewModel: OverrideProfileViewModel) {
-    DisposableEffect(viewModel) {
-        onDispose { viewModel.clearError() }
     }
 }
 

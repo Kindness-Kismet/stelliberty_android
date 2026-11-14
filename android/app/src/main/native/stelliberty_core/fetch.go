@@ -393,7 +393,7 @@ func fetchProvider(ctx context.Context, u *url.URL, dest string, userAgent strin
 	return err
 }
 
-// HttpRequest 的 Transport 不读代理环境变量，所以经 mixed-port 下载只能换拨号器，用 HTTP CONNECT 建隧道。
+// HttpRequest 的 Transport 不读代理环境变量，所以经代理下载只能换拨号器，用 HTTP CONNECT 建隧道。
 type connectDialer struct {
 	proxyAddr string
 }

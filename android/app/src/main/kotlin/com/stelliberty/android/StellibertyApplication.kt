@@ -1,6 +1,8 @@
 package com.stelliberty.android
 
 import android.app.Application
+import android.content.Context
+import android.content.res.Configuration
 import android.content.pm.ApplicationInfo
 import android.os.Build
 import com.stelliberty.android.data.api.AutoDelayTester
@@ -18,6 +20,9 @@ import com.stelliberty.android.platform.initToastPlatform
 import com.stelliberty.android.service.NotificationHelper
 import com.stelliberty.android.service.ProfileFileOps
 import com.stelliberty.android.service.ProfileUpdateScheduler
+import com.stelliberty.android.ui.platform.localizedAppContext
+import com.stelliberty.android.ui.platform.updateLegacyAppLanguage
+import com.stelliberty.android.ui.theme.readAppLanguage
 import com.stelliberty.android.util.AppLogger
 import kotlin.concurrent.thread
 import org.koin.android.ext.android.inject
@@ -34,6 +39,18 @@ class StellibertyApplication : Application() {
     private val autoDelayTester: AutoDelayTester by inject()
 
     private val storage: PlatformStorage by inject()
+
+    override fun attachBaseContext(base: Context) {
+        val language = readAppLanguage(base, PlatformStorage(base))
+        super.attachBaseContext(localizedAppContext(base, language))
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            updateLegacyAppLanguage(this, readAppLanguage(this, storage))
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()

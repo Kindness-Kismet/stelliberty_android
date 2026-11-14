@@ -20,7 +20,7 @@ object DebugNavBridge {
     private const val COLLECTOR_POLL_MS = 25L
 
     fun routeOf(pageId: String): Route? = when (pageId) {
-        "subscription.add" -> Route.SubscriptionAdd
+        "subscription.add" -> Route.SubscriptionAddUrl()
         "log" -> Route.Log
         "provider" -> Route.Provider
         "dns" -> Route.DnsQuery
@@ -40,6 +40,7 @@ object DebugNavBridge {
         "settings.app_behavior" -> Route.AppBehavior
         "settings.wifi_policy" -> Route.WifiPolicy
         "settings.about" -> Route.About
+        "settings.about.libraries" -> Route.OpenSourceLibraries
         "settings.data" -> Route.DataManagement
         "settings.age_key" -> Route.AgeKey
         else -> null

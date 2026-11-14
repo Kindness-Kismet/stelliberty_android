@@ -1,6 +1,7 @@
 package com.stelliberty.android.debug
 
 import android.os.Bundle
+import com.stelliberty.android.domain.model.SubscriptionUpdateProxyMode
 import org.koin.core.context.GlobalContext
 
 internal const val EXTRA_VALUE = "value"
@@ -22,6 +23,7 @@ internal const val EXTRA_HOPS = "hops"
 internal const val EXTRA_PAYLOAD = "payload"
 internal const val EXTRA_PROXY = "proxy"
 internal const val EXTRA_OPTIONS = "options"
+internal const val EXTRA_UPDATE_PROXY = "update_proxy"
 
 private const val KEY_OK = "ok"
 private const val KEY_MESSAGE = "message"
@@ -30,6 +32,12 @@ private const val KEY_TARGET = "target"
 private const val KEY_DATA = "data"
 
 internal val PAGE_METHODS = setOf("page.open")
+internal val DIALOG_METHODS = setOf("dialog.show_fixture")
+internal val ANIMATION_METHODS = setOf(
+    "animation.set_speed",
+    "animation.get_speed",
+    "animation.reset_speed",
+)
 
 // 方法名一律「动词」或「动词_宾语」，别用名词当动作。主目标一律经 --arg 传，
 // extras 只放修饰参数——两条规则任一破例，调用方就得逐条记特例。
@@ -41,6 +49,9 @@ internal val PROXY_METHODS = setOf(
     "proxy.select",
     "proxy.test_group",
     "proxy.test_node",
+    "proxy.test_all",
+    "proxy.set_auto_delay",
+    "proxy.get_test_state",
     "proxy.list",
 )
 
@@ -116,6 +127,14 @@ internal fun Bundle?.target(arg: String?): String? =
     arg?.takeIf { it.isNotBlank() } ?: this?.getString(EXTRA_VALUE)?.takeIf { it.isNotBlank() }
 
 internal fun Bundle?.string(key: String): String? = this?.getString(key)?.takeIf { it.isNotBlank() }
+
+// 缺省为核心代理，与添加页默认值一致；无法识别时返回 null。
+internal fun Bundle?.updateProxyMode(): SubscriptionUpdateProxyMode? = when (string(EXTRA_UPDATE_PROXY) ?: "core") {
+    "direct" -> SubscriptionUpdateProxyMode.Direct
+    "system" -> SubscriptionUpdateProxyMode.SystemProxy
+    "core" -> SubscriptionUpdateProxyMode.Core
+    else -> null
+}
 
 internal fun Bundle?.boolean(key: String): Boolean? {
     val bundle = this ?: return null

@@ -4,8 +4,8 @@
     <string name="channel_vpn_desc">Stelliberty 代理服务运行状态</string>
     <string name="channel_profile_status_name">配置更新进度</string>
     <string name="channel_profile_status_desc">配置下载和验证进度</string>
-    <string name="channel_profile_result_name">配置更新结果</string>
-    <string name="channel_profile_result_desc">配置更新成功或失败的通知</string>
+    <string name="settings_app_notifications">应用通知</string>
+    <string name="settings_app_notifications_summary">开启时申请通知权限，关闭需前往系统设置</string>
     <string name="channel_wifi_policy_service_name">Wi-Fi 自动切换服务</string>
     <string name="channel_wifi_policy_service_desc">用于 Wi-Fi 自动切换的内部监控服务</string>
     <string name="channel_wifi_policy_event_name">Wi-Fi 自动切换事件</string>
@@ -25,11 +25,6 @@
     <!-- Profile Update Notifications -->
     <string name="notification_profile_update">配置更新</string>
     <string name="notification_profile_running">正在运行…</string>
-    <string name="notification_profile_updating">正在更新配置</string>
-    <string name="notification_update_success">更新成功</string>
-    <string name="notification_update_success_content">%1$s 已更新</string>
-    <string name="notification_update_failed">更新失败</string>
-    <string name="notification_unknown_error">未知错误</string>
 
     <!-- Tile -->
     <string name="tile_connected">已连接</string>
@@ -52,6 +47,7 @@
     <string name="error_vpn_denied">VPN 权限被拒绝</string>
     <string name="error_start_failed">启动失败</string>
     <string name="error_root_failed">无法获取 Root 权限</string>
+    <string name="error_root_rules_failed">无法设置 Root 路由或 DNS 劫持规则，请查看应用日志后重试。</string>
     <string name="error_mihomo_not_found">mihomo 二进制文件未找到</string>
     <string name="error_fork_failed">fork+exec 失败</string>
     <string name="error_root_start_failed">root 启动失败</string>
@@ -82,6 +78,7 @@
     <string name="common_refresh">刷新</string>
     <string name="common_more">更多</string>
     <string name="common_close">关闭</string>
+    <string name="common_default">默认</string>
     <string name="common_delete">删除</string>
     <string name="common_edit">编辑</string>
     <string name="common_update">更新</string>
@@ -112,6 +109,10 @@
     <string name="home_start">启动</string>
     <string name="home_starting_btn">启动中...</string>
     <string name="home_stopping_btn">停止中...</string>
+    <string name="home_restarting">重启中</string>
+    <string name="home_reloading">重载中</string>
+    <string name="home_establishing_connection">正在加载配置并建立连接</string>
+    <string name="home_releasing_resources">正在关闭连接并释放资源</string>
 
     <!-- Home - Quick Entries -->
     <string name="home_providers">外部资源</string>
@@ -169,12 +170,16 @@
     <string name="proxy_search_groups">搜索代理组或节点</string>
     <string name="proxy_no_matching_groups">没有匹配的代理组</string>
     <string name="proxy_hide_unavailable">仅显示可用节点</string>
+    <string name="proxy_layout_mode">布局模式</string>
+    <string name="proxy_layout_horizontal">横向</string>
+    <string name="proxy_layout_vertical">竖向</string>
     <string name="proxy_start_first">请先启动代理服务</string>
     <string name="proxy_mode_direct_hint">当前为直连模式，所有流量不经代理。此处的选择会被保存，切回规则模式后生效。</string>
     <string name="proxy_mode_global_hint">当前为全局模式，仅 GLOBAL 组决定出口。其他代理组的选择切回规则模式后生效。</string>
-    <string name="proxy_refresh_icon">刷新图标</string>
+    <string name="proxy_settings_title">代理设置</string>
+    <string name="proxy_display_settings">布局与显示</string>
+    <string name="proxy_test_all_delays">测试所有节点延迟</string>
     <string name="proxy_single_column">单列显示</string>
-    <string name="proxy_group_tabs">横向切换代理组</string>
     <string name="proxy_node_count">%1$d/%2$d</string>
     <string name="proxy_expand_group">展开代理组</string>
     <string name="proxy_collapse_group">收起代理组</string>
@@ -202,19 +207,14 @@
     <string name="subscription_used_traffic">已用 %1$s / %2$s</string>
     <string name="subscription_no_traffic">未获取到流量信息</string>
     <string name="subscription_updated_at">更新于 %1$s</string>
-    <string name="subscription_last_error">上次更新失败：%1$s</string>
     <string name="subscription_delete_title">删除订阅</string>
     <string name="subscription_delete_summary">确定要删除「%1$s」吗？将会移除配置文件以及节点选择记录。</string>
 
     <!-- Subscription Create/Edit -->
-    <string name="subscription_create">创建配置</string>
     <string name="subscription_edit">编辑配置</string>
     <string name="subscription_file">文件</string>
-    <string name="subscription_file_summary">选本地配置文件，不会自动更新</string>
     <string name="subscription_url">URL</string>
-    <string name="subscription_url_summary">从链接拉取，可定时自动更新</string>
     <string name="subscription_qr">二维码</string>
-    <string name="subscription_qr_summary">扫出链接，之后与 URL 相同</string>
     <string name="subscription_url_hint">仅接受 mihomo 配置文件(包含代理/规则)</string>
     <string name="subscription_name">名称</string>
     <string name="subscription_name_auto_placeholder">留空时自动从订阅获取</string>
@@ -303,27 +303,16 @@
     <string name="provider_updating_title">正在更新资源</string>
     <string name="provider_updating_single">正在更新 %1$s…</string>
     <string name="provider_updating_progress">%1$d / %2$d</string>
-    <string name="provider_update_failed">更新 %1$s 失败: %2$s</string>
 
     <!-- Settings -->
     <string name="settings_title">设置</string>
     <string name="settings_group_automation">自动化</string>
-    <string name="settings_group_personalization">个性化</string>
-    <string name="settings_group_clash">Clash</string>
-    <string name="settings_group_application">应用</string>
-    <string name="settings_group_maintenance">维护</string>
     <string name="clash_features_title">Clash 特性</string>
     <string name="clash_features_summary">网络、端口、系统集成、DNS 与核心参数</string>
-    <string name="network_settings_summary">统一延迟、局域网、IPv6 与嗅探器</string>
     <string name="port_control_title">端口控制</string>
-    <string name="port_control_summary">代理端口与外部控制器</string>
     <string name="system_integration_title">系统集成</string>
-    <string name="system_integration_summary">隧道模式、VPN 或 ROOT 设置与分应用代理</string>
     <string name="dns_settings_title">DNS 配置</string>
-    <string name="dns_settings_summary">Nameserver、增强模式与 FakeIP 过滤</string>
     <string name="performance_settings_title">性能优化</string>
-    <string name="performance_settings_summary">Geodata 模式与进程匹配</string>
-    <string name="settings_core_log_summary">核心输出的最低等级，重启代理后生效</string>
     <string name="app_behavior_title">应用行为</string>
     <string name="app_behavior_summary">自动连接、开机重启、Wi-Fi 切换、通知与日志</string>
     <string name="data_management_title">数据管理</string>
@@ -347,36 +336,36 @@
     <string name="settings_dynamic_notification">动态通知</string>
     <string name="settings_dynamic_notification_summary">在通知栏显示实时网速和流量</string>
     <string name="settings_dynamic_notification_summary_root_unsupported">VPN 模式专用</string>
-    <string name="subscription_update_via_proxy">通过代理更新</string>
-    <string name="subscription_update_via_proxy_summary">经由正在运行的代理下载此订阅</string>
+    <string name="update_proxy_mode">更新代理模式</string>
+    <string name="update_proxy_direct">直连</string>
+    <string name="update_proxy_system">系统代理</string>
+    <string name="update_proxy_core">核心代理</string>
     <string name="settings_restart_after_update">更新后重启代理</string>
     <string name="settings_restart_after_update_summary">更新当前订阅后重启代理使新配置生效（会短暂中断连接）</string>
     <string name="settings_auto_connect">启动时自动连接</string>
     <string name="settings_auto_connect_summary">打开应用时若存在可用订阅则启动代理</string>
     <string name="settings_auto_restart">开机后自动重启</string>
     <string name="settings_auto_restart_summary">开机或应用升级后恢复上次运行的代理</string>
-    <string name="settings_theme_title">外观与主题</string>
-    <string name="settings_theme_group_color">颜色与主题</string>
-    <string name="settings_theme_group_interface">界面与效果</string>
-    <string name="settings_theme_group_navigation">底部导航栏</string>
+    <string name="settings_theme_title">外观</string>
+    <string name="settings_search">搜索设置</string>
+    <string name="settings_search_empty">没有找到匹配的设置</string>
+    <string name="settings_language">语言</string>
+    <string name="settings_language_english">English</string>
+    <string name="settings_language_simplified">简体中文</string>
+    <string name="settings_language_traditional">繁體中文</string>
+    <string name="settings_theme_bottom_bar_blur">底栏模糊</string>
+    <string name="settings_blur_unavailable">需要 Android 13 或更新版本</string>
+    <string name="settings_predictive_back_unavailable">需要 Android 14 或更新版本</string>
     <string name="settings_theme_summary">颜色、模糊效果与界面缩放，底栏和返回手势</string>
     <string name="settings_theme_mode">主题模式</string>
     <string name="settings_theme_system">跟随系统</string>
     <string name="settings_theme_light">浅色</string>
     <string name="settings_theme_dark">深色</string>
-    <string name="settings_theme_monet">Monet 取色</string>
+    <string name="settings_theme_monet">动态色</string>
     <string name="settings_theme_monet_summary">可用时使用系统动态取色</string>
-    <string name="settings_theme_blur">模糊效果</string>
-    <string name="settings_theme_blur_summary">启用顶栏、底栏等表面的模糊效果</string>
-    <string name="settings_theme_blur_style">顶栏模糊样式</string>
-    <string name="settings_theme_blur_style_gaussian">高斯</string>
-    <string name="settings_theme_blur_style_progressive">渐进</string>
-    <string name="settings_theme_blur_style_gaussian_summary">顶栏整体均匀模糊</string>
-    <string name="settings_theme_blur_style_progressive_summary">顶部渐强模糊</string>
-    <string name="settings_theme_density_scale">界面缩放</string>
-    <string name="settings_theme_density_scale_summary">调整全局显示比例（80% - 110%）</string>
+    <string name="settings_theme_blur">顶栏模糊</string>
+    <string name="settings_theme_density_scale">缩放比例</string>
     <string name="settings_theme_floating_bottom_bar">悬浮底栏</string>
-    <string name="settings_theme_floating_bottom_bar_summary">在手机布局中使用悬浮底部导航栏</string>
     <string name="settings_theme_floating_bottom_bar_style">悬浮底栏样式</string>
     <string name="settings_theme_floating_bottom_bar_style_miuix">Miuix</string>
     <string name="settings_theme_floating_bottom_bar_style_ios_like">iOS 风格（液态玻璃）</string>
@@ -394,7 +383,6 @@
     <string name="settings_theme_palette_fidelity">保真（Fidelity）</string>
     <string name="settings_theme_palette_content">内容（Content）</string>
     <string name="settings_theme_pure_black">纯黑背景</string>
-    <string name="settings_theme_pure_black_summary">深色模式下使用纯黑背景</string>
     <string name="settings_theme_accent_title">强调色</string>
     <string name="settings_theme_accent_default">系统取色</string>
     <string name="settings_theme_accent_blue">蓝色</string>
@@ -406,9 +394,7 @@
     <string name="settings_theme_accent_green">绿色</string>
     <string name="settings_theme_accent_teal">青色</string>
     <string name="settings_predictive_back">预测性返回手势</string>
-    <string name="settings_predictive_back_summary">启用预测性返回动画效果</string>
     <string name="settings_swipe_dismiss">横移返回手势</string>
-    <string name="settings_swipe_dismiss_summary">在页面任意位置横移即可返回上一页</string>
     <string name="settings_hide_task_card">后台卡片隐藏</string>
     <string name="settings_hide_task_card_summary">在最近任务中隐藏任务卡片</string>
     <string name="settings_app_log_summary">写入应用日志的最低等级</string>
@@ -577,9 +563,6 @@
     <string name="backup_restore_merge_summary">保留本机数据，只添加本机没有的订阅</string>
     <string name="backup_restore_overwrite">覆盖恢复</string>
     <string name="backup_restore_overwrite_summary">用备份替换本机的订阅与设置，无法撤销</string>
-    <string name="backup_restore_done_title">恢复完成</string>
-    <string name="backup_restore_done_summary">需要重启应用以加载恢复后的数据。</string>
-    <string name="backup_restart_now">立即重启</string>
     <string name="backup_section_local">本地备份</string>
     <string name="backup_export_local">备份到文件</string>
     <string name="backup_restore_local">从文件恢复</string>
@@ -589,9 +572,7 @@
     <string name="backup_webdav_row_summary">备份到 WebDAV 服务器或从中恢复</string>
 
     <!-- About -->
-    <string name="app_update_title">应用更新</string>
     <string name="app_update_check">检查更新</string>
-    <string name="app_update_idle">检查是否有新版本</string>
     <string name="app_update_checking">正在检查更新…</string>
     <string name="app_update_available">发现新版本 %1$s</string>
     <string name="app_update_up_to_date">当前已是最新版本</string>
@@ -600,15 +581,15 @@
     <string name="app_update_channel_stable">稳定版</string>
     <string name="app_update_channel_test">测试版</string>
     <string name="app_update_on_startup">启动时检查更新</string>
-    <string name="app_update_on_startup_summary">发现新版本时提醒</string>
     <string name="app_update_dialog_title">发现新版本 %1$s</string>
     <string name="app_update_no_notes">此版本未提供更新日志</string>
-    <string name="app_update_not_now">暂不更新</string>
     <string name="app_update_download">前往下载</string>
     <string name="app_update_open_failed">无法打开下载页面</string>
 
     <string name="about_title">关于</string>
-    <string name="about_open_source">开放源代码许可</string>
+    <string name="about_repository">项目源码</string>
+    <string name="about_open_source">开源库</string>
+    <string name="about_open_link_failed">无法打开链接，请先安装浏览器</string>
 
     <!-- FormatUtils -->
 
@@ -652,10 +633,8 @@
     <string name="override_url_placeholder">输入覆写地址</string>
     <string name="override_local_file">本地文件</string>
     <string name="override_format">文件格式</string>
-    <string name="override_update_via_proxy_summary">经由正在运行的代理下载此覆写</string>
     <string name="override_delete_title">删除覆写</string>
     <string name="override_delete_summary">确定要删除「%1$s」吗？使用它的订阅会同时移除这个覆写。</string>
-    <string name="override_update_all_result">更新完成，成功 %1$d 个，失败 %2$d 个</string>
     <string name="override_error_name_required">请输入覆写名称。</string>
     <string name="override_error_invalid_url">覆写地址必须以 http:// 或 https:// 开头。</string>
     <string name="override_error_file_required">请选择本地覆写文件。</string>
@@ -738,4 +717,17 @@
     <string name="log_source_core">核心日志</string>
     <string name="log_empty">暂无符合条件的日志</string>
     <string name="error_clear_failed">清空日志失败：%1$s</string>
+    <string name="operation_update_success">更新成功</string>
+    <string name="operation_update_failed">更新失败，请稍后重试</string>
+    <string name="operation_update_partial">已更新 %1$d 项，%2$d 项失败</string>
+    <string name="operation_nothing_to_update">没有需要更新的项目</string>
+    <string name="operation_in_progress">正在处理中</string>
+    <string name="operation_cancelled">已取消</string>
+    <string name="operation_import_success">添加成功</string>
+    <string name="operation_save_success">保存成功</string>
+    <string name="operation_success">操作成功</string>
+    <string name="operation_import_failed">导入失败，请检查配置</string>
+    <string name="operation_save_failed">保存失败，请重试</string>
+    <string name="operation_invalid_config">配置格式有误</string>
+    <string name="operation_invalid_url">链接格式有误</string>
 </resources>

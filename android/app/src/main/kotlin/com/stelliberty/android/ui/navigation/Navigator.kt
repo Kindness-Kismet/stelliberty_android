@@ -13,6 +13,22 @@ class Navigator(
         }
     }
 
+    // 搜索直达子页时补齐父路由，返回仍按设置页的真实层级逐级出栈。
+    fun openSettingsPage(route: Route) {
+        when (route) {
+            Route.NetworkSettings, Route.PortControl, Route.SystemIntegration,
+            Route.DnsSettings, Route.PerformanceSettings -> push(Route.ClashFeatures)
+            Route.VpnSettings, Route.RootSettings, Route.AppProxy -> {
+                push(Route.ClashFeatures)
+                push(Route.SystemIntegration)
+            }
+            Route.WifiPolicy -> push(Route.AppBehavior)
+            Route.OpenSourceLibraries -> push(Route.About)
+            else -> Unit
+        }
+        push(route)
+    }
+
     fun replace(key: NavKey) {
         if (backStack.isNotEmpty()) {
             backStack[backStack.lastIndex] = key

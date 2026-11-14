@@ -11,9 +11,6 @@ sealed interface Route : NavKey {
     data object Main : Route
 
     @Serializable
-    data object SubscriptionAdd : Route
-
-    @Serializable
     data class SubscriptionAddUrl(
         val initialUrl: String = "",
         val initialName: String = "",
@@ -114,4 +111,7 @@ sealed interface Route : NavKey {
 
     @Serializable
     data object About : Route
+
+    @Serializable
+    data object OpenSourceLibraries : Route
 }

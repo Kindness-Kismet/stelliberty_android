@@ -23,7 +23,7 @@ Tab 间走 `HorizontalPager.animateToPage`，动画约 300ms，截图前留出�
 
 | page_id | 作用 |
 |---|---|
-| `subscription.add` | 新增订阅（选择来源） |
+| `subscription.add` | 从 URL 新增订阅，返回订阅页 |
 | `log` | 日志 |
 | `provider` | 外部资源 |
 | `dns` | DNS 查询 |
@@ -43,12 +43,13 @@ Tab 间走 `HorizontalPager.animateToPage`，动画约 300ms，截图前留出�
 | `settings.app_behavior` | 应用行为（自动连接、开机重启、Wi-Fi 策略入口、通知、应用日志等级） |
 | `settings.wifi_policy` | Wi-Fi 策略 |
 | `settings.about` | 关于 |
+| `settings.about.libraries` | 开源库（返回关于页） |
 | `settings.data` | 数据管理（本地与 WebDAV 备份恢复） |
 | `settings.age_key` | Age 密钥 |
 
 ## 带参数的页面
 
-`SubscriptionAddUrl` / `SubscriptionEdit` / `FileManagerEditor` 需要参数（url、uuid、路径），走深链或业务指令。添加页可用深链预填：
+`SubscriptionEdit` / `FileManagerEditor` 需要参数（uuid、路径），走业务指令。`SubscriptionAddUrl` 可用深链预填：
 
 ```bash
 adb -s <device_id> shell 'am start -a android.intent.action.VIEW \

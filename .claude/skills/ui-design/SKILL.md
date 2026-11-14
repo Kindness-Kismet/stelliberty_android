@@ -6,7 +6,7 @@ user_invocable: true
 
 ## 核心约束
 
-1. 组件用 miuix，自定义形状用 squircle modifier，与 miuix 圆角保持一致。颜色只取自 `MiuixTheme.colorScheme.*` 或 `ui.theme.StatusColors`，用户强制深 / 浅色时各处才对得上。
+1. 组件用 miuix，自定义形状用 squircle modifier，与 miuix 圆角保持一致。界面颜色取自 `MiuixTheme.colorScheme.*` 或 `ui.theme.StatusColors`，用户强制深 / 浅色时各处才对得上；透明色除外。
 2. 深浅色一律读 `LocalAppDarkMode.current`，它反映用户的强制设置。
 3. 帧率级 State（滚动折叠比例、动画进度）在 layout / draw 阶段读：以 `State<T>` 或 `() -> T` 透传给消费方，组合期读会让整个 restart scope 每帧失效。
 
@@ -29,3 +29,5 @@ user_invocable: true
 ## 测试 ID
 
 新增可交互控件在 [TestTags.kt](../../../android/app/src/main/kotlin/com/stelliberty/android/ui/util/TestTags.kt) 登记，命名「页面.控件」；设置项由 `groupedCardItems` 按 `CardItem` 的 key 自动生成。测试 ID 是调试脚本的契约，改名时同步更新 debug-app skill 里的引用（见其 `guides/control.md`）。
+
+miuix 原生级联菜单只暴露宿主 modifier，登记宿主 ID；内部自动生成的条目通过文案与选择语义定位，保持原生布局。

@@ -1,13 +1,11 @@
 package com.stelliberty.android.viewmodel
 
-import android.content.Context
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.stelliberty.android.R
 import com.stelliberty.android.data.repository.ConfigValidationException
-import com.stelliberty.android.data.repository.ImportError
 import com.stelliberty.android.data.repository.OverrideInputError
 import com.stelliberty.android.domain.model.OverrideFormat
 import com.stelliberty.android.domain.model.OverrideProfile
@@ -15,9 +13,8 @@ import com.stelliberty.android.domain.model.SubscriptionUpdateProxyMode
 import com.stelliberty.android.domain.repository.OverrideProfileRepository
 import com.stelliberty.android.domain.repository.SubscriptionRepository
 import com.stelliberty.android.platform.ProxyServiceController
-import com.stelliberty.android.platform.showToast
+import com.stelliberty.android.util.OperationFeedback
 import com.stelliberty.android.util.AppLogger
-import com.stelliberty.android.util.describe
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.CancellationException
@@ -31,7 +28,6 @@ import kotlinx.coroutines.launch
 data class OverrideProfileUiState(
     val profiles: ImmutableList<OverrideProfile> = persistentListOf(),
     val isLoading: Boolean = false,
-    val error: String = "",
 )
 
 // 当前订阅的覆写改动通过重启生效，独立于订阅自动更新的重启偏好。
@@ -39,7 +35,6 @@ class OverrideProfileViewModel(
     private val repository: OverrideProfileRepository,
     private val subscriptions: SubscriptionRepository,
     private val serviceController: ProxyServiceController,
-    private val context: Context,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OverrideProfileUiState())
@@ -49,10 +44,6 @@ class OverrideProfileViewModel(
         viewModelScope.launch {
             repository.profiles.collect { list -> _uiState.update { it.copy(profiles = list) } }
         }
-    }
-
-    fun clearError() {
-        _uiState.update { it.copy(error = "") }
     }
 
     suspend fun readContent(id: String): String = repository.readContent(id)
@@ -103,6 +94,7 @@ class OverrideProfileViewModel(
     fun update(id: String) = launchOperation(R.string.error_update_failed) {
         repository.update(id)
         restartIfUsed(id)
+        OperationFeedback.updateResult(1, 0)
     }
 
     // 逐条更新，最后只重启一次，免得中途断网让后面的下载一起失败。
@@ -122,7 +114,7 @@ class OverrideProfileViewModel(
                 failed++
             }
         }
-        showToast(context.getString(R.string.override_update_all_result, succeeded, failed))
+        OperationFeedback.updateResult(succeeded, failed)
         if (restart) restartCurrent()
     }
 
@@ -156,33 +148,35 @@ class OverrideProfileViewModel(
     }
 
     private fun launchOperation(@StringRes errorKey: Int, block: suspend () -> Unit) {
-        if (_uiState.value.isLoading) return
-        _uiState.update { it.copy(isLoading = true, error = "") }
+        if (_uiState.value.isLoading) {
+            OperationFeedback.show(R.string.operation_in_progress)
+            return
+        }
+        _uiState.update { it.copy(isLoading = true) }
         viewModelScope.launch {
-            val error = try {
+            try {
                 block()
-                ""
+                if (errorKey != R.string.error_update_failed) OperationFeedback.show(R.string.operation_success)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Throwable) {
                 AppLogger.error(TAG, "Override operation failed", e)
-                if (e is ConfigValidationException) {
-                    context.getString(R.string.error_validation_failed, e.describe())
-                } else {
-                    context.getString(errorKey, localizedMessage(e))
-                }
+                OperationFeedback.show(
+                    when (e) {
+                        is OverrideInputError.NameRequired -> R.string.override_error_name_required
+                        is OverrideInputError.InvalidUrl -> R.string.override_error_invalid_url
+                        is ConfigValidationException -> R.string.operation_invalid_config
+                        else -> when (errorKey) {
+                            R.string.error_update_failed -> R.string.operation_update_failed
+                            R.string.error_import_failed -> R.string.operation_import_failed
+                            else -> R.string.operation_save_failed
+                        }
+                    },
+                )
             } finally {
                 _uiState.update { it.copy(isLoading = false) }
             }
-            _uiState.update { it.copy(error = error) }
         }
-    }
-
-    private fun localizedMessage(e: Throwable): String = when (e) {
-        is OverrideInputError.NameRequired -> context.getString(R.string.override_error_name_required)
-        is OverrideInputError.InvalidUrl -> context.getString(R.string.override_error_invalid_url)
-        is ImportError.HttpStatus -> context.getString(R.string.override_error_http_status, e.code)
-        else -> e.describe()
     }
 
     private companion object {

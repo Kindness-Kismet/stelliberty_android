@@ -32,30 +32,39 @@ object RootHelper {
 
     private const val DRAIN_JOIN_MS = 500L
 
-    fun hasRootAccess(): Boolean {
+    fun hasRootAccess(): Boolean = checkRootAccess() == true
+
+    // 超时或执行异常无法确认授权状态，调用方保留最近一次确定结果。
+    fun checkRootAccess(): Boolean? {
         return try {
             val process = ProcessBuilder("su", "-c", "id")
                 .redirectErrorStream(true)
                 .start()
-            val exited = process.waitFor(3, TimeUnit.SECONDS)
-            if (!exited) {
-                process.destroyForcibly()
-                return false
+            val result = awaitDrained(process, 3)
+            when {
+                result.code == -1 -> {
+                    AppLogger.warn(TAG, "Root access check timed out")
+                    null
+                }
+                result.code == 0 && result.output.contains("uid=0") -> true
+                else -> {
+                    AppLogger.warn(TAG, "Root access denied: code=${result.code} ${result.output.take(500)}")
+                    false
+                }
             }
-            val output = process.inputStream.bufferedReader().readText()
-            process.exitValue() == 0 && output.contains("uid=0")
-        } catch (_: Exception) {
-            false
+        } catch (e: Exception) {
+            AppLogger.warn(TAG, "Root access check inconclusive", e)
+            null
         }
     }
 
-    fun startAsRoot(binary: String, args: Array<String>, workDir: String, logFile: String): Int {
+    fun startAsRoot(binary: String, args: Array<String>, workDir: String, logFile: String, proxyGid: Int): Int {
         val argsStr = args.joinToString(" ") { escapeShellSingleQuoted(it) }
         val command = "cd ${escapeShellSingleQuoted(workDir)} || exit 1; " +
                 "${escapeShellSingleQuoted(binary)} $argsStr > ${escapeShellSingleQuoted(logFile)} 2>&1 & echo \$!"
         AppLogger.info(TAG, "Starting as root: ${redactArgs(args)}")
         return try {
-            val process = ProcessBuilder("su", "-c", command)
+            val process = ProcessBuilder("su", "-g", proxyGid.toString(), "-c", command)
                 .redirectErrorStream(true)
                 .start()
             val reader = process.inputStream.bufferedReader()
@@ -96,14 +105,33 @@ object RootHelper {
         }
     }
 
-    fun isAliveAsRoot(pid: Int): Boolean {
+    // null 表示检查未完成，不能据此认定已跟踪的内核退出。
+    fun isAliveAsRoot(pid: Int): Boolean? {
         return try {
             val script = RootProcessScript.isAlive(BuildConfig.APPLICATION_ID, pid)
             val process = ProcessBuilder("su", "-c", script).redirectErrorStream(true).start()
-            awaitDrained(process, 3).code == 0
-        } catch (_: Exception) {
-            false
+            val result = awaitDrained(process, 3)
+            when (result.code) {
+                0 -> true
+                1 -> false
+                else -> {
+                    AppLogger.warn(TAG, "Root process check inconclusive: pid=$pid code=${result.code} ${result.output}")
+                    null
+                }
+            }
+        } catch (e: Exception) {
+            AppLogger.warn(TAG, "Root process check inconclusive: pid=$pid", e)
+            null
         }
+    }
+
+    fun mihomoGroup(pid: Int): Int? {
+        val script = RootProcessScript.group(BuildConfig.APPLICATION_ID, pid)
+        return runCatching {
+            val process = ProcessBuilder("su", "-c", script).redirectErrorStream(true).start()
+            val result = awaitDrained(process, 5)
+            if (result.code == 0) result.output.toIntOrNull() else null
+        }.getOrNull()
     }
 
     fun stopMihomo(tunDevice: String, pid: Int? = null): Boolean {

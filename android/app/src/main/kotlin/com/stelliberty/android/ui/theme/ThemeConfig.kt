@@ -1,10 +1,13 @@
 package com.stelliberty.android.ui.theme
 
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
+import kotlin.math.roundToInt
 import com.stelliberty.android.platform.PlatformStorage
 import com.stelliberty.android.platform.StorageKeys
 import top.yukonga.miuix.kmp.theme.ThemePaletteStyle
 
+@Immutable
 data class ThemeConfig(
     val colorMode: ThemeColorMode = ThemeColorMode.System,
     val pureBlack: Boolean = false,
@@ -12,7 +15,7 @@ data class ThemeConfig(
     val paletteStyle: ThemePaletteStyle = ThemePaletteStyle.TonalSpot,
     val accentColor: ThemeAccentColor = ThemeAccentColor.Default,
     val blurEnabled: Boolean = true,
-    val topBarBlurStyle: TopBarBlurStyle = TopBarBlurStyle.Gaussian,
+    val bottomBarBlurEnabled: Boolean = blurEnabled,
     val floatingBottomBar: Boolean = false,
     val floatingBottomBarStyle: FloatingBottomBarStyle = FloatingBottomBarStyle.Miuix,
     val bottomBarMode: BottomBarMode = BottomBarMode.IconAndText,
@@ -20,8 +23,10 @@ data class ThemeConfig(
 )
 
 const val MinDensityScale = 0.8f
-const val MaxDensityScale = 1.1f
+const val MaxDensityScale = 1.2f
 const val DefaultDensityScale = 1f
+const val DensityScaleStep = 0.05f
+const val DensityScaleSteps = 7
 
 // 颜色模式到深浅色的唯一换算处。组合树内一律读 LocalAppDarkMode，别各自调 isSystemInDarkTheme，
 // 否则用户强制深色而系统是浅色时，那一处不会跟着变。
@@ -31,8 +36,11 @@ fun ThemeConfig.resolveIsDark(systemDark: Boolean): Boolean = when (colorMode) {
     ThemeColorMode.System -> systemDark
 }
 
-fun normalizeDensityScale(value: Float): Float =
-    if (value.isFinite()) value.coerceIn(MinDensityScale, MaxDensityScale) else DefaultDensityScale
+fun normalizeDensityScale(value: Float): Float {
+    if (!value.isFinite()) return DefaultDensityScale
+    val step = ((value.coerceIn(MinDensityScale, MaxDensityScale) - MinDensityScale) / DensityScaleStep).roundToInt()
+    return (80 + step * 5) / 100f
+}
 
 // 声明顺序即设置页选择器的排列顺序，靠 ordinal 对接下标，调整顺序会改动界面。
 enum class ThemeColorMode(val storageValue: String) {
@@ -63,16 +71,6 @@ enum class BottomBarMode(val storageValue: String) {
     companion object {
         fun fromStorage(value: String): BottomBarMode =
             entries.firstOrNull { it.storageValue == value } ?: IconAndText
-    }
-}
-
-enum class TopBarBlurStyle(val storageValue: String) {
-    Gaussian("gaussian"),
-    Progressive("progressive");
-
-    companion object {
-        fun fromStorage(value: String): TopBarBlurStyle =
-            entries.firstOrNull { it.storageValue == value } ?: Gaussian
     }
 }
 
@@ -115,9 +113,11 @@ fun readThemeConfig(storage: PlatformStorage): ThemeConfig {
             storage.getString(StorageKeys.THEME_ACCENT_COLOR, ThemeAccentColor.Default.storageValue),
         ),
         blurEnabled = storage.getString(StorageKeys.THEME_BLUR, "true") != "false",
-        topBarBlurStyle = TopBarBlurStyle.fromStorage(
-            storage.getString(StorageKeys.THEME_BLUR_STYLE, TopBarBlurStyle.Gaussian.storageValue),
-        ),
+        // 尚未单独设置底栏模糊的用户沿用原全局开关，迁移不改变现有视觉效果。
+        bottomBarBlurEnabled = storage.getString(
+            StorageKeys.THEME_BOTTOM_BAR_BLUR,
+            storage.getString(StorageKeys.THEME_BLUR, "true"),
+        ) != "false",
         floatingBottomBar = storage.getString(StorageKeys.THEME_FLOATING_BOTTOM_BAR, "false") == "true",
         floatingBottomBarStyle = FloatingBottomBarStyle.fromStorage(
             storage.getString(StorageKeys.THEME_FLOATING_BOTTOM_BAR_STYLE, FloatingBottomBarStyle.Miuix.storageValue),
@@ -139,7 +139,7 @@ fun writeThemeConfig(storage: PlatformStorage, config: ThemeConfig) {
     storage.putString(StorageKeys.THEME_PALETTE_STYLE, config.paletteStyle.name)
     storage.putString(StorageKeys.THEME_ACCENT_COLOR, config.accentColor.storageValue)
     storage.putString(StorageKeys.THEME_BLUR, config.blurEnabled.toString())
-    storage.putString(StorageKeys.THEME_BLUR_STYLE, config.topBarBlurStyle.storageValue)
+    storage.putString(StorageKeys.THEME_BOTTOM_BAR_BLUR, config.bottomBarBlurEnabled.toString())
     storage.putString(StorageKeys.THEME_FLOATING_BOTTOM_BAR, config.floatingBottomBar.toString())
     storage.putString(StorageKeys.THEME_FLOATING_BOTTOM_BAR_STYLE, config.floatingBottomBarStyle.storageValue)
     storage.putString(StorageKeys.THEME_BOTTOM_BAR_MODE, config.bottomBarMode.storageValue)

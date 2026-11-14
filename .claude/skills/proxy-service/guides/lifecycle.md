@@ -10,7 +10,9 @@
 
 ## 幂等串行
 
-`StellibertyRootService` / `StellibertyTunService` 用 `startJob`（`@Volatile`，主线程与 IO 协程共用）守门：已有启动在进行时，新的 `ACTION_START` 直接忽略。`stopProxy` / `restartProxy` / `onRevoke` 先 `startJob?.cancelAndJoin()` 再继续，才能越过幂等检查。
+`StellibertyRootService` / `StellibertyTunService` 用 `startJob`（`@Volatile`，主线程与 IO 协程共用）守门：已有启动在进行时，新的 `ACTION_START` 直接忽略。`stopProxy` / `restartProxy` / `onRevoke` 依次等待 `startJob?.cancelAndJoin()`、`monitorJob?.cancelAndJoin()`，再停止内核；监控由启动末尾创建，必须先等启动结束才能取消到它。
+
+启动与监控在阻塞操作后、发布结果前检查 `ensureActive()`；ROOT 规则安装结果在取消检查后处理，死亡监控在清理结束后再检查，避免被取消的任务发布状态或停止接替它的服务。
 
 `ACTION_START` 会在数百毫秒内到达两次：「打开应用自动连接」发一次，[BootReceiver](../../../../android/app/src/main/kotlin/com/stelliberty/android/service/BootReceiver.kt) 收到补发的 BOOT_COMPLETED 再发一次（HyperOS 等 ROM 等进程起来后才补投广播；BootReceiver 另建 controller，与 `launchAutoConnectConsumed` 各自独立）。两条启动协程并发跑 iptables 会互抢 `/system/etc/xtables.lock`，ROOT TPROXY 下启动卡死。BootReceiver 只在 `state == Running` 时跳过（Starting 仍发送，下述抢占才能生效），去重统一由 Service 负责。
 
@@ -24,6 +26,8 @@
 
 ## 打开应用时自动连接
 
+MainActivity 回到前台先串行刷新 ROOT 权限，再调用 `verifyAndSyncState`；检测超时或执行异常保留授权缓存与所选模式，明确拒绝时仅在没有正在启停或运行的 ROOT 服务时回退 VPN。
+
 `AUTO_CONNECT_ON_LAUNCH`（设置 →「自动化」，默认关）与开机自启是两个独立开关：BootReceiver 只在 `SERVICE_WAS_RUNNING=true` 时恢复，自动连接与上次状态无关。实现挂在 `verifyAndSyncState` 内：两者回答的都是「app 打开时代理该不该跑」，放在一处才能与 ROOT attach 路径串行（`start()` 是异步的，attach intent 发出后 bridge 仍是 Stopped）。进程外的 BootReceiver 重复投递由 Service 的幂等串行兜底。
 
 1. 每进程只消费一次（controller 是 Koin single）：冷启动触发，回前台保持现状。
@@ -32,7 +36,9 @@
 
 ## startForeground 防御
 
-Tun / Root / ProfileWorker 的 onCreate 均 `try { startForeground() } catch (Exception)`，覆盖 API 31+ 的 `ForegroundServiceStartNotAllowedException` 与 API 34+ 的 FGS type 异常。失败路径：Tun / Root 上报 Error + `stopSelf()`；ProfileWorker 置标记后 `stopSelf()`，之后到达的 start 一律拒收。前台服务审核要求保持前台服务形态。
+Tun / Root / ProfileWorker 的 onCreate 均 `try { startForeground() } catch (Exception)`，覆盖 API 31+ 的 `ForegroundServiceStartNotAllowedException` 与 API 34+ 的 FGS type 异常。失败路径：Tun / Root 上报 Error + `stopSelf()`；ProfileWorker 置标记，收到 Intent 后转交 `ProfileUpdateJobService` 再停止。更新任务的存活不依赖 Activity。
+
+通知权限由「应用行为 → 应用通知」开关主动申请，首次启动不申请。开关读取 `NotificationManager.areNotificationsEnabled()`，拒绝后保持关闭；无法再次弹出授权框或用户要关闭时进入系统通知设置，返回时重新同步。前台服务仍按 Android 要求发布通知。
 
 ## 配置变了就重启
 
@@ -53,6 +59,6 @@ mihomo.log 在 debug 级别可达数十 MB，一律尾读：[readLastLines](../.
 
 - `MihomoRunner` 启动与 ROOT 重连共用 `MihomoApiProbe`：携带 secret 请求 `/stelliberty/runtime`，禁止跟随重定向。native 在 TUN 与 provider 初始化结束前返回 503、完成后返回 200，两者都带当前进程号；只有目标 PID 的 200 算就绪，相同 secret 的其他内核也不能冒充。ROOT 重连只接受就绪。
 - 启动等待按探测结果分段：控制接口 15s 内须应答；目标 PID 应答 503 后时限放宽到 60s，缺缓存的 provider 要在就绪前同步下载，代理与规则两批串行、单个最长 20s；应答来自其他进程（401 / 404 / PID 不符）说明控制端口被占用，目标进程已无法绑定，立即失败。超时文案区分「没有响应」与「加载 provider 超时」，只附带日志里的错误行。
-- 就绪检查间隔 100ms，单次连接与读取超时 500ms；ROOT 判活间隔 2s（每次都要启动 su）。日志等级与滚动不影响就绪判据。
+- 就绪检查间隔 100ms，单次连接与读取超时 500ms；目标 PID 的初始化响应直接确认存活，无响应时 ROOT 判活间隔 2s（每次都要启动 su）。su 超时或执行异常表示判活未知，启动继续受 15s / 60s 总时限约束，运行中监控等待下次检查，只有确认退出才清理状态；重连仍须确认进程归属。日志等级与滚动不影响就绪判据。
 - ROOT 停止时，发信号、判活与网卡清理在同一次 su 中完成，轮询 100ms，正常退出立即返回；SIGTERM 最多等 3s，SIGKILL 最多等 2s。确认进程退出后再完成服务清理并上报停止。
 - ROOT 清理失败时阻止继续启动；停止或重启失败时保留 PID 与持久化状态，报告 Error，供后续重试。

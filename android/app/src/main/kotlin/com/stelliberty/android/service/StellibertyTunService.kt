@@ -31,6 +31,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
@@ -160,10 +161,17 @@ class StellibertyTunService : VpnService() {
             val systemProxy = storage.getString(StorageKeys.VPN_SYSTEM_PROXY, "true") == "true"
             val proxyMode = AppProxyMode.parse(storage.getString(StorageKeys.APP_PROXY_MODE, ""))
             val packages = storage.getStringSet(StorageKeys.APP_PROXY_PACKAGES, emptySet())
+            val subMixedPort = subscriptionId?.let {
+                ConfigGenerator.readSubscriptionMixedPort(this@StellibertyTunService, it)
+            }
+            // 系统代理指向 mixed-port，开启时内核必须监听它。
+            val mixedPortRequired = systemProxy || subscriptionStore.anyUpdatesViaCore()
+            val mixedPort = RuntimeOverrideBuilder.resolveMixedPort(userOverride, subMixedPort, mixedPortRequired)
             AppLogger.info(
                 TAG,
                 "VPN options: ipv6=$allowIpv6, bypassPrivate=$bypassPrivate, dnsHijacking=$dnsHijacking, " +
-                    "allowBypass=$allowBypass, systemProxy=$systemProxy, appProxy=$proxyMode(${packages.size})",
+                    "allowBypass=$allowBypass, systemProxy=$systemProxy, mixedPort=$mixedPort, " +
+                    "appProxy=$proxyMode(${packages.size})",
             )
 
             val fd = try {
@@ -233,12 +241,11 @@ class StellibertyTunService : VpnService() {
 
                     setMetered(false)
 
-                    if (systemProxy) {
-                        val port = userOverride.mixedPort ?: 7890
+                    if (systemProxy && mixedPort != null) {
                         setHttpProxy(
                             android.net.ProxyInfo.buildDirectProxy(
                                 "127.0.0.1",
-                                port,
+                                mixedPort,
                                 listOf(
                                     "localhost", "*.local", "127.*", "10.*", "172.16.*",
                                     "172.17.*", "172.18.*", "172.19.*", "172.20.*",
@@ -295,15 +302,12 @@ class StellibertyTunService : VpnService() {
 
             val secret = ConfigGenerator.resolveSecret(this@StellibertyTunService, userOverride, subscriptionId)
             val extCtl = userOverride.resolveExternalController()
-            val subMixedPort = subscriptionId?.let {
-                ConfigGenerator.readSubscriptionMixedPort(this@StellibertyTunService, it)
-            }
             val overrideFile = RuntimeOverrideBuilder.buildAndWriteForRun(
                 context = this@StellibertyTunService,
                 userOverride = userOverride,
                 tunFd = fd,
                 tunMode = TunMode.Vpn,
-                subscriptionUpdateViaProxy = subscriptionStore.anyUpdatesViaProxy(),
+                mixedPortRequired = mixedPortRequired,
                 subscriptionMixedPort = subMixedPort,
             )
 
@@ -317,6 +321,7 @@ class StellibertyTunService : VpnService() {
                 ageSecretKey = subscription?.ageSecretKey.orEmpty(),
                 transformPath = transformWriter.writeRuntime(subscription),
             )
+            ensureActive()
             if (!success) {
                 val errorMsg = runner.errorMessage.ifBlank { getString(R.string.error_start_failed) }
                 AppLogger.error(TAG, "Failed to start mihomo: $errorMsg")
@@ -361,6 +366,7 @@ class StellibertyTunService : VpnService() {
                 delay(5_000)
             }
             val logContent = File(workDir, "mihomo.log").readLastLines(DEATH_LOG_LINES)
+            ensureActive()
             val errorMsg = if (logContent.isNotBlank()) {
                 getString(R.string.error_mihomo_start_failed, logContent)
             } else {
@@ -377,11 +383,11 @@ class StellibertyTunService : VpnService() {
 
     private fun restartProxy(subscriptionId: String?) {
         AppLogger.info(TAG, "Restarting proxy...")
-        monitorJob?.cancel()
         ProxyServiceBridge.updateState(ProxyServiceStatus(ProxyState.Stopping, tunMode = TunMode.Vpn))
         dynamicNotification.stop()
         scope.launch {
             startJob?.cancelAndJoin()
+            monitorJob?.cancelAndJoin()
             runner.stop()
             closeTunFd()
             withContext(Dispatchers.Main) {
@@ -392,11 +398,11 @@ class StellibertyTunService : VpnService() {
 
     private fun stopProxy() {
         AppLogger.info(TAG, "Stopping proxy...")
-        monitorJob?.cancel()
         ProxyServiceBridge.updateState(ProxyServiceStatus(ProxyState.Stopping, tunMode = TunMode.Vpn))
         dynamicNotification.stop()
         scope.launch {
             startJob?.cancelAndJoin()
+            monitorJob?.cancelAndJoin()
             runner.stop()
             closeTunFd()
             PlatformStorage(this@StellibertyTunService).putString(StorageKeys.SERVICE_WAS_RUNNING, "false")
@@ -440,12 +446,12 @@ class StellibertyTunService : VpnService() {
 
     override fun onRevoke() {
         AppLogger.info(TAG, "VPN revoked by system")
-        monitorJob?.cancel()
         ProxyServiceBridge.updateState(ProxyServiceStatus(ProxyState.Stopping, tunMode = TunMode.Vpn))
         dynamicNotification.stop()
         PlatformStorage(this).putString(StorageKeys.SERVICE_WAS_RUNNING, "false")
         scope.launch {
             startJob?.cancelAndJoin()
+            monitorJob?.cancelAndJoin()
             runner.stop()
             closeTunFd()
             ProxyServiceBridge.markStopped(TunMode.Vpn)

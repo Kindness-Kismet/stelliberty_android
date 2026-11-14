@@ -66,7 +66,6 @@ val viewModelModule = module {
             repository = get(),
             subscriptions = get(),
             serviceController = get(),
-            context = androidContext(),
         )
     }
     single {

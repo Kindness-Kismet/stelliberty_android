@@ -35,6 +35,8 @@ CMFA embed mode 下 `PATCH/PUT /configs`、`POST /restart`、`POST /configs/geo`
 
 1. 测全部代理组的成员（去重），经 `MihomoRepository.testDelays` 逐个节点测，与组测速同一路径，不解除固定选择；PC 测完会解除。
 2. 每轮结束发出所用的 client，`ProxyViewModel` 只在它仍是自己当前的 client 时刷新，避免 Activity 销毁后拿旧实例请求。
+3. 排期通过 `AutoDelayAlarm` 的单次 `ELAPSED_REALTIME_WAKEUP` 闹钟唤醒，精确权限允许时用 `setExactAndAllowWhileIdle`，否则用 `setAndAllowWhileIdle`。完成或失败后等待完整间隔，切换时取消旧任务与闹钟；排期和测速结果只保留在内存。
+4. `AutoDelayReceiver` 在广播返回前取得本轮独立的 `PARTIAL_WAKE_LOCK`，由已有代理前台服务承载异步请求，`finally` 释放锁；深度 Doze 的触发频率与网络仍受系统限制。
 
 ## 连接速率自行差分
 

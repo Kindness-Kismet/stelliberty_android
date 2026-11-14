@@ -82,5 +82,5 @@ adb -s <device_id> shell run-as com.stelliberty.android tail -n 100 files/mihomo
 - 装包报签名冲突：先 `adb uninstall com.stelliberty.android`。
 - 行为没变：确认 APK 已重新打包并安装。
 - 代理指令报 not running：预期返回；模拟器的 VPN 授权框要人点。
-- 授予 su 后应用仍报无 root：`has_root` 在 MainActivity 冷启动时缓存，授权后重启应用。
+- MainActivity 每次回到前台重检 ROOT，授权后返回应用即可刷新 `has_root` 与界面；检测超时或执行异常时保留最近一次确定结果。
 - root 状态以应用自身读到的为准：`adb shell` 是 `shell` uid，`run-as` 是 `runas_app` 域，安全上下文都与应用不同。

@@ -1,0 +1,35 @@
+// SPDX-License-Identifier: Apache-2.0
+// 来源：https://github.com/mingcute-design/mingcute-icons/blob/9dc7d3ad074fb16477096a6a8109a6467d0e2fe3/assets/svg/core/regular/brands/github.svg
+package com.stelliberty.android.ui.icon
+
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathFillType
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.PathParser
+import androidx.compose.ui.unit.dp
+
+val MingCuteGithubLine: ImageVector by lazy {
+    ImageVector.Builder(
+        name = "MingCuteGithubLine",
+        defaultWidth = 24f.dp,
+        defaultHeight = 24f.dp,
+        viewportWidth = 24f,
+        viewportHeight = 24f,
+    ).apply {
+        addPath(
+            pathData = PathParser().parsePathString("m12.939 16.083.325-1.124c.765-.179 1.506-.331 2.23-.634 1.903-.793 3.743-2.501 3.48-4.743a3.9 3.9 0 0 0-.565-1.578l-.255-.37-.497-.594-.096-.531.188-.537.063-.255c.103-.521.074-1.051-.003-1.573a7.2 7.2 0 0 0-1.826.86l-.534.385-.452.083-.9-.24a9.6 9.6 0 0 0-4.196.001l-.9.24-.452-.083-.535-.385a7.1 7.1 0 0 0-1.827-.861c-.088.606-.116 1.235.06 1.83l.189.537-.094.531-.498.595-.254.369a3.9 3.9 0 0 0-.564 1.577c-.263 2.242 1.577 3.949 3.48 4.742.724.303 1.465.455 2.23.634l.325 1.124c-.623.67-1.029 1.023-1.061 1.952V21c-.013.199-.033.326-.134.5-.436.756-1.606.602-1.832-.241L8 21v-.995c-1.661.165-2.925-.185-4.017-1.487-.348-.416-.615-.897-.974-1.304-.373-.422-.92-.382-1.002-1.099a1 1 0 0 1 .626-1.045c.479-.189.992.06 1.375.346.431.32.742.762 1.047 1.195.829 1.172 1.406 1.668 2.945 1.37.04-.628.119-.993.333-1.583-1.033-.39-2.004-.865-2.864-1.568-2.721-2.227-3.306-5.58-1.181-8.45a6.4 6.4 0 0 1 .053-3.163c.064-.239.14-.511.276-.721l.372-.441.561-.068c.269-.005.556.065.815.129 1 .248 1.927.69 2.79 1.246a11.15 11.15 0 0 1 5.687-.001c.863-.555 1.79-.997 2.789-1.245.259-.064.547-.134.816-.129l.56.068.372.441c.185.286.271.666.342.993a6.44 6.44 0 0 1-.012 2.887c2.129 2.869 1.543 6.226-1.178 8.454-.86.703-1.831 1.178-2.864 1.568.192.529.313 1.002.333 1.568V21c-.036.544-.428 1-1 1s-.964-.456-1-1v-2.965c-.032-.929-.438-1.282-1.061-1.952").toNodes(),
+            pathFillType = PathFillType.NonZero,
+            fill = SolidColor(Color(0xFF000000)),
+            fillAlpha = 1f,
+            stroke = null,
+            strokeAlpha = 1f,
+            strokeLineWidth = 1f,
+            strokeLineCap = StrokeCap.Butt,
+            strokeLineJoin = StrokeJoin.Miter,
+            strokeLineMiter = 4f,
+        )
+    }.build()
+}

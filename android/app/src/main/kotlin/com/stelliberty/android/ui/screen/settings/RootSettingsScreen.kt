@@ -1,8 +1,6 @@
 package com.stelliberty.android.ui.screen.settings
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -31,16 +30,18 @@ import com.stelliberty.android.platform.StorageKeys
 import com.stelliberty.android.platform.TunMode
 import com.stelliberty.android.ui.component.AdaptiveTopAppBar
 import com.stelliberty.android.ui.component.CardItem
+import com.stelliberty.android.ui.component.DialogButtons
 import com.stelliberty.android.ui.component.FieldHint
 import com.stelliberty.android.ui.component.RestartRequiredHint
 import com.stelliberty.android.ui.component.TetherInterfaceEditDialog
 import com.stelliberty.android.ui.component.blur.BlurredBar
 import com.stelliberty.android.ui.component.blur.rememberBlurBackdrop
+import com.stelliberty.android.ui.component.dialogTestTag
 import com.stelliberty.android.ui.component.groupedCardItems
 import com.stelliberty.android.ui.component.tetherInterfaceSummary
 import com.stelliberty.android.ui.icon.AppIcons
+import com.stelliberty.android.ui.util.TestTags
 import com.stelliberty.android.ui.util.horizontalCutoutPadding
-import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.Icon
@@ -49,7 +50,6 @@ import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.preference.ArrowPreference
@@ -255,37 +255,26 @@ fun RootSettingsScreen(
     }
 
     WindowDialog(
+        modifier = Modifier.dialogTestTag(TestTags.Dialog.ROOT_TUN_DEVICE),
         show = showTunDeviceDialog,
         title = stringResource(R.string.settings_tun_device),
         onDismissRequest = { showTunDeviceDialog = false },
     ) {
         TextField(
             state = tunDeviceTextState,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().testTag(TestTags.Dialog.INPUT),
             label = stringResource(R.string.network_input_value),
         )
         Spacer(Modifier.height(12.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            TextButton(
-                text = stringResource(R.string.common_cancel),
-                modifier = Modifier.weight(1f),
-                onClick = { showTunDeviceDialog = false },
-            )
-            TextButton(
-                text = stringResource(R.string.common_confirm),
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.textButtonColorsPrimary(),
-                onClick = {
-                    val value = tunDeviceTextState.text.toString().trim().ifEmpty { DEFAULT_TUN_DEVICE }
-                    storage.putString(StorageKeys.ROOT_TUN_DEVICE, value)
-                    tunDevice = value
-                    showTunDeviceDialog = false
-                },
-            )
-        }
+        DialogButtons(
+            onCancel = { showTunDeviceDialog = false },
+            onConfirm = {
+                val value = tunDeviceTextState.text.toString().trim().ifEmpty { DEFAULT_TUN_DEVICE }
+                storage.putString(StorageKeys.ROOT_TUN_DEVICE, value)
+                tunDevice = value
+                showTunDeviceDialog = false
+            },
+        )
     }
 
     TetherInterfaceEditDialog(

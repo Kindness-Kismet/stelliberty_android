@@ -6,8 +6,8 @@
     <string name="channel_vpn_desc">Stelliberty proxy service status</string>
     <string name="channel_profile_status_name">Config Update Progress</string>
     <string name="channel_profile_status_desc">Config download and validation progress</string>
-    <string name="channel_profile_result_name">Config Update Result</string>
-    <string name="channel_profile_result_desc">Config update success or failure notifications</string>
+    <string name="settings_app_notifications">App notifications</string>
+    <string name="settings_app_notifications_summary">Turn on to request notification permission; turn off in system settings</string>
     <string name="channel_wifi_policy_service_name">Wi-Fi Auto Switch Service</string>
     <string name="channel_wifi_policy_service_desc">Internal monitor service for Wi-Fi auto switching</string>
     <string name="channel_wifi_policy_event_name">Wi-Fi Auto Switch Events</string>
@@ -27,11 +27,6 @@
     <!-- Profile Update Notifications -->
     <string name="notification_profile_update">Config Update</string>
     <string name="notification_profile_running">Running…</string>
-    <string name="notification_profile_updating">Updating config</string>
-    <string name="notification_update_success">Update Successful</string>
-    <string name="notification_update_success_content">%1$s updated</string>
-    <string name="notification_update_failed">Update Failed</string>
-    <string name="notification_unknown_error">Unknown error</string>
 
     <!-- Tile -->
     <string name="tile_connected">Connected</string>
@@ -54,6 +49,7 @@
     <string name="error_vpn_denied">VPN permission denied</string>
     <string name="error_start_failed">Start failed</string>
     <string name="error_root_failed">Cannot obtain Root permission</string>
+    <string name="error_root_rules_failed">Could not configure Root routing or DNS interception. Check the app log and try again.</string>
     <string name="error_mihomo_not_found">mihomo binary not found</string>
     <string name="error_fork_failed">fork+exec failed</string>
     <string name="error_root_start_failed">root start failed</string>
@@ -84,6 +80,7 @@
     <string name="common_refresh">Refresh</string>
     <string name="common_more">More</string>
     <string name="common_close">Close</string>
+    <string name="common_default">Default</string>
     <string name="common_delete">Delete</string>
     <string name="common_edit">Edit</string>
     <string name="common_update">Update</string>
@@ -114,6 +111,10 @@
     <string name="home_start">Start</string>
     <string name="home_starting_btn">Starting...</string>
     <string name="home_stopping_btn">Stopping...</string>
+    <string name="home_restarting">Restarting</string>
+    <string name="home_reloading">Reloading</string>
+    <string name="home_establishing_connection">Loading config and establishing connections</string>
+    <string name="home_releasing_resources">Closing connections and releasing resources</string>
 
     <!-- Home - Quick Entries -->
     <string name="home_providers">Providers</string>
@@ -171,12 +172,16 @@
     <string name="proxy_search_groups">Search groups or nodes</string>
     <string name="proxy_no_matching_groups">No matching groups</string>
     <string name="proxy_hide_unavailable">Only available nodes</string>
+    <string name="proxy_layout_mode">Layout</string>
+    <string name="proxy_layout_horizontal">Horizontal</string>
+    <string name="proxy_layout_vertical">Vertical</string>
     <string name="proxy_start_first">Please start the proxy service first</string>
     <string name="proxy_mode_direct_hint">Direct mode is active: all traffic bypasses the proxy. Group selections are saved but only take effect after switching back to rule mode.</string>
     <string name="proxy_mode_global_hint">Global mode is active: only the GLOBAL group routes traffic. Selections in other groups take effect after switching back to rule mode.</string>
-    <string name="proxy_refresh_icon">Refresh Icons</string>
+    <string name="proxy_settings_title">Proxy Settings</string>
+    <string name="proxy_display_settings">Layout &amp; Display</string>
+    <string name="proxy_test_all_delays">Test all node latencies</string>
     <string name="proxy_single_column">Single Column</string>
-    <string name="proxy_group_tabs">Horizontal group tabs</string>
     <string name="proxy_node_count">%1$d/%2$d</string>
     <string name="proxy_expand_group">Expand group</string>
     <string name="proxy_collapse_group">Collapse group</string>
@@ -204,19 +209,14 @@
     <string name="subscription_used_traffic">Used %1$s / %2$s</string>
     <string name="subscription_no_traffic">No traffic info</string>
     <string name="subscription_updated_at">Updated at %1$s</string>
-    <string name="subscription_last_error">Last update failed: %1$s</string>
     <string name="subscription_delete_title">Delete subscription</string>
     <string name="subscription_delete_summary">Delete \"%1$s\"? This will remove the config files and selection history.</string>
 
     <!-- Subscription Create/Edit -->
-    <string name="subscription_create">Create Config</string>
     <string name="subscription_edit">Edit Config</string>
     <string name="subscription_file">File</string>
-    <string name="subscription_file_summary">Pick a local config; no auto-update</string>
     <string name="subscription_url">URL</string>
-    <string name="subscription_url_summary">Fetch from a link, refreshed on a schedule</string>
     <string name="subscription_qr">QR Code</string>
-    <string name="subscription_qr_summary">Scan a link, then same as URL</string>
     <string name="subscription_url_hint">Only accepts mihomo config files (with proxies/rules)</string>
     <string name="subscription_name">Name</string>
     <string name="subscription_name_auto_placeholder">Leave blank to auto-name from subscription</string>
@@ -305,27 +305,16 @@
     <string name="provider_updating_title">Updating provider</string>
     <string name="provider_updating_single">Updating %1$s…</string>
     <string name="provider_updating_progress">%1$d / %2$d</string>
-    <string name="provider_update_failed">Failed to update %1$s: %2$s</string>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
     <string name="settings_group_automation">Automation</string>
-    <string name="settings_group_personalization">Personalization</string>
-    <string name="settings_group_clash">Clash</string>
-    <string name="settings_group_application">Application</string>
-    <string name="settings_group_maintenance">Maintenance</string>
     <string name="clash_features_title">Clash Features</string>
     <string name="clash_features_summary">Network, ports, system integration, DNS, and core options</string>
-    <string name="network_settings_summary">Unified delay, LAN, IPv6, and sniffer</string>
     <string name="port_control_title">Port Control</string>
-    <string name="port_control_summary">Proxy ports and external controller</string>
     <string name="system_integration_title">System Integration</string>
-    <string name="system_integration_summary">Tunnel mode, VPN or ROOT settings, and per-app proxy</string>
     <string name="dns_settings_title">DNS</string>
-    <string name="dns_settings_summary">Nameservers, enhanced mode, and FakeIP filter</string>
     <string name="performance_settings_title">Performance</string>
-    <string name="performance_settings_summary">Geodata mode and process matching</string>
-    <string name="settings_core_log_summary">Minimum level output by the core; takes effect after restarting the proxy</string>
     <string name="app_behavior_title">App Behavior</string>
     <string name="app_behavior_summary">Auto connect, boot restore, Wi-Fi switching, notifications, and logs</string>
     <string name="data_management_title">Data Management</string>
@@ -349,36 +338,36 @@
     <string name="settings_dynamic_notification">Dynamic Notification</string>
     <string name="settings_dynamic_notification_summary">Show real-time speed and traffic in notification</string>
     <string name="settings_dynamic_notification_summary_root_unsupported">VPN mode only</string>
-    <string name="subscription_update_via_proxy">Update via proxy</string>
-    <string name="subscription_update_via_proxy_summary">Download this subscription through the running proxy</string>
+    <string name="update_proxy_mode">Update Proxy</string>
+    <string name="update_proxy_direct">Direct</string>
+    <string name="update_proxy_system">System Proxy</string>
+    <string name="update_proxy_core">Core Proxy</string>
     <string name="settings_restart_after_update">Restart after update</string>
     <string name="settings_restart_after_update_summary">Restart the proxy when the active profile is updated, so the new config takes effect (briefly interrupts connections)</string>
     <string name="settings_auto_connect">Connect on Launch</string>
     <string name="settings_auto_connect_summary">Start the proxy when the app opens, if a usable profile is available</string>
     <string name="settings_auto_restart">Restart on Boot</string>
     <string name="settings_auto_restart_summary">Restore the proxy that was running before a reboot or app update</string>
-    <string name="settings_theme_title">Appearance &amp; Theme</string>
-    <string name="settings_theme_group_color">Color &amp; Theme</string>
-    <string name="settings_theme_group_interface">Interface &amp; Effects</string>
-    <string name="settings_theme_group_navigation">Bottom Navigation</string>
+    <string name="settings_theme_title">Appearance</string>
+    <string name="settings_search">Search settings</string>
+    <string name="settings_search_empty">No matching settings</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_language_english">English</string>
+    <string name="settings_language_simplified">简体中文</string>
+    <string name="settings_language_traditional">繁體中文</string>
+    <string name="settings_theme_bottom_bar_blur">Bottom bar blur</string>
+    <string name="settings_blur_unavailable">Requires Android 13 or later</string>
+    <string name="settings_predictive_back_unavailable">Requires Android 14 or later</string>
     <string name="settings_theme_summary">Color, blur effects and interface scale; bottom bar and back gestures</string>
     <string name="settings_theme_mode">Theme Mode</string>
     <string name="settings_theme_system">Follow System</string>
     <string name="settings_theme_light">Light</string>
     <string name="settings_theme_dark">Dark</string>
-    <string name="settings_theme_monet">Monet Colors</string>
+    <string name="settings_theme_monet">Dynamic colors</string>
     <string name="settings_theme_monet_summary">Use the system dynamic color palette when available</string>
-    <string name="settings_theme_blur">Blur Effects</string>
-    <string name="settings_theme_blur_summary">Enable blur effects for bars and layered surfaces</string>
-    <string name="settings_theme_blur_style">Top bar blur style</string>
-    <string name="settings_theme_blur_style_gaussian">Gaussian</string>
-    <string name="settings_theme_blur_style_progressive">Progressive</string>
-    <string name="settings_theme_blur_style_gaussian_summary">Uniform frosted blur across the top bar</string>
-    <string name="settings_theme_blur_style_progressive_summary">Gradient blur, strongest at the top edge</string>
-    <string name="settings_theme_density_scale">Interface Scale</string>
-    <string name="settings_theme_density_scale_summary">Adjust the global display scale (80% - 110%)</string>
+    <string name="settings_theme_blur">Top bar blur</string>
+    <string name="settings_theme_density_scale">App scale</string>
     <string name="settings_theme_floating_bottom_bar">Floating Bottom Bar</string>
-    <string name="settings_theme_floating_bottom_bar_summary">Use a floating bottom navigation bar on phones</string>
     <string name="settings_theme_floating_bottom_bar_style">Floating Bottom Bar Style</string>
     <string name="settings_theme_floating_bottom_bar_style_miuix">Miuix</string>
     <string name="settings_theme_floating_bottom_bar_style_ios_like">iOS-like (Liquid Glass)</string>
@@ -396,7 +385,6 @@
     <string name="settings_theme_palette_fidelity">Fidelity (Fidelity)</string>
     <string name="settings_theme_palette_content">Content (Content)</string>
     <string name="settings_theme_pure_black">Pure Black Background</string>
-    <string name="settings_theme_pure_black_summary">Use a pure black background in dark mode</string>
     <string name="settings_theme_accent_title">Accent Color</string>
     <string name="settings_theme_accent_default">System color</string>
     <string name="settings_theme_accent_blue">Blue</string>
@@ -408,9 +396,7 @@
     <string name="settings_theme_accent_green">Green</string>
     <string name="settings_theme_accent_teal">Teal</string>
     <string name="settings_predictive_back">Predictive Back Gesture</string>
-    <string name="settings_predictive_back_summary">Enable predictive back animation</string>
     <string name="settings_swipe_dismiss">Swipe Back Gesture</string>
-    <string name="settings_swipe_dismiss_summary">Swipe sideways anywhere on the page to go back</string>
     <string name="settings_hide_task_card">Hide from recents</string>
     <string name="settings_hide_task_card_summary">Hide task card in recent tasks</string>
     <string name="settings_app_log_summary">Minimum level written to application logs</string>
@@ -579,9 +565,6 @@
     <string name="backup_restore_merge_summary">Keep local data and add only subscriptions missing on this device</string>
     <string name="backup_restore_overwrite">Overwrite</string>
     <string name="backup_restore_overwrite_summary">Replace local subscriptions and settings with the backup. This cannot be undone</string>
-    <string name="backup_restore_done_title">Restore completed</string>
-    <string name="backup_restore_done_summary">The app needs to restart to load the restored data.</string>
-    <string name="backup_restart_now">Restart now</string>
     <string name="backup_section_local">Local backup</string>
     <string name="backup_export_local">Back up to file</string>
     <string name="backup_restore_local">Restore from file</string>
@@ -591,9 +574,7 @@
     <string name="backup_webdav_row_summary">Back up to or restore from a WebDAV server</string>
 
     <!-- About -->
-    <string name="app_update_title">App Updates</string>
     <string name="app_update_check">Check for updates</string>
-    <string name="app_update_idle">Check for a newer version</string>
     <string name="app_update_checking">Checking for updates…</string>
     <string name="app_update_available">Version %1$s is available</string>
     <string name="app_update_up_to_date">You are up to date</string>
@@ -602,15 +583,15 @@
     <string name="app_update_channel_stable">Stable</string>
     <string name="app_update_channel_test">Test</string>
     <string name="app_update_on_startup">Check on startup</string>
-    <string name="app_update_on_startup_summary">Notify me when a newer version is available</string>
     <string name="app_update_dialog_title">New version %1$s</string>
     <string name="app_update_no_notes">No release notes provided</string>
-    <string name="app_update_not_now">Not now</string>
     <string name="app_update_download">Download</string>
     <string name="app_update_open_failed">Could not open the download page</string>
 
     <string name="about_title">About</string>
-    <string name="about_open_source">Open Source Licenses</string>
+    <string name="about_repository">Project source code</string>
+    <string name="about_open_source">Open source libraries</string>
+    <string name="about_open_link_failed">Could not open the link. Please install a browser.</string>
 
     <!-- FormatUtils -->
 
@@ -654,10 +635,8 @@
     <string name="override_url_placeholder">Enter override address</string>
     <string name="override_local_file">Local File</string>
     <string name="override_format">File Format</string>
-    <string name="override_update_via_proxy_summary">Download this override through the running proxy</string>
     <string name="override_delete_title">Delete Override</string>
     <string name="override_delete_summary">Delete \"%1$s\"? Subscriptions using it will drop this override.</string>
-    <string name="override_update_all_result">Update completed: %1$d succeeded, %2$d failed</string>
     <string name="override_error_name_required">Enter an override name.</string>
     <string name="override_error_invalid_url">Override address must start with http:// or https://.</string>
     <string name="override_error_file_required">Select a local override file.</string>
@@ -740,4 +719,17 @@
     <string name="log_source_core">Core logs</string>
     <string name="log_empty">No matching logs</string>
     <string name="error_clear_failed">Failed to clear logs: %1$s</string>
+    <string name="operation_update_success">Updated successfully</string>
+    <string name="operation_update_failed">Update failed. Please try again</string>
+    <string name="operation_update_partial">Updated %1$d, failed %2$d</string>
+    <string name="operation_nothing_to_update">Nothing to update</string>
+    <string name="operation_in_progress">An operation is in progress</string>
+    <string name="operation_cancelled">Cancelled</string>
+    <string name="operation_import_success">Added successfully</string>
+    <string name="operation_save_success">Saved successfully</string>
+    <string name="operation_success">Done</string>
+    <string name="operation_import_failed">Import failed. Check the configuration</string>
+    <string name="operation_save_failed">Save failed. Please try again</string>
+    <string name="operation_invalid_config">Invalid configuration</string>
+    <string name="operation_invalid_url">Invalid URL</string>
 </resources>

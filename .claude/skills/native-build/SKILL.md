@@ -9,7 +9,7 @@ user_invocable: true
 1. `System.loadLibrary("mihomo")` 先于 `loadLibrary("stelliberty_jni")`：后者链接前者导出的符号。
 2. `//export` 函数收住 panic：JNI 在进程内运行，panic 逸出 cgo 边界会终止整个应用。返回字符串的走 `guardString`。
 3. cgo 返回的 `*C.char` 由 Go 侧释放：C 侧调用 `stellibertyFreeString()`。
-4. 改完 mihomo submodule 或 patch 后确认新代码进了 .so：`replacedModuleSources` 声明完整，任务才会重新编译。
+4. 更新 mihomo submodule 或补丁后确认新代码进了 .so：`replacedModuleSources` 声明完整，任务才会重新编译。
 
 ## 指引索引
 
@@ -25,4 +25,4 @@ user_invocable: true
 
 新加 mihomo CLI flag 同步注册到 `stelliberty_core/runtime.go` 的 `flag.NewFlagSet`：`ExitOnError` 遇到未注册的 flag 会直接让启动失败。
 
-每次 rebase 上游后确认第 5 个 patch（fd 模式 `forwarderBindInterface = true`）仍然生效，前提是新代码已进 .so（见 `guides/gradle.md`）。
+每次同步上游后确认 fd 模式 `forwarderBindInterface = true` 仍然生效，前提是新代码已进 .so（见 `guides/gradle.md`）。

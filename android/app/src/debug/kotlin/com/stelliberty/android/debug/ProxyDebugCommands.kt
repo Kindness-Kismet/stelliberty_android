@@ -7,10 +7,12 @@ import android.os.Bundle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import com.stelliberty.android.data.api.AutoDelayTester
 import com.stelliberty.android.data.api.MihomoConnectionManager
 import com.stelliberty.android.data.repository.OverrideJsonStore
 import com.stelliberty.android.data.store.ProxySelectionStore
 import com.stelliberty.android.domain.repository.SubscriptionRepository
+import com.stelliberty.android.domain.repository.MihomoRepository
 import com.stelliberty.android.platform.ProxyServiceController
 import com.stelliberty.android.platform.TunMode
 import com.stelliberty.android.service.VpnPermissionActivity
@@ -60,6 +62,38 @@ internal fun runProxyCommand(context: Context, action: String, arg: String?, ext
             debugResult(true, "mode set to $mode", command, mode)
         }
 
+        "set_auto_delay" -> {
+            val interval = extras.target(arg)?.toIntOrNull()
+                ?.takeIf { it in 0..999999 }
+                ?: return debugResult(false, "Invalid interval (want 0..999999 minutes)", command)
+            val subscriptions = koin<SubscriptionRepository>()
+            val uuid = subscriptions.getActive()?.id
+                ?: return debugResult(false, "No active subscription", command)
+            runBlocking { subscriptions.setAutoTestDelayInterval(uuid, interval) }
+            debugResult(true, "Auto delay interval set to ${interval}m", command, uuid)
+        }
+
+        "get_test_state" -> {
+            val repository = koin<MihomoConnectionManager>().repository.value
+            val schedule = koin<AutoDelayTester>().snapshot()
+            val ui = koin<ProxyViewModel>().uiState.value
+            val data = buildString {
+                append("testingNodes=").append(repository?.testingNodes?.value.orEmpty().joinToString(","))
+                append("; delays=").append(repository?.delayResults?.value.orEmpty().entries.joinToString(",") { "${it.key}:${it.value.delay}" })
+                append("; subscriptionId=").append(schedule.subscriptionId)
+                append("; intervalMinutes=").append(schedule.intervalMinutes)
+                append("; nextElapsedRealtime=").append(schedule.nextElapsedRealtime)
+                append("; isAutoTesting=").append(schedule.isTesting)
+                append("; uiGroups=").append(ui.groups.size)
+                append("; uiRunning=").append(ui.isProxyRunning)
+                append("; uiError=").append(ui.error)
+                append("; uiDelays=").append(ui.groups.joinToString("|") { group ->
+                    "${group.name}=" + group.delays.entries.joinToString(",") { "${it.key}:${it.value}" }
+                })
+            }
+            debugResult(true, "Delay state read", command, data = data)
+        }
+
         else -> runProxyRuntimeCommand(action, command, arg, extras)
     }
 }
@@ -94,16 +128,26 @@ private fun runProxyRuntimeCommand(action: String, command: String, arg: String?
 
             "test_group" -> {
                 val group = extras.target(arg) ?: return@runBlocking debugResult(false, "Missing group", command)
-                repository.getProxyDelay(group).fold(
-                    onSuccess = { debugResult(true, "delay=${it.delay}ms", command, group, "delay=${it.delay}") },
-                    onFailure = { debugResult(false, it.describeForDebug(), command, group) },
-                )
+                val nodes = repository.getGroups().getOrThrow().proxies.firstOrNull { it.name == group }?.all
+                    ?: return@runBlocking debugResult(false, "Unknown group", command, group)
+                repository.testDelays(nodes, repository.providerNodes())
+                debugResult(true, "Group delay test completed", command, group)
+            }
+
+            "test_all" -> {
+                val groups = repository.getGroups().getOrThrow().proxies
+                val nodes = groups.flatMapTo(LinkedHashSet()) { it.all }
+                repository.testDelays(nodes, repository.providerNodes())
+                debugResult(true, "All delay tests completed", command, data = "nodes=${nodes.size}")
             }
 
             "test_node" -> {
                 val node = extras.string(EXTRA_NODE) ?: extras.target(arg)
                     ?: return@runBlocking debugResult(false, "Missing node", command)
-                repository.getProxyDelay(node).fold(
+                val provider = repository.providerNodes()[node]
+                val result = if (provider == null) repository.getProxyDelay(node)
+                    else repository.getProviderProxyDelay(provider, node)
+                result.fold(
                     onSuccess = { debugResult(true, "delay=${it.delay}ms", command, node, "delay=${it.delay}") },
                     onFailure = { debugResult(false, it.describeForDebug(), command, node) },
                 )
@@ -118,6 +162,18 @@ private fun runProxyRuntimeCommand(action: String, command: String, arg: String?
             )
 
             else -> debugResult(false, "Unknown proxy action: $action", command, arg)
+        }
+    }
+}
+
+private suspend fun MihomoRepository.providerNodes(): Map<String, String> {
+    val runtime = getProxies().getOrThrow().proxies
+    val providers = getProviders().getOrThrow().providers
+    return buildMap {
+        providers.forEach { (name, provider) ->
+            provider.proxies.forEach { node ->
+                if (node.name !in runtime) putIfAbsent(node.name, name)
+            }
         }
     }
 }

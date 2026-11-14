@@ -1,15 +1,27 @@
-- Added app update checks with stable and test channels, so you can now check for new versions on the About page and get notified at startup
-- Fixed an issue with the default subscription User-Agent that previously made some panels drop nodes such as Hysteria2 and fail to import with a missing proxy group error
-- Fixed an issue with updating subscriptions through the proxy that previously still downloaded subscriptions and providers directly
-- Fixed an issue with provider caches that previously made the core download providers again before every start, especially in ROOT mode, and let files with the same name overwrite each other
-- Fixed an issue with proxy startup that previously failed while the core was still downloading providers
-- Improved startup error reports, which now keep the beginning of the core log so config parsing errors still show when there are many providers
+- Added settings search and app language selection, so you can now find options quickly and choose English, Simplified Chinese, or Traditional Chinese
+- Improved appearance settings, which now offer separate top and bottom bar blur switches and app scaling from 80% to 120%
+- Improved proxy settings, which now organize routing mode, TUN stack, layout, display, and sorting in cascading menus
+- Improved latency testing, which now shows progress for each node, supports provider nodes, tests all groups from one toolbar action, and schedules automatic tests in the background
+- Changed how subscription import works; the add menu now opens file, URL, and QR code import directly
+- Added direct, system proxy, and core proxy download modes for subscriptions and overrides, and fixed the VPN system proxy pointing to a port the core was not listening on
+- Changed how automatic subscription updates work; they now run silently in the background, and notification access is requested through an explicit settings switch
+- Improved dialogs and operation feedback, which now apply edits on confirmation and show concise localized system toasts for import, save, and update results
+- Improved the home status and action cards, which now show clearer connection transitions and a full-width start button
+- Fixed an issue with DNS in ROOT modes that previously let system IPv4 or IPv6 DNS bypass the core or keep stale resolver results after network changes
+- Fixed issues with ROOT permission refresh and proxy lifecycle checks that previously required an app restart after authorization or reported false failures during timeouts and restarts
+- Fixed an issue with node names containing percent-encoded text that previously caused selection or latency requests to target the wrong name
 
 ---
 
-- 新增了应用更新检查，现在可以在关于页面按稳定版或测试版渠道检查新版本，并在启动时收到新版本提醒
-- 修复了订阅默认 User-Agent 的问题，该问题曾导致部分面板过滤掉 Hysteria2 等节点，导入时报代理组不存在
-- 修复了通过代理更新订阅的问题，该问题曾导致订阅和 provider 实际上仍然直连下载
-- 修复了 provider 缓存的问题，该问题曾导致每次启动前核心都要重新下载 provider（ROOT 模式尤为明显），同名文件还会相互覆盖
-- 修复了启动代理的问题，该问题曾导致核心还在下载 provider 时就被判定启动失败
-- 对启动失败的错误信息进行了改善，现在会保留核心日志的开头部分，provider 较多时也能看到配置解析阶段的错误
+- 新增了设置搜索和应用语言选择，现在可以快速查找选项，并选择英文、简体中文或繁体中文
+- 对外观设置进行了改善，现在可以分别开关顶栏和底栏模糊，并在 80% 至 120% 之间调整应用缩放
+- 对代理设置进行了改善，现在通过级联菜单组织代理模式、TUN Stack、布局、显示和排序选项
+- 对延迟测试进行了改善，现在会显示每个节点的测速进度，支持 provider 节点，通过顶栏统一入口测试全部代理组，并在后台执行定时测速
+- 调整了订阅导入的行为，新增菜单现在可以直接进入文件、URL 或二维码导入
+- 新增了订阅和覆写下载的直连、系统代理及核心代理模式，并修复了 VPN 系统代理指向核心未监听端口的问题
+- 调整了订阅自动更新的行为，现在会在后台静默执行，并通过明确的设置开关申请通知权限
+- 对弹窗和操作反馈进行了改善，现在确认后才应用编辑，并通过简短的本地化系统提示显示导入、保存和更新结果
+- 对首页状态卡和操作卡进行了改善，现在会更清楚地显示连接状态变化，并提供铺满卡片宽度的启动按钮
+- 修复了 ROOT 模式下 DNS 的问题，该问题曾导致系统 IPv4 或 IPv6 DNS 绕过核心，或在网络变化后保留过期的解析结果
+- 修复了 ROOT 权限刷新和代理生命周期检测的问题，该问题曾导致授权后需要重新启动应用，或在检测超时及重启期间误报代理失败
+- 修复了节点名称包含百分号编码文本的问题，该问题曾导致节点选择或测速请求使用错误的名称

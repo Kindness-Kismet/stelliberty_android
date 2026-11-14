@@ -13,12 +13,15 @@ import com.stelliberty.android.domain.model.ProxiesResponse
 import com.stelliberty.android.domain.model.RuleProvidersResponse
 import com.stelliberty.android.domain.model.RulesResponse
 import com.stelliberty.android.domain.model.TrafficData
+import com.stelliberty.android.domain.model.TestedDelay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 
 interface MihomoRepository {
 
     val connectionState: StateFlow<Boolean>
+    val testingNodes: StateFlow<Set<String>>
+    val delayResults: StateFlow<Map<String, TestedDelay>>
 
     fun trafficFlow(): Flow<TrafficData>
     // level 用内核 log-level 的取值（debug / info / warning / error / silent）。

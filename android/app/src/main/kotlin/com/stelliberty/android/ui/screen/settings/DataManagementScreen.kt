@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,8 +26,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -39,23 +40,27 @@ import com.stelliberty.android.platform.PlatformStorage
 import com.stelliberty.android.platform.StorageKeys
 import com.stelliberty.android.ui.component.AdaptiveTopAppBar
 import com.stelliberty.android.ui.component.CardItem
+import com.stelliberty.android.ui.component.DialogButtons
 import com.stelliberty.android.ui.component.blur.BlurredBar
 import com.stelliberty.android.ui.component.blur.rememberBlurBackdrop
+import com.stelliberty.android.ui.component.dialogTestTag
 import com.stelliberty.android.ui.component.groupedCardItems
 import com.stelliberty.android.ui.icon.AppIcons
+import com.stelliberty.android.ui.util.TestTags
 import com.stelliberty.android.ui.util.horizontalCutoutPadding
 import com.stelliberty.android.viewmodel.BackupViewModel
-import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.preference.ArrowPreference
+import top.yukonga.miuix.kmp.preference.RadioButtonLocation
+import top.yukonga.miuix.kmp.preference.RadioButtonPreference
+import top.yukonga.miuix.kmp.squircle.squircleClip
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
@@ -223,18 +228,8 @@ fun DataManagementScreen(
         },
     )
 
-    WindowDialog(
-        show = uiState.restoreCompleted,
-        title = stringResource(R.string.backup_restore_done_title),
-        summary = stringResource(R.string.backup_restore_done_summary),
-        onDismissRequest = {},
-    ) {
-        TextButton(
-            text = stringResource(R.string.backup_restart_now),
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.textButtonColorsPrimary(),
-            onClick = onRestartApp,
-        )
+    LaunchedEffect(uiState.restoreCompleted) {
+        if (uiState.restoreCompleted) onRestartApp()
     }
 }
 
@@ -245,31 +240,27 @@ private fun RestoreModeDialog(
     onSelect: (RestoreMode) -> Unit,
 ) {
     WindowDialog(
+        modifier = Modifier.dialogTestTag(TestTags.Dialog.BACKUP_RESTORE_MODE),
         show = show,
         title = stringResource(R.string.backup_restore_confirm_title),
-        insideMargin = DpSize(0.dp, 24.dp),
         onDismissRequest = onDismiss,
     ) {
-        ArrowPreference(
-            title = stringResource(R.string.backup_restore_merge),
-            summary = stringResource(R.string.backup_restore_merge_summary),
-            onClick = { onSelect(RestoreMode.Merge) },
-            insideMargin = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
-        )
-        ArrowPreference(
-            title = stringResource(R.string.backup_restore_overwrite),
-            summary = stringResource(R.string.backup_restore_overwrite_summary),
-            onClick = { onSelect(RestoreMode.Overwrite) },
-            insideMargin = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
-        )
-        TextButton(
-            text = stringResource(R.string.common_cancel),
-            onClick = onDismiss,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp)
-                .padding(horizontal = 24.dp),
-        )
+        Card(Modifier.fillMaxWidth()) {
+            ArrowPreference(
+                title = stringResource(R.string.backup_restore_merge),
+                summary = stringResource(R.string.backup_restore_merge_summary),
+                onClick = { onSelect(RestoreMode.Merge) },
+                modifier = Modifier.squircleClip(16.dp).testTag(TestTags.Backup.RESTORE_MERGE),
+            )
+            ArrowPreference(
+                title = stringResource(R.string.backup_restore_overwrite),
+                summary = stringResource(R.string.backup_restore_overwrite_summary),
+                onClick = { onSelect(RestoreMode.Overwrite) },
+                modifier = Modifier.squircleClip(16.dp).testTag(TestTags.Backup.RESTORE_OVERWRITE),
+            )
+        }
+        Spacer(Modifier.height(12.dp))
+        DialogButtons(onCancel = onDismiss)
     }
 }
 
@@ -282,47 +273,43 @@ private fun LocalBackupDialog(
     onRestore: () -> Unit,
 ) {
     WindowDialog(
+        modifier = Modifier.dialogTestTag(TestTags.Dialog.BACKUP_LOCAL),
         show = show,
         title = stringResource(R.string.backup_section_local),
-        insideMargin = DpSize(0.dp, 24.dp),
         onDismissRequest = onDismiss,
     ) {
-        ArrowPreference(
-            title = stringResource(R.string.backup_export_local),
-            startAction = {
-                Icon(
-                    imageVector = AppIcons.Backup,
-                    contentDescription = null,
-                    modifier = Modifier.padding(end = 16.dp),
-                    tint = MiuixTheme.colorScheme.onSurface,
-                )
-            },
-            enabled = !isBusy,
-            onClick = onExport,
-            insideMargin = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
-        )
-        ArrowPreference(
-            title = stringResource(R.string.backup_restore_local),
-            startAction = {
-                Icon(
-                    imageVector = AppIcons.Restore,
-                    contentDescription = null,
-                    modifier = Modifier.padding(end = 16.dp),
-                    tint = MiuixTheme.colorScheme.onSurface,
-                )
-            },
-            enabled = !isBusy,
-            onClick = onRestore,
-            insideMargin = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
-        )
-        TextButton(
-            text = stringResource(R.string.common_cancel),
-            onClick = onDismiss,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp)
-                .padding(horizontal = 24.dp),
-        )
+        Card(Modifier.fillMaxWidth()) {
+            ArrowPreference(
+                title = stringResource(R.string.backup_export_local),
+                startAction = {
+                    Icon(
+                        imageVector = AppIcons.Backup,
+                        contentDescription = null,
+                        modifier = Modifier.padding(end = 16.dp),
+                        tint = MiuixTheme.colorScheme.onSurface,
+                    )
+                },
+                enabled = !isBusy,
+                onClick = onExport,
+                modifier = Modifier.squircleClip(16.dp).testTag(TestTags.Backup.EXPORT_LOCAL),
+            )
+            ArrowPreference(
+                title = stringResource(R.string.backup_restore_local),
+                startAction = {
+                    Icon(
+                        imageVector = AppIcons.Restore,
+                        contentDescription = null,
+                        modifier = Modifier.padding(end = 16.dp),
+                        tint = MiuixTheme.colorScheme.onSurface,
+                    )
+                },
+                enabled = !isBusy,
+                onClick = onRestore,
+                modifier = Modifier.squircleClip(16.dp).testTag(TestTags.Backup.RESTORE_LOCAL),
+            )
+        }
+        Spacer(Modifier.height(12.dp))
+        DialogButtons(onCancel = onDismiss)
     }
 }
 
@@ -336,14 +323,23 @@ private fun WebDavDialog(
     onBackup: () -> Unit,
     onRestore: () -> Unit,
 ) {
-    var url by remember { mutableStateOf(storage.getString(StorageKeys.WEBDAV_URL, "")) }
-    var username by remember { mutableStateOf(storage.getString(StorageKeys.WEBDAV_USERNAME, "")) }
-    var password by remember { mutableStateOf(storage.getString(StorageKeys.WEBDAV_PASSWORD, "")) }
+    var url by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var action by remember { mutableStateOf<WebDavAction?>(null) }
+    LaunchedEffect(show) {
+        if (show) {
+            url = storage.getString(StorageKeys.WEBDAV_URL, "")
+            username = storage.getString(StorageKeys.WEBDAV_USERNAME, "")
+            password = storage.getString(StorageKeys.WEBDAV_PASSWORD, "")
+            action = null
+        }
+    }
 
     WindowDialog(
+        modifier = Modifier.dialogTestTag(TestTags.Dialog.BACKUP_WEBDAV),
         show = show,
         title = stringResource(R.string.backup_section_webdav),
-        insideMargin = DpSize(0.dp, 24.dp),
         onDismissRequest = onDismiss,
     ) {
         Column(Modifier.heightIn(max = 500.dp)) {
@@ -354,88 +350,67 @@ private fun WebDavDialog(
             ) {
                 TextField(
                     value = url,
-                    onValueChange = {
-                        url = it
-                        storage.putString(StorageKeys.WEBDAV_URL, it)
-                    },
+                    onValueChange = { url = it },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp)
-                        .padding(bottom = 8.dp),
+                        .padding(bottom = 8.dp)
+                        .testTag(TestTags.Backup.WEBDAV_URL),
                     label = stringResource(R.string.backup_server_url),
                 )
                 TextField(
                     value = username,
-                    onValueChange = {
-                        username = it
-                        storage.putString(StorageKeys.WEBDAV_USERNAME, it)
-                    },
+                    onValueChange = { username = it },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp)
-                        .padding(bottom = 8.dp),
+                        .padding(bottom = 8.dp)
+                        .testTag(TestTags.Backup.WEBDAV_USERNAME),
                     label = stringResource(R.string.backup_username),
                 )
                 TextField(
                     value = password,
-                    onValueChange = {
-                        password = it
-                        storage.putString(StorageKeys.WEBDAV_PASSWORD, it)
-                    },
+                    onValueChange = { password = it },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp)
-                        .padding(bottom = 12.dp),
+                        .padding(bottom = 12.dp)
+                        .testTag(TestTags.Backup.WEBDAV_PASSWORD),
                     label = stringResource(R.string.backup_password),
                 )
-                ArrowPreference(
-                    title = stringResource(R.string.backup_now),
-                    startAction = {
-                        Icon(
-                            imageVector = AppIcons.Backup,
-                            contentDescription = null,
-                            modifier = Modifier.padding(end = 16.dp),
-                            tint = MiuixTheme.colorScheme.onSurface,
+                Card(Modifier.fillMaxWidth()) {
+                    WebDavAction.entries.forEach { item ->
+                        RadioButtonPreference(
+                            title = stringResource(item.titleRes),
+                            selected = action == item,
+                            radioButtonLocation = RadioButtonLocation.End,
+                            enabled = !isBusy,
+                            modifier = Modifier.squircleClip(16.dp).testTag(TestTags.Backup.webDavAction(item.name)),
+                            onClick = { action = if (action == item) null else item },
                         )
-                    },
-                    enabled = !isBusy,
-                    onClick = onBackup,
-                    insideMargin = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
-                )
-                ArrowPreference(
-                    title = stringResource(R.string.backup_restore_now),
-                    startAction = {
-                        Icon(
-                            imageVector = AppIcons.Restore,
-                            contentDescription = null,
-                            modifier = Modifier.padding(end = 16.dp),
-                            tint = MiuixTheme.colorScheme.onSurface,
-                        )
-                    },
-                    enabled = !isBusy,
-                    onClick = onRestore,
-                    insideMargin = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
-                )
+                    }
+                }
             }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 12.dp)
-                    .padding(horizontal = 24.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                TextButton(
-                    text = stringResource(R.string.backup_test_connection),
-                    modifier = Modifier.weight(1f),
-                    enabled = !isBusy,
-                    onClick = onTest,
-                )
-                TextButton(
-                    text = stringResource(R.string.common_close),
-                    modifier = Modifier.weight(1f),
-                    onClick = onDismiss,
-                )
-            }
+            Spacer(Modifier.height(12.dp))
+            DialogButtons(
+                onCancel = onDismiss,
+                confirmEnabled = !isBusy,
+                onConfirm = {
+                    storage.putString(StorageKeys.WEBDAV_URL, url)
+                    storage.putString(StorageKeys.WEBDAV_USERNAME, username)
+                    storage.putString(StorageKeys.WEBDAV_PASSWORD, password)
+                    when (action) {
+                        WebDavAction.Test -> onTest()
+                        WebDavAction.Backup -> onBackup()
+                        WebDavAction.Restore -> onRestore()
+                        null -> Unit
+                    }
+                    onDismiss()
+                },
+            )
         }
     }
+}
+
+private enum class WebDavAction(val titleRes: Int) {
+    Test(R.string.backup_test_connection),
+    Backup(R.string.backup_now),
+    Restore(R.string.backup_restore_now),
 }

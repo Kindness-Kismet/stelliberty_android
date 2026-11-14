@@ -16,4 +16,4 @@ debug-call.sh -s <dev> -m rule.toggle -a Example -e "name:s:DOMAIN-KEYWORD,examp
 
 指令不做页面上的查重，只走保存前的运行时校验。当前订阅保存后按页面行为重启，运行时结果用 mihomo `/rules` 核对。
 
-页面从订阅编辑页的 `Settings.Entry.subscriptionRuleOverrides` 进入，控件前缀为 `RuleOverride.*`；编辑页的下拉框为 `Settings.Entry.ruleType` / `Settings.Entry.ruleTarget`。模板选择对话框的行没有测试 ID，按文字定位。搜索框展开动画结束前输入的文字不会刷新结果，展开后再输入。
+页面从订阅编辑页的 `Settings.Entry.subscriptionRuleOverrides` 进入，控件前缀为 `RuleOverride.*`；编辑页的下拉框为 `Settings.Entry.ruleType` / `Settings.Entry.ruleTarget`。模板选择与删除使用 `RuleOverride.Template.<id>` / `RuleOverride.Template.<id>.Delete`，确定才应用草稿。搜索框展开动画结束前输入的文字不会刷新结果，展开后再输入。

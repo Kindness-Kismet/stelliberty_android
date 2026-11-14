@@ -4,13 +4,13 @@ import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.stelliberty.android.domain.repository.MihomoRepository
-import com.stelliberty.android.util.describe
+import com.stelliberty.android.R
+import com.stelliberty.android.util.AppLogger
+import com.stelliberty.android.util.OperationFeedback
+import kotlinx.coroutines.CancellationException
 import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toPersistentList
-import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -28,12 +28,6 @@ data class ProviderItemUi(
     val isRuleProvider: Boolean,
 )
 
-@Immutable
-data class ProviderErrorKey(
-    val name: String,
-    val isRuleProvider: Boolean,
-)
-
 data class RefreshProgress(
     val completed: Int,
     val total: Int,
@@ -44,7 +38,6 @@ data class RefreshProgress(
 data class ProviderUiState(
     val providers: ImmutableList<ProviderItemUi> = persistentListOf(),
     val isLoading: Boolean = false,
-    val providerErrors: ImmutableMap<ProviderErrorKey, String> = persistentMapOf(),
     val refresh: RefreshProgress? = null,
     // 不能拿「订阅源列表为空」反推代理没在跑：节点直接写在配置里的订阅一个源都没有，
     // 那样会在代理正常运行时谎报「请先启动服务」。
@@ -115,12 +108,10 @@ class ProviderViewModel : ViewModel() {
             }
 
             if (repository !== repo) return@launch
-            val liveKeys = items.map { ProviderErrorKey(it.name, it.isRuleProvider) }.toSet()
             _uiState.update { state ->
                 state.copy(
                     providers = items.sortedWith(compareBy({ it.isRuleProvider }, { it.name })).toPersistentList(),
                     isLoading = false,
-                    providerErrors = state.providerErrors.filterKeys { it in liveKeys }.toPersistentMap(),
                 )
             }
         }
@@ -128,75 +119,66 @@ class ProviderViewModel : ViewModel() {
 
     fun updateProvider(name: String, isRuleProvider: Boolean) {
         val repo = repository ?: return
-        if (_uiState.value.refresh != null) return
-        val errorKey = ProviderErrorKey(name, isRuleProvider)
-
-        _uiState.update {
-            it.copy(
-                refresh = RefreshProgress(0, 1, singleName = name),
-                providerErrors = it.providerErrors.toPersistentMap().removing(errorKey),
-            )
+        if (_uiState.value.refresh != null) {
+            OperationFeedback.show(R.string.operation_in_progress)
+            return
         }
-
+        _uiState.update { it.copy(refresh = RefreshProgress(0, 1, singleName = name)) }
         refreshJob = viewModelScope.launch {
             val result = if (isRuleProvider) repo.updateRuleProvider(name) else repo.updateProvider(name)
             if (repository !== repo) return@launch
-            val error = result.exceptionOrNull()?.describe()
-            _uiState.update {
-                it.copy(
-                    refresh = null,
-                    providerErrors = if (error == null) {
-                        it.providerErrors.toPersistentMap().removing(errorKey)
-                    } else {
-                        it.providerErrors.toPersistentMap().putting(errorKey, error)
-                    },
-                )
+            result.exceptionOrNull()?.let {
+                if (it is CancellationException) throw it
+                AppLogger.warn("ProviderViewModel", "Provider update failed: $name", it)
             }
+            _uiState.update { it.copy(refresh = null) }
+            OperationFeedback.updateResult(if (result.isSuccess) 1 else 0, if (result.isFailure) 1 else 0)
             if (result.isSuccess) loadProviders()
         }
+    }
+
+    fun cancelRefresh() {
+        if (_uiState.value.refresh != null) OperationFeedback.show(R.string.operation_cancelled)
+        refreshJob?.cancel()
+        refreshJob = null
+        _uiState.update { it.copy(refresh = null) }
+        loadProviders()
     }
 
     fun updateAll() {
         val repo = repository ?: return
         val snapshot = _uiState.value.providers
-        if (snapshot.isEmpty()) return
-        if (_uiState.value.refresh != null) return
-
-        _uiState.update {
-            it.copy(
-                refresh = RefreshProgress(0, snapshot.size),
-                providerErrors = persistentMapOf(),
-            )
+        if (snapshot.isEmpty()) {
+            OperationFeedback.updateResult(0, 0)
+            return
         }
-
+        if (_uiState.value.refresh != null) {
+            OperationFeedback.show(R.string.operation_in_progress)
+            return
+        }
+        _uiState.update { it.copy(refresh = RefreshProgress(0, snapshot.size)) }
         refreshJob = viewModelScope.launch {
-            snapshot.map { provider ->
+            val results = snapshot.map { provider ->
                 async {
-                    val res = if (provider.isRuleProvider) repo.updateRuleProvider(provider.name)
+                    val result = if (provider.isRuleProvider) repo.updateRuleProvider(provider.name)
                     else repo.updateProvider(provider.name)
-                    if (repository !== repo) return@async
-                    val error = res.exceptionOrNull()?.describe()
-                    val errorKey = ProviderErrorKey(provider.name, provider.isRuleProvider)
-                    _uiState.update { state ->
-                        val cur = state.refresh ?: return@update state
-                        state.copy(
-                            refresh = cur.copy(completed = cur.completed + 1),
-                            providerErrors = if (error == null) {
-                                state.providerErrors.toPersistentMap().removing(errorKey)
-                            } else {
-                                state.providerErrors.toPersistentMap().putting(errorKey, error)
-                            },
-                        )
+                    result.exceptionOrNull()?.let {
+                        if (it is CancellationException) throw it
+                        AppLogger.warn("ProviderViewModel", "Provider update failed: ${provider.name}", it)
                     }
+                    if (repository === repo) {
+                        _uiState.update { state ->
+                            val progress = state.refresh ?: return@update state
+                            state.copy(refresh = progress.copy(completed = progress.completed + 1))
+                        }
+                    }
+                    result.isSuccess
                 }
             }.awaitAll()
-
             if (repository !== repo) return@launch
-            _uiState.update {
-                it.copy(
-                    refresh = null,
-                )
-            }
+            _uiState.update { it.copy(refresh = null) }
+            val succeeded = results.count { it }
+            OperationFeedback.updateResult(succeeded, results.size - succeeded)
             loadProviders()
         }
     }

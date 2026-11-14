@@ -139,7 +139,6 @@ private object GroupTabsScrollConnection : NestedScrollConnection {
 internal fun ProxyGroupHeader(
     group: ProxyGroupUi,
     isExpanded: Boolean,
-    iconCacheVersion: Int,
     isTesting: Boolean,
     onTestDelay: () -> Unit,
     onUnfix: () -> Unit,
@@ -158,7 +157,7 @@ internal fun ProxyGroupHeader(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (group.icon.isNotEmpty()) GroupIcon(group.icon, iconCacheVersion)
+        if (group.icon.isNotEmpty()) GroupIcon(group.icon)
         Column(Modifier.weight(1f)) {
             Text(
                 text = group.name,
@@ -400,11 +399,10 @@ private fun ProxyNodeCard(
 @Composable
 private fun GroupIcon(
     icon: String,
-    cacheVersion: Int,
 ) {
-    var bitmap by remember(icon, cacheVersion) { mutableStateOf<ImageBitmap?>(null) }
+    var bitmap by remember(icon) { mutableStateOf<ImageBitmap?>(null) }
 
-    LaunchedEffect(icon, cacheVersion) {
+    LaunchedEffect(icon) {
         bitmap = IconLoader.loadIcon(icon)
     }
 

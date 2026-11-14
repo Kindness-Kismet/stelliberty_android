@@ -14,13 +14,15 @@ fetch + provider prefetch + Parse 三步经 `StellibertyCoreBridge.fetchAndValid
 
 `kotlinx.coroutines.sync.Mutex` 不可重入。`markUpdated` / `commitPending` / `queryImported` / `queryPending` 由 `ProfileProcessor` 在 `withProfileLock{}` 内调用，内部直接执行；`create` / `patch` / `release` / `delete` 直接被 ViewModel 调用，自带锁。锁顺序 processLock → profileLock，全仓只在 commit 一处嵌套。
 
-`processing/` 是进程内的单例沙箱（路径不带 uuid）：`prepareProcessing` 每次清空后重填，`commitProcessingToImported(uuid)` 再换入 imported/。`ProfileProcessor.processLock` 因此是 companion 进程级 Mutex。`ProfileProcessor` 是 Koin `factory`，前台 `SubscriptionViewModel.processor` 与后台 `ProfileWorker`（每个 `ACTION_UPDATE_PROFILE` 取一个）是不同实例，实例级锁会让两个并发 update 交错清空 `processing/`，把 B 的配置提交进 `imported/A/`。
+`processing/` 是进程内的单例沙箱（路径不带 uuid）：`prepareProcessing` 每次清空后重填，`commitProcessingToImported(uuid)` 再换入 imported/。`ProfileProcessor.processLock` 因此是 companion 进程级 Mutex。`ProfileProcessor` 是 Koin `factory`，前台 `SubscriptionViewModel.processor` 与后台服务的 `ProfileUpdateTask`是不同实例，实例级锁会让两个并发 update 交错清空 `processing/`，把 B 的配置提交进 `imported/A/`。
+
+`setAutoTestDelayInterval` 只在 `profileLock` 内更新已导入订阅和已有草稿的 `AutoTestDelayIntervalMinutes`，定时排期不修改配置文件，也不进入下载与校验管线。
 
 启动清理走 `ProfileProcessor.cleanupResidual()`（持同一把锁）：先 `cleanupProcessing`（它会把 `commit.old.{uuid}` 还原回 imported/），再按订阅列表与草稿列表现存的 Id 反扫 `imported/`、`pending/`，删除孤儿目录（删除订阅分「先删列表条目 → 再删目录」两步，中途进程死亡会留下孤儿）。列表文件解析失败时 `knownUuidsOrNull()` 返回 null，跳过这一步，否则会删光全部订阅。
 
 ## HTTP 与自动命名
 
-- 订阅 HTTP 走 mihomo `component/http.HttpRequest`（进程内 cgo），超时 60s。它的 Transport 不读代理环境变量，经 mixed-port 时传入 HTTP CONNECT 拨号器，订阅与 provider 预取共用；Parse 校验时内核为预取失败的 provider 与缺失的 GeoIP 现场下载，仍直连。UA 默认取内核 `global-ua` 的默认值 `clash.meta/{mihomo 版本}`，由 `stellibertyCoreInit` 设为全局 UA，与运行时刷新 provider 一致：面板按 UA 里的客户端名与版本裁剪节点（如 Xboard 要求 CMFA ≥ 2.9.0 才下发 Hysteria2），版本报错会丢节点，并留下引用已删空组的代理组。用户可在 Add / Edit 页填自定义 UA，存入 `Subscription.userAgent`，经 PendingSnapshot 传到 Go `runFetchAndValid`：`effectiveUA = trim(userAgent) ?: clashHttp.UA()`。非 2xx 或空 body 返回 `StellibertyCoreError`。订阅内容原样交给 mihomo 解析，app 侧不做 base64 / V2Ray 转换。
+- 订阅 HTTP 走 mihomo `component/http.HttpRequest`（进程内 cgo），超时 60s。它的 Transport 不读代理环境变量，经代理（mixed-port 或系统代理）时传入 HTTP CONNECT 拨号器，订阅与 provider 预取共用；Parse 校验时内核为预取失败的 provider 与缺失的 GeoIP 现场下载，仍直连。UA 默认取内核 `global-ua` 的默认值 `clash.meta/{mihomo 版本}`，由 `stellibertyCoreInit` 设为全局 UA，与运行时刷新 provider 一致：面板按 UA 里的客户端名与版本裁剪节点（如 Xboard 要求 CMFA ≥ 2.9.0 才下发 Hysteria2），版本报错会丢节点，并留下引用已删空组的代理组。用户可在 Add / Edit 页填自定义 UA，存入 `Subscription.userAgent`，经 PendingSnapshot 传到 Go `runFetchAndValid`：`effectiveUA = trim(userAgent) ?: clashHttp.UA()`。非 2xx 或空 body 返回 `StellibertyCoreError`。订阅内容原样交给 mihomo 解析，app 侧不做 base64 / V2Ray 转换。
 - **名字留空时自动命名**：Url 型允许名字留空（`enforceFieldValid` 放行）。fetch 响应的 `Content-Disposition` filename（Go 侧 `mime.ParseMediaType` 解析 RFC 5987，去掉 .yaml / .yml 后缀）经 `FetchResult.FileName` 回传；`commitPending(fallbackName)` 只在 commit 时 `pending.name` 仍为空时采用。用户输入（含深链 `name` 参数）优先，兜底链为 disposition > URL host > 调用方注入的默认名。更新订阅（isUpdate）保留原名。
 
 ## provider 缓存路径
