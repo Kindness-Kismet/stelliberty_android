@@ -42,6 +42,7 @@ user_invocable: true
 | 备份导出与恢复 | `guides/backup.md` |
 | DNS 查询、清缓存 | `guides/dns.md` |
 | 按测试 ID 定位控件、模拟点击 | `guides/control.md` |
+| 动画慢放、速度查询与恢复 | `guides/animations.md` |
 
 ## 指令入口
 
