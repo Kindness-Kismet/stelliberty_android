@@ -107,7 +107,6 @@ import com.stelliberty.android.ui.screen.settings.ThemeSettingsScreen
 import com.stelliberty.android.ui.screen.settings.VpnSettingsScreen
 import com.stelliberty.android.ui.screen.settings.WifiPolicyScreen
 import com.stelliberty.android.ui.screen.subscription.RuleOverrideSummary
-import com.stelliberty.android.ui.screen.subscription.SubscriptionAddScreen
 import com.stelliberty.android.ui.screen.subscription.SubscriptionAddUrlScreen
 import com.stelliberty.android.ui.screen.subscription.SubscriptionEditScreen
 import com.stelliberty.android.ui.screen.subscription.SubscriptionScreen
@@ -257,6 +256,7 @@ fun AppNavigation(
                     mainPagerState.animateToPage(3)
                     navigator.openSettingsPage(route)
                 } else {
+                    if (pageId.startsWith("subscription.")) mainPagerState.animateToPage(2)
                     navigator.push(route)
                 }
             }
@@ -313,13 +313,7 @@ fun AppNavigation(
                     onHideTaskCardChange,
                     hasRootPermission,
                     onLanguageChange = onLanguageChange,
-                )
-            }
-            navPage<Route.SubscriptionAdd>(swipeDismiss = swipeDismiss) {
-                SubscriptionAddScreen(
-                    viewModel = subscriptionViewModel,
-                    onBack = { navigator.pop() },
-                    onPickFile = {
+                    onPickSubscriptionFile = {
                         filePicker?.pickYamlFile { result ->
                             if (result != null && subscriptionViewModel != null) {
                                 subscriptionViewModel.addFromFile(
@@ -332,8 +326,8 @@ fun AppNavigation(
                             }
                         }
                     },
-                    onNavigateUrl = { navigator.push(Route.SubscriptionAddUrl()) },
-                    onScanQR = if (onScanQR != null) {
+                    onNavigateSubscriptionUrl = { navigator.push(Route.SubscriptionAddUrl()) },
+                    onScanSubscriptionQR = if (onScanQR != null) {
                         {
                             onScanQR { url ->
                                 if (url != null) {
@@ -691,6 +685,9 @@ private fun MainPage(
     onHideTaskCardChange: ((Boolean) -> Unit)? = null,
     hasRootPermission: Boolean = false,
     onLanguageChange: () -> Unit = {},
+    onPickSubscriptionFile: () -> Unit = {},
+    onNavigateSubscriptionUrl: () -> Unit = {},
+    onScanSubscriptionQR: (() -> Unit)? = null,
 ) {
     val homeUiState = homeViewModel?.uiState?.collectAsStateWithLifecycle()?.value ?: HomeUiState()
     val selectedPage = mainPagerState.selectedPage
@@ -741,7 +738,9 @@ private fun MainPage(
                         SubscriptionScreen(
                             viewModel = it,
                             bottomPadding = bottomPadding,
-                            onNavigateAdd = { navigator.push(Route.SubscriptionAdd) },
+                            onPickFile = onPickSubscriptionFile,
+                            onNavigateUrl = onNavigateSubscriptionUrl,
+                            onScanQR = onScanSubscriptionQR,
                             onNavigateEdit = { uuid -> navigator.push(Route.SubscriptionEdit(uuid)) },
                             onActiveChanged = { homeViewModel?.onActiveSubscriptionChanged() },
                         )

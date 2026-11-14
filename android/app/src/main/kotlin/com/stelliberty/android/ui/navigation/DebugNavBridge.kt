@@ -20,7 +20,7 @@ object DebugNavBridge {
     private const val COLLECTOR_POLL_MS = 25L
 
     fun routeOf(pageId: String): Route? = when (pageId) {
-        "subscription.add" -> Route.SubscriptionAdd
+        "subscription.add" -> Route.SubscriptionAddUrl()
         "log" -> Route.Log
         "provider" -> Route.Provider
         "dns" -> Route.DnsQuery

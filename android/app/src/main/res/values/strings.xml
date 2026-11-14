@@ -216,14 +216,10 @@
     <string name="subscription_delete_summary">Delete \"%1$s\"? This will remove the config files and selection history.</string>
 
     <!-- Subscription Create/Edit -->
-    <string name="subscription_create">Create Config</string>
     <string name="subscription_edit">Edit Config</string>
     <string name="subscription_file">File</string>
-    <string name="subscription_file_summary">Pick a local config; no auto-update</string>
     <string name="subscription_url">URL</string>
-    <string name="subscription_url_summary">Fetch from a link, refreshed on a schedule</string>
     <string name="subscription_qr">QR Code</string>
-    <string name="subscription_qr_summary">Scan a link, then same as URL</string>
     <string name="subscription_url_hint">Only accepts mihomo config files (with proxies/rules)</string>
     <string name="subscription_name">Name</string>
     <string name="subscription_name_auto_placeholder">Leave blank to auto-name from subscription</string>

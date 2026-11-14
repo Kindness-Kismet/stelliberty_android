@@ -124,6 +124,10 @@ object TestTags {
 
     object Subscription {
         const val ADD = "Subscription.AddButton"
+        const val ADD_MENU = "Subscription.AddMenu"
+        const val ADD_FILE = "Subscription.AddFile"
+        const val ADD_URL = "Subscription.AddUrl"
+        const val ADD_QR = "Subscription.AddQr"
         const val UPDATE_ALL = "Subscription.UpdateAllButton"
         const val PROGRESS = "Subscription.ProgressDialog"
         const val CANCEL_UPDATE = "Subscription.CancelUpdateButton"

@@ -1,0 +1,26 @@
+// 由 scripts/gen_icons.py 从 MingCute 生成，勿手改。源：regular/files/link.svg
+package com.stelliberty.android.ui.icon
+
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathFillType
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.PathParser
+import androidx.compose.ui.unit.dp
+
+internal val MingCuteLink: ImageVector by lazy {
+    ImageVector.Builder(
+        name = "Link",
+        defaultWidth = 24.dp,
+        defaultHeight = 24.dp,
+        viewportWidth = 24f,
+        viewportHeight = 24f,
+        autoMirror = false,
+    ).apply {
+        addPath(
+            pathData = PathParser().parsePathString("M20.155 13.083c.904.966 1.443 2.176 1.443 3.511 0 .863-.225 1.722-.652 2.472-1.226 2.154-3.935 3.097-6.232 2.164-.62-.252-1.143-.622-1.63-1.076l-1.438-1.438c-.13-.149-.206-.254-.258-.449-.196-.73.494-1.42 1.224-1.224.195.052.299.128.449.258.771.677 1.409 1.667 2.407 2.072 2.608 1.059 5.13-1.81 3.736-4.258-.157-.277-.291-.431-.51-.666l-2.781-2.781c-.499-.466-1.077-.788-1.762-.876a3.01 3.01 0 0 0-2.195.585c-.278.211-.466.471-.823.542-.742.146-1.384-.589-1.14-1.305.209-.611 1.339-1.259 1.893-1.484 1.894-.769 3.923-.299 5.394 1.077Zm-10.94-8.07a3 3 0 0 0-1.428-.585c-2.431-.311-4.206 2.32-2.992 4.454.158.276.292.431.511.665l2.781 2.781c.79.738 1.84 1.082 2.906.803.38-.1.739-.274 1.051-.511.439-.335.723-.718 1.34-.508.335.115.589.406.658.753.12.608-.347 1.017-.784 1.349a5 5 0 0 1-1.757.856c-1.751.458-3.476-.06-4.781-1.28l-2.875-2.876c-1.543-1.65-1.928-3.987-.791-5.983 1.488-2.615 4.981-3.337 7.376-1.513.514.392 1.853 1.782 1.924 1.863.13.149.206.253.258.448.226.842-.71 1.561-1.466 1.125l-.207-.159c-.603-.53-1.085-1.196-1.724-1.682").toNodes(),
+            pathFillType = PathFillType.NonZero,
+            fill = SolidColor(Color.Black),
+        )
+    }.build()
+}

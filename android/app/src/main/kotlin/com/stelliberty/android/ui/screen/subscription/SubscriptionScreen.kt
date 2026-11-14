@@ -1,6 +1,7 @@
 package com.stelliberty.android.ui.screen.subscription
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -25,16 +26,21 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.stelliberty.android.BuildConfig
 import com.stelliberty.android.R
 import com.stelliberty.android.domain.model.Subscription
 import com.stelliberty.android.ui.component.AdaptiveTopAppBar
 import com.stelliberty.android.ui.component.DialogButtons
+import com.stelliberty.android.ui.component.ListPopupDefaults.MenuPositionProvider
+import com.stelliberty.android.ui.component.PopupMenuItem
 import com.stelliberty.android.ui.component.blur.BlurredBar
 import com.stelliberty.android.ui.component.blur.rememberBlurBackdrop
 import com.stelliberty.android.ui.component.dialogTestTag
@@ -50,7 +56,9 @@ import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.ListPopupColumn
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
+import top.yukonga.miuix.kmp.basic.PopupPositionProvider
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.blur.layerBackdrop
@@ -60,17 +68,21 @@ import top.yukonga.miuix.kmp.utils.PressFeedbackType
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 import top.yukonga.miuix.kmp.window.WindowDialog
+import top.yukonga.miuix.kmp.window.WindowListPopup
 
 @Composable
 fun SubscriptionScreen(
     viewModel: SubscriptionViewModel,
     bottomPadding: Dp = 0.dp,
-    onNavigateAdd: () -> Unit = {},
+    onPickFile: () -> Unit = {},
+    onNavigateUrl: () -> Unit = {},
+    onScanQR: (() -> Unit)? = null,
     onNavigateEdit: (uuid: String) -> Unit = {},
     onActiveChanged: (() -> Unit)? = null,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scrollBehavior = MiuixScrollBehavior()
+    var showAddMenu by remember { mutableStateOf(false) }
 
     val backdrop = rememberBlurBackdrop()
     val blurActive = backdrop != null
@@ -98,15 +110,60 @@ fun SubscriptionScreen(
                                 )
                             }
                         }
-                        IconButton(
-                            onClick = { viewModel.clearError(); onNavigateAdd() },
-                            modifier = Modifier.testTag(TestTags.Subscription.ADD),
-                        ) {
-                            Icon(
-                                imageVector = AppIcons.Add,
-                                contentDescription = stringResource(R.string.subscription_add),
-                                tint = MiuixTheme.colorScheme.onSurface,
-                            )
+                        Box {
+                            IconButton(
+                                onClick = { showAddMenu = true },
+                                holdDownState = showAddMenu,
+                                enabled = !uiState.isLoading,
+                                modifier = Modifier.testTag(TestTags.Subscription.ADD),
+                            ) {
+                                Icon(
+                                    imageVector = AppIcons.Add,
+                                    contentDescription = stringResource(R.string.subscription_add),
+                                    tint = MiuixTheme.colorScheme.onSurface,
+                                )
+                            }
+                            WindowListPopup(
+                                show = showAddMenu,
+                                popupPositionProvider = MenuPositionProvider,
+                                alignment = PopupPositionProvider.Align.TopEnd,
+                                onDismissRequest = { showAddMenu = false },
+                            ) {
+                                val entries = buildList {
+                                    add(Triple(R.string.subscription_file, TestTags.Subscription.ADD_FILE, onPickFile))
+                                    add(Triple(R.string.subscription_url, TestTags.Subscription.ADD_URL, onNavigateUrl))
+                                    onScanQR?.let {
+                                        add(Triple(R.string.subscription_qr, TestTags.Subscription.ADD_QR, it))
+                                    }
+                                }
+                                Box(
+                                    Modifier
+                                        .semantics { testTagsAsResourceId = BuildConfig.DEBUG }
+                                        .testTag(TestTags.Subscription.ADD_MENU),
+                                ) {
+                                    ListPopupColumn {
+                                        entries.forEachIndexed { index, (title, tag, onClick) ->
+                                            PopupMenuItem(
+                                                title = stringResource(title),
+                                                modifier = Modifier.testTag(tag),
+                                                icon = when (title) {
+                                                    R.string.subscription_file -> AppIcons.File
+                                                    R.string.subscription_url -> AppIcons.Link
+                                                    else -> AppIcons.QrCode
+                                                },
+                                                enabled = !uiState.isLoading,
+                                                index = index,
+                                                optionCount = entries.size,
+                                                onClick = {
+                                                    showAddMenu = false
+                                                    viewModel.clearError()
+                                                    onClick()
+                                                },
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
                     },
                 )

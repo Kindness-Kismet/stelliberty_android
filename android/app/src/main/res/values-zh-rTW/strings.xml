@@ -214,14 +214,10 @@
     <string name="subscription_delete_summary">確定要刪除「%1$s」嗎？將會移除設定檔與節點選擇記錄。</string>
 
     <!-- Subscription Create/Edit -->
-    <string name="subscription_create">建立設定檔</string>
     <string name="subscription_edit">編輯設定檔</string>
     <string name="subscription_file">檔案</string>
-    <string name="subscription_file_summary">選本機設定檔，不會自動更新</string>
     <string name="subscription_url">URL</string>
-    <string name="subscription_url_summary">從連結取得，可定時自動更新</string>
     <string name="subscription_qr">QR Code</string>
-    <string name="subscription_qr_summary">掃出連結，之後與 URL 相同</string>
     <string name="subscription_url_hint">僅接受 mihomo 設定檔（包含代理／規則）</string>
     <string name="subscription_name">名稱</string>
     <string name="subscription_name_auto_placeholder">留空時自動從訂閱取得</string>

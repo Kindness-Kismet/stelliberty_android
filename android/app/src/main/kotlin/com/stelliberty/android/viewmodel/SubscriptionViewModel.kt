@@ -39,7 +39,6 @@ data class SubscriptionUiState(
     val currentId: String? = null,
     val isLoading: Boolean = false,
     val error: String = "",
-    val showAddDialog: Boolean = false,
     val importProgress: ImportProgress? = null,
     val updateAll: UpdateAllProgress? = null,
     val operation: ProfileOperation? = null,
@@ -76,14 +75,6 @@ class SubscriptionViewModel(
         }
     }
 
-    fun showAddDialog() {
-        _uiState.value = _uiState.value.copy(showAddDialog = true)
-    }
-
-    fun hideAddDialog() {
-        _uiState.value = _uiState.value.copy(showAddDialog = false)
-    }
-
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = "")
     }
@@ -106,7 +97,6 @@ class SubscriptionViewModel(
         autoTestDelayMinutes: Int = 0,
         onComplete: () -> Unit = {},
     ) {
-        hideAddDialog()
         runPipeline(ProfileOperation.Import, errorKey = R.string.error_import_failed) {
             val sub = repository.create(
                 name = name,

@@ -214,14 +214,10 @@
     <string name="subscription_delete_summary">确定要删除「%1$s」吗？将会移除配置文件以及节点选择记录。</string>
 
     <!-- Subscription Create/Edit -->
-    <string name="subscription_create">创建配置</string>
     <string name="subscription_edit">编辑配置</string>
     <string name="subscription_file">文件</string>
-    <string name="subscription_file_summary">选本地配置文件，不会自动更新</string>
     <string name="subscription_url">URL</string>
-    <string name="subscription_url_summary">从链接拉取，可定时自动更新</string>
     <string name="subscription_qr">二维码</string>
-    <string name="subscription_qr_summary">扫出链接，之后与 URL 相同</string>
     <string name="subscription_url_hint">仅接受 mihomo 配置文件(包含代理/规则)</string>
     <string name="subscription_name">名称</string>
     <string name="subscription_name_auto_placeholder">留空时自动从订阅获取</string>

@@ -16,6 +16,7 @@ object AppIcons {
     val Close: ImageVector get() = MingCuteClose
     val DarkMode: ImageVector get() = MingCuteDarkMode
     val Delete: ImageVector get() = MingCuteDelete2
+    val File: ImageVector get() = MingCuteFile
     val Filter: ImageVector get() = MingCuteFilter3
     val GitHub: ImageVector get() = MingCuteGithubLine
     val Global: ImageVector get() = MingCuteEarth
@@ -24,6 +25,7 @@ object AppIcons {
     val Layers: ImageVector get() = MingCuteLayer
     val Layout: ImageVector get() = MingCuteLayout
     val LibraryBooks: ImageVector get() = MingCuteLibraryBooks
+    val Link: ImageVector get() = MingCuteLink
     val More: ImageVector get() = MingCuteMore1
     val MoveDown: ImageVector get() = MingCuteDownSmall
     val MoveUp: ImageVector get() = MingCuteUpSmall
@@ -36,6 +38,7 @@ object AppIcons {
     val NavSubscription: ImageVector get() = MingCuteMoonCloudy
     val NavSubscriptionActive: ImageVector get() = MingCuteMoonCloudyFilled
     val Pin: ImageVector get() = MingCutePin
+    val QrCode: ImageVector get() = MingCuteQrcode
     val Refresh: ImageVector get() = MingCuteRefresh2
     val Restore: ImageVector get() = MingCuteDownload
     val Route: ImageVector get() = MingCuteRoute
