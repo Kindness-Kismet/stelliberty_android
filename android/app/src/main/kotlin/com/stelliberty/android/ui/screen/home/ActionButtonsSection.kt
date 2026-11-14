@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.stelliberty.android.R
@@ -58,13 +59,14 @@ private fun ActionButtonsRow(
     isStarting: Boolean,
     isStopping: Boolean,
 ) {
+    val canStart = !isRunning && !isStarting && !isStopping
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp)
             .padding(vertical = 6.dp),
         cornerRadius = 16.dp,
-        insideMargin = PaddingValues(4.dp),
+        insideMargin = PaddingValues(if (canStart) 0.dp else 4.dp),
     ) {
         Row(
             modifier = Modifier
@@ -115,8 +117,12 @@ private fun ActionButtonsRow(
                     text = stringResource(R.string.home_start),
                     tint = MiuixTheme.colorScheme.onPrimary,
                     onClick = onStart,
-                    modifier = Modifier.weight(1f).testTag(TestTags.Home.START),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(ActionButtonHeight + 8.dp)
+                        .testTag(TestTags.Home.START),
                     background = MiuixTheme.colorScheme.primary,
+                    cornerRadius = 16.dp,
                 )
             }
         }
@@ -131,13 +137,14 @@ private fun FlatActionButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     background: Color = Color.Transparent,
+    cornerRadius: Dp = 12.dp,
 ) {
     TextButton(
         text = text,
         onClick = onClick,
         modifier = modifier,
         enabled = enabled,
-        cornerRadius = 12.dp,
+        cornerRadius = cornerRadius,
         minHeight = ActionButtonHeight,
         insideMargin = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
         textStyle = TextStyle(fontSize = 13.sp, lineHeight = 18.sp, fontWeight = FontWeight.SemiBold),
