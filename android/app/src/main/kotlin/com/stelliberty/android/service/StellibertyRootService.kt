@@ -232,7 +232,7 @@ class StellibertyRootService : Service() {
                                 applyTproxyRules(storage)
                         }
                     }
-                    val dnsApplied = routingApplied && dnsCoordinator.start(appUid, submode == Submode.Tproxy)
+                    val dnsApplied = routingApplied && startDnsCoordinator(storage, appUid, submode)
                     ensureActive()
                     if (!dnsApplied) {
                         failRoutingSetup(storage)
@@ -393,7 +393,7 @@ class StellibertyRootService : Service() {
                 }
                 Submode.Tproxy -> applyTproxyRules(storage)
             }
-            val dnsApplied = routingApplied && dnsCoordinator.start(appUid, submode == Submode.Tproxy)
+            val dnsApplied = routingApplied && startDnsCoordinator(storage, appUid, submode)
             ensureActive()
             if (!dnsApplied) {
                 failRoutingSetup(storage)
@@ -428,14 +428,32 @@ class StellibertyRootService : Service() {
             storage.getString(StorageKeys.ROOT_TETHER_IFACES, RootTetherHijacker.DEFAULT_IFACES)
         )
         val proxyMode = AppProxyMode.parse(storage.getString(StorageKeys.APP_PROXY_MODE, ""))
+        val selectedUids = resolveProxyUids(storage)
+        val ipv6Enabled = storage.getString(StorageKeys.VPN_ALLOW_IPV6, "false") == "true"
+        return RootTproxyApplier.apply(appUid, selectedUids, proxyMode, ifaces, ipv6Enabled)
+    }
+
+    private suspend fun startDnsCoordinator(storage: PlatformStorage, appUid: Int, submode: Submode): Boolean {
+        val ipv6Routing: ((Boolean, List<String>) -> Boolean)? = if (
+            submode == Submode.Tproxy && storage.getString(StorageKeys.VPN_ALLOW_IPV6, "false") == "true"
+        ) {
+            val mode = AppProxyMode.parse(storage.getString(StorageKeys.APP_PROXY_MODE, ""))
+            val selectedUids = resolveProxyUids(storage)
+            val refresh: (Boolean, List<String>) -> Boolean = { hasDefaultRoute, localNetworks ->
+                RootTproxyApplier.refreshIpv6InitialRoutes(appUid, selectedUids, mode, !hasDefaultRoute, localNetworks)
+            }
+            refresh
+        } else null
+        return dnsCoordinator.start(appUid, submode == Submode.Tproxy, ipv6Routing)
+    }
+
+    private suspend fun resolveProxyUids(storage: PlatformStorage): Set<Int> {
         val packages = storage.getStringSet(StorageKeys.APP_PROXY_PACKAGES, emptySet())
-        val selectedUids = if (packages.isEmpty()) {
+        return if (packages.isEmpty()) {
             emptySet()
         } else {
             AppListProvider(this@StellibertyRootService).resolveUids(packages)
         }
-        val ipv6Enabled = storage.getString(StorageKeys.VPN_ALLOW_IPV6, "false") == "true"
-        return RootTproxyApplier.apply(appUid, selectedUids, proxyMode, ifaces, ipv6Enabled)
     }
 
     private suspend fun failRoutingSetup(storage: PlatformStorage) {
