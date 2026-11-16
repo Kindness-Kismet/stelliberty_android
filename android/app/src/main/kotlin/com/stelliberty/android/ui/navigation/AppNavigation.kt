@@ -1,6 +1,5 @@
 package com.stelliberty.android.ui.navigation
 
-import androidx.annotation.StringRes
 import androidx.compose.animation.core.EaseInOut
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
@@ -218,6 +217,8 @@ fun AppNavigation(
     hasRootPermission: Boolean = false,
     deepLinkImport: DeepLinkImportRequest? = null,
     onDeepLinkImportConsumed: () -> Unit = {},
+    requestedMainTab: MainTab? = null,
+    onMainTabConsumed: () -> Unit = {},
     backupViewModel: BackupViewModel? = null,
     overrideViewModel: OverrideProfileViewModel? = null,
     chainProxyViewModel: ChainProxyViewModel? = null,
@@ -227,8 +228,19 @@ fun AppNavigation(
 ) {
     val backStack = rememberSaveable(saver = NavBackStackSaver) { mutableStateListOf(Route.Main) }
     val navigator = remember { Navigator(backStack) }
-    val pagerState = rememberPagerState(pageCount = { 4 })
+    val pagerState = rememberPagerState(
+        initialPage = (requestedMainTab ?: MainTab.Home).ordinal,
+        pageCount = { MainTab.entries.size },
+    )
     val mainPagerState = rememberMainPagerState(pagerState)
+
+    LaunchedEffect(requestedMainTab) {
+        if (requestedMainTab != null) {
+            navigator.popUntil { key -> key is Route.Main }
+            mainPagerState.openPage(requestedMainTab.ordinal)
+            onMainTabConsumed()
+        }
+    }
 
     LaunchedEffect(deepLinkImport) {
         if (deepLinkImport != null) {
@@ -933,6 +945,14 @@ class MainPagerState(
 
     private var navJob: Job? = null
 
+    fun openPage(targetIndex: Int) {
+        navJob?.cancel()
+        navJob = null
+        isNavigating = false
+        selectedPage = targetIndex
+        pagerState.requestScrollToPage(targetIndex)
+    }
+
     fun animateToPage(targetIndex: Int) {
         if (targetIndex == selectedPage) return
 
@@ -1007,17 +1027,18 @@ private inline fun <reified T : NavKey> NavEntryBuilder.navPage(
 }
 
 private class NavTab(
-    val key: String,
-    @StringRes val labelRes: Int,
+    val tab: MainTab,
     private val idle: ImageVector,
     private val active: ImageVector,
 ) {
+    val key: String get() = tab.storageValue
+    val labelRes: Int get() = tab.labelRes
     fun icon(selected: Boolean): ImageVector = if (selected) active else idle
 }
 
 private val NAV_TABS = listOf(
-    NavTab("home", R.string.nav_home, AppIcons.NavHome, AppIcons.NavHomeActive),
-    NavTab("proxy", R.string.nav_proxy, AppIcons.NavProxy, AppIcons.NavProxyActive),
-    NavTab("subscription", R.string.nav_subscription, AppIcons.NavSubscription, AppIcons.NavSubscriptionActive),
-    NavTab("settings", R.string.nav_settings, AppIcons.NavSettings, AppIcons.NavSettingsActive),
+    NavTab(MainTab.Home, AppIcons.NavHome, AppIcons.NavHomeActive),
+    NavTab(MainTab.Proxy, AppIcons.NavProxy, AppIcons.NavProxyActive),
+    NavTab(MainTab.Subscription, AppIcons.NavSubscription, AppIcons.NavSubscriptionActive),
+    NavTab(MainTab.Settings, AppIcons.NavSettings, AppIcons.NavSettingsActive),
 )

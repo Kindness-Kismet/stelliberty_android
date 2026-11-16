@@ -13,6 +13,8 @@
 
     <!-- VPN Notifications -->
     <string name="notification_loading">正在启动…</string>
+    <string name="settings_launch_tab">打开应用时的页面</string>
+    <string name="settings_tile_long_press_tab">长按磁贴时的页面</string>
     <string name="notification_running_title">Stelliberty 运行中</string>
     <string name="notification_running_content">模式: %1$s</string>
     <string name="notification_wifi_policy_title">Wi-Fi 自动切换</string>

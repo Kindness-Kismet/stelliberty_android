@@ -78,6 +78,8 @@ object StorageKeys {
     const val THEME_BOTTOM_BAR_MODE = "theme_bottom_bar_mode"
     const val THEME_DENSITY_SCALE = "theme_density_scale"
     const val APP_LANGUAGE = "app_language"
+    const val LAUNCH_TAB = "launch_tab"
+    const val TILE_LONG_PRESS_TAB = "tile_long_press_tab"
     const val DYNAMIC_NOTIFICATION = "dynamic_notification"
     const val NOTIFICATION_PERMISSION_REQUESTED = "notification_permission_requested"
     const val PREDICTIVE_BACK = "predictive_back"

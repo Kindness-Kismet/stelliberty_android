@@ -13,8 +13,11 @@ import com.stelliberty.android.platform.ProxyServiceBridge
 import com.stelliberty.android.platform.StorageKeys
 import com.stelliberty.android.platform.TunMode
 import com.stelliberty.android.ui.component.CardItem
+import com.stelliberty.android.ui.component.SingleChoicePreference
 import com.stelliberty.android.ui.component.groupedCardItems
+import com.stelliberty.android.ui.navigation.MainTab
 import com.stelliberty.android.util.AppLogger
+import kotlinx.collections.immutable.toImmutableList
 import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
@@ -30,6 +33,13 @@ fun AppBehaviorScreen(
     onBack: () -> Unit = {},
     onNavigateWifiPolicy: () -> Unit = {},
 ) {
+    var launchTab by remember {
+        mutableStateOf(MainTab.fromStorage(storage.getString(StorageKeys.LAUNCH_TAB, "")))
+    }
+    var tileLongPressTab by remember {
+        mutableStateOf(MainTab.fromStorage(storage.getString(StorageKeys.TILE_LONG_PRESS_TAB, "")))
+    }
+    val tabLabels = MainTab.entries.map { stringResource(it.labelRes) }.toImmutableList()
     var isAutoConnectEnabled by remember {
         mutableStateOf(storage.getString(StorageKeys.AUTO_CONNECT_ON_LAUNCH, "false") == "true")
     }
@@ -52,6 +62,33 @@ fun AppBehaviorScreen(
     }
 
     SettingsSubPage(title = stringResource(R.string.app_behavior_title), onBack = onBack) {
+        groupedCardItems(
+            keyPrefix = "app_behavior_navigation",
+            items = listOf(
+                CardItem("launchTab") {
+                    SingleChoicePreference(
+                        title = stringResource(R.string.settings_launch_tab),
+                        items = tabLabels,
+                        selectedIndex = launchTab.ordinal,
+                        onSelectedIndexChange = { index ->
+                            launchTab = MainTab.entries[index]
+                            storage.putString(StorageKeys.LAUNCH_TAB, launchTab.storageValue)
+                        },
+                    )
+                },
+                CardItem("tileLongPressTab") {
+                    SingleChoicePreference(
+                        title = stringResource(R.string.settings_tile_long_press_tab),
+                        items = tabLabels,
+                        selectedIndex = tileLongPressTab.ordinal,
+                        onSelectedIndexChange = { index ->
+                            tileLongPressTab = MainTab.entries[index]
+                            storage.putString(StorageKeys.TILE_LONG_PRESS_TAB, tileLongPressTab.storageValue)
+                        },
+                    )
+                },
+            ),
+        )
         item { SmallTitle(text = stringResource(R.string.settings_group_automation)) }
         groupedCardItems(
             keyPrefix = "app_behavior_automation",

@@ -17,6 +17,7 @@ import com.stelliberty.android.platform.PlatformStorage
 import com.stelliberty.android.platform.WifiPolicyController
 import com.stelliberty.android.ui.component.blur.LocalBlurEnabled
 import com.stelliberty.android.ui.navigation.AppNavigation
+import com.stelliberty.android.ui.navigation.MainTab
 import com.stelliberty.android.ui.theme.LocalAppDarkMode
 import com.stelliberty.android.ui.theme.LocalAppMonetEnabled
 import com.stelliberty.android.ui.theme.LocalPlatformDensity
@@ -74,6 +75,8 @@ fun App(
     hasRootPermission: Boolean = false,
     deepLinkImport: DeepLinkImportRequest? = null,
     onDeepLinkImportConsumed: () -> Unit = {},
+    requestedMainTab: MainTab? = null,
+    onMainTabConsumed: () -> Unit = {},
     backupViewModel: BackupViewModel? = null,
     overrideViewModel: OverrideProfileViewModel? = null,
     chainProxyViewModel: ChainProxyViewModel? = null,
@@ -168,6 +171,8 @@ fun App(
                     hasRootPermission = hasRootPermission,
                     deepLinkImport = deepLinkImport,
                     onDeepLinkImportConsumed = onDeepLinkImportConsumed,
+                    requestedMainTab = requestedMainTab,
+                    onMainTabConsumed = onMainTabConsumed,
                     backupViewModel = backupViewModel,
                     overrideViewModel = overrideViewModel,
                     chainProxyViewModel = chainProxyViewModel,
