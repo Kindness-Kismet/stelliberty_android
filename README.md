@@ -168,7 +168,9 @@ python scripts/build.py --dev
 |---|---|
 | `python scripts/build.py compile --dev` | Compile debug Kotlin without rebuilding the native core |
 | `python scripts/build.py --dev` | Build a debug APK |
-| `python scripts/build.py` | Build a release APK |
+| `python scripts/build.py` | Show build help |
+| `python scripts/build.py apk` | Build a release APK |
+| `python scripts/build.py --dev --jobs 12` | Build with 1–64 Gradle workers (default: 12) |
 | `python scripts/build.py --abi x86_64` | Build for a selected architecture |
 | `python scripts/build.py --version 1.0.1-beta1` | Override the packaged version without editing source metadata |
 | `python scripts/prebuild.py --refresh-geo` | Refresh bundled GeoIP resources |

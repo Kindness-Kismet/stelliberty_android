@@ -14,6 +14,7 @@ import time
 from pathlib import Path
 
 from build_support.patching import apply_native_patches
+from build_support.concurrency import DEFAULT_JOBS, gradle_worker_args, parse_jobs
 from prebuild import (
     PREBUILD_MARKER,
     Console,
@@ -114,7 +115,8 @@ def command_compile(args: argparse.Namespace) -> None:
         *abi_args(args.abi),
         *version_args(args.version),
     ]
-    if run_gradle(console, project_root, toolchain, tasks) != 0:
+    console.info(f"parallel build jobs={args.jobs}")
+    if run_gradle(console, project_root, toolchain, [*tasks, *gradle_worker_args(args.jobs)]) != 0:
         fail("compile failed")
     console.ok(f"compile done ({time.monotonic() - start:.2f}s)")
 
@@ -134,7 +136,8 @@ def command_apk(args: argparse.Namespace) -> None:
         (["clean"] if args.clean else []) + [f"assemble{args.build_type.capitalize()}"]
         + abi_args(args.abi) + version_args(args.version)
     )
-    if run_gradle(console, project_root, toolchain, tasks) != 0:
+    console.info(f"parallel build jobs={args.jobs}")
+    if run_gradle(console, project_root, toolchain, [*tasks, *gradle_worker_args(args.jobs)]) != 0:
         fail("apk build failed")
     console.ok("apk build done")
 
@@ -147,14 +150,21 @@ def command_gradle(args: argparse.Namespace) -> None:
     tasks = args.task[1:] if args.task[:1] == ["--"] else args.task
     if not tasks:
         fail("a Gradle task is required")
+    if any(task.startswith("--max-workers") or task.startswith("--jobs") for task in tasks):
+        build_parser().error("use --jobs before the Gradle task to set parallel build jobs")
     console = Console(args.verbose)
     project_root = resolve_project_root()
     toolchain = prepare_build(console, project_root)
-    raise SystemExit(run_gradle(console, project_root, toolchain, tasks))
+    console.info(f"parallel build jobs={args.jobs}")
+    raise SystemExit(run_gradle(console, project_root, toolchain, [*tasks, *gradle_worker_args(args.jobs)]))
 
 
 def build_parser() -> argparse.ArgumentParser:
     common = argparse.ArgumentParser(add_help=False)
+    common.add_argument(
+        "--jobs", type=parse_jobs, default=argparse.SUPPRESS,
+        help="Parallel build jobs, 1-64 (default: 12)",
+    )
     common.add_argument(
         "-v", "--verbose", action="store_true", default=argparse.SUPPRESS,
         help="Print detection details and Gradle commands",
@@ -211,7 +221,12 @@ def main() -> int:
     defaults = argparse.Namespace(
         verbose=False, build_type="release", abi=DEFAULT_ABI, version=None, clean=False, func=command_apk,
     )
-    args = build_parser().parse_args(namespace=defaults)
+    defaults.jobs = DEFAULT_JOBS
+    parser = build_parser()
+    if len(sys.argv) == 1:
+        parser.print_help()
+        return 0
+    args = parser.parse_args(namespace=defaults)
     args.func(args)
     return 0
 
