@@ -12,7 +12,7 @@ DNS 的 IPv6 处理独立于 `VPN_ALLOW_IPV6`：ip6tables NAT 可用时安装 IP
 
 启动与 attach 在发布 Running 前强制刷新一次 DNS 规则并清理 Android resolver 网络缓存；`dns.flush_cache` 只清 mihomo 缓存。`Network.networkHandle` 高 32 位提供 netId，稳定 `IDnsResolver` AIDL 的事务 11 为 `flushNetworkCache`；只接受无异常的零值 Parcel，su 退出 0 不代表 Binder 调用成功。
 
-网络回调按 DNS / 接口快照去重，并与启动刷新共用串行锁；停止先注销回调、等待进行中的刷新，再拆规则，销毁时注销并取消回调任务。应用被杀后的 ROOT 内核保留规则，重新打开时 attach 刷新当前网络。
+DNS 回调按 DNS / 接口快照去重，ROOT TPROXY 的 IPv6 入口另按默认路由 / 直连网段快照刷新，二者与启动刷新共用串行锁；停止先注销普通与默认网络回调、等待进行中的刷新，再拆规则，销毁时注销并取消回调任务。应用被杀后的 ROOT 内核保留规则，重新打开时 attach 刷新当前网络。
 
 ROOT 的 DNS 增强模式固定为 `redir-host`，netd 代查无法按应用区分；分应用排除项及应用自身必须拿到真实地址，不能收到无法直连的 Fake-IP。DNS 映射仍为内核提供域名分流信息。
 
@@ -29,6 +29,8 @@ DNS 与 TPROXY 安装脚本在清理旧规则后启用 `set -e`，关键命令�
 ## IPv6 门控
 
 `RootTproxyApplier.apply(ipv6Enabled)` 由 `VPN_ALLOW_IPV6` 决定（与 VPN / ROOT TUN 同一开关）。默认 false 时跳过全部 ip6tables / `ip -6` 注入，IPv6 走内核原生路由；teardown 始终清理 v4 + v6，切换后干净无残留。原因：mihomo 默认 `ipv6: false`，TPROXY 拦下 IPv6 连接后拨号报 "ip version error"，App 随即重试，形成每秒数百连接的失败循环。VPN / ROOT TUN 由 `inet6-address` 控制是否注册 v6 默认路由，自带这层过滤。
+
+开启 IPv6 且默认网络缺少 IPv6 默认路由时，ROOT TPROXY 用 priority 7998 / table 2025 为需要代理的 UID 补首次路由，随后仍由 OUTPUT 打标与 TPROXY 接管；UID 0 和应用自身始终排除，选中 / 排除名单与防火墙一致。独立表以 `throw` 保留内网与非 VPN 网络的直连 IPv6 网段；默认路由恢复后撤销入口，停止与模式切换清理全部入口规则及 table 2025。首次查找发生在 OUTPUT 前，只写 fwmark 规则无法接管此时已经失败的连接。
 
 ## runtime/ 沙箱
 
@@ -73,4 +75,4 @@ sing-tun `auto_route` 的 catch-all ip rule（priority 9002）不区分本机与
 
 ## 通知
 
-ROOT 模式使用静态通知：`DynamicNotificationManager.startOrFallbackStatic` 在 `tunMode != Vpn` 时走静态分支，忽略 `DYNAMIC_NOTIFICATION` 偏好；设置开关在 ROOT 模式下 `enabled=false` 并附说明。VPN 靠 `BIND_VPN_SERVICE` 让进程处于 `BOUND_FOREGROUND_SERVICE`，CPU 保持活跃；ROOT 没有系统 binding，Activity 进后台后设备进入 idle，1Hz 的 `/traffic` WS 帧被合并、`notify()` 被批处理，动态通知随之冻结。`PARTIAL_WAKE_LOCK` 会被系统置为 DISABLED，且只阻止 SoC suspend、挡不住 CPU idle；唯一根治是引导用户开启 `IGNORE_BATTERY_OPTIMIZATIONS`，这里按平台限制处理。ROOT TUN 下 mihomo 持续 `read(tun_fd)` 让设备保持活跃，属于偶然现象。
+VPN / ROOT TUN / ROOT TPROXY 共用 `DYNAMIC_NOTIFICATION` 偏好与 `DynamicNotificationManager`，按内核 `/traffic` 推送刷新累计流量和速率。后台与息屏刷新受 Android 调度约束，不为通知持有唤醒锁或轮询保活；通知被划掉、应用或渠道禁用时取消通知流量订阅，重新启动服务后恢复本次会话的通知显示。

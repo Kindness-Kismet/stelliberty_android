@@ -8,6 +8,8 @@
 
 应用只构建 `arm64-v8a` 与 `x86_64`，脚本参数、NDK 工具链映射与发布矩阵保持一致。
 
+build 的 `--jobs` 默认 12，范围 1～64，实际命令透传 `--max-workers=N`。GoBuildTask 使用 `go build -p=1`，CMake 编译与链接共享单槽 Ninja pool；各 Native 任务在一个 Gradle worker 内执行，避免嵌套任务池放大总并发。
+
 发布工作流使用 GitHub 缓存：工具链按周刷新，GeoIP 按天刷新且不跨日期回退；Go 缓存按 ABI、工具链、依赖与源码分键。Gradle 缓存按 ABI、周与提交保存，回退到同架构缓存；任务输入决定是否复用 `GoBuildTask` 的库与头文件，拉取请求只恢复缓存。
 
 内核子模块锁定 YuKongA/mihomo 的 `Mishka` 原始提交，独有修复存放在 `scripts/build_support/patches/mihomo-*.patch`。`build_support.patching` 按文件名排序应用：`prebuild.py` 在同步子模块后调用，`build.py` 每次编译前调用；反向检查通过表示已生效，正向检查失败则停止并提示补丁名。子模块工作区中的补丁结果是正常状态，不能当作无关改动丢弃。

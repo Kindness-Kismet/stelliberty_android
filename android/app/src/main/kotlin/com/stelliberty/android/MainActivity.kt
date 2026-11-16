@@ -12,6 +12,7 @@ import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.service.quicksettings.TileService
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -43,6 +44,7 @@ import com.stelliberty.android.platform.StorageKeys
 import com.stelliberty.android.platform.TunMode
 import com.stelliberty.android.platform.WifiPolicyController
 import com.stelliberty.android.service.RootHelper
+import com.stelliberty.android.ui.navigation.MainTab
 import com.stelliberty.android.ui.platform.IconDiskCache
 import com.stelliberty.android.ui.platform.IconLoader
 import com.stelliberty.android.ui.platform.localizedAppContext
@@ -106,6 +108,7 @@ class MainActivity : ComponentActivity() {
     private val platformDensityState = mutableStateOf<Density?>(null)
 
     private val pendingDeepLinkImport = mutableStateOf<DeepLinkImportRequest?>(null)
+    private val pendingMainTab = mutableStateOf<MainTab?>(null)
     private var consumedDeepLinkNonce: String? = null
     private val scannerConfig: ScannerConfig by lazy {
         ScannerConfig.build {
@@ -172,6 +175,9 @@ class MainActivity : ComponentActivity() {
         }
 
         val storage: PlatformStorage = get()
+        if (savedInstanceState == null && intent?.action != ExternalImportActivity.ACTION_IMPORT_SUBSCRIPTION) {
+            acceptMainTabIntent(intent, coldStart = true)
+        }
         notificationPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) {
             refreshNotificationPermission()
         }
@@ -282,6 +288,8 @@ class MainActivity : ComponentActivity() {
                 onNotificationsChange = ::changeNotificationPermission,
                 deepLinkImport = pendingDeepLinkImport.value,
                 onDeepLinkImportConsumed = { pendingDeepLinkImport.value = null },
+                requestedMainTab = pendingMainTab.value,
+                onMainTabConsumed = { pendingMainTab.value = null },
                 backupViewModel = get(),
                 overrideViewModel = get(),
                 chainProxyViewModel = get(),
@@ -304,7 +312,22 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        setIntent(intent)
+        acceptMainTabIntent(intent)
         acceptDeepLinkImport(intent)
+    }
+
+    private fun acceptMainTabIntent(intent: Intent?, coldStart: Boolean = false) {
+        // 最近任务沿用已保存的导航状态；系统返回与 Activity 重建不算新的打开请求。
+        if (intent != null && intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY != 0) return
+        val key = when {
+            intent?.action == TileService.ACTION_QS_TILE_PREFERENCES -> StorageKeys.TILE_LONG_PRESS_TAB
+            intent?.action == Intent.ACTION_MAIN && intent.hasCategory(Intent.CATEGORY_LAUNCHER) -> StorageKeys.LAUNCH_TAB
+            coldStart -> StorageKeys.LAUNCH_TAB
+            else -> return
+        }
+        val storage: PlatformStorage = get()
+        pendingMainTab.value = MainTab.fromStorage(storage.getString(key, MainTab.Home.storageValue))
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -318,6 +341,7 @@ class MainActivity : ComponentActivity() {
         if (nonce == consumedDeepLinkNonce) return
         val url = intent.getStringExtra(ExternalImportActivity.EXTRA_IMPORT_URL)
         if (url.isNullOrBlank()) return
+        pendingMainTab.value = null
         consumedDeepLinkNonce = nonce
         pendingDeepLinkImport.value = DeepLinkImportRequest(
             url = url,
@@ -435,7 +459,11 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun refreshNotificationPermission() {
-        notificationsEnabled.value = getSystemService(NotificationManager::class.java).areNotificationsEnabled()
+        val enabled = getSystemService(NotificationManager::class.java).areNotificationsEnabled()
+        if (notificationsEnabled.value != enabled) {
+            notificationsEnabled.value = enabled
+            ProxyServiceBridge.requestNotificationRefresh()
+        }
     }
 
     private fun changeNotificationPermission(enabled: Boolean) {

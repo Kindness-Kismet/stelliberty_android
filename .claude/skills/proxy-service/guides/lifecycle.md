@@ -28,7 +28,7 @@
 
 MainActivity 回到前台先串行刷新 ROOT 权限，再调用 `verifyAndSyncState`；检测超时或执行异常保留授权缓存与所选模式，明确拒绝时仅在没有正在启停或运行的 ROOT 服务时回退 VPN。
 
-`AUTO_CONNECT_ON_LAUNCH`（设置 →「自动化」，默认关）与开机自启是两个独立开关：BootReceiver 只在 `SERVICE_WAS_RUNNING=true` 时恢复，自动连接与上次状态无关。实现挂在 `verifyAndSyncState` 内：两者回答的都是「app 打开时代理该不该跑」，放在一处才能与 ROOT attach 路径串行（`start()` 是异步的，attach intent 发出后 bridge 仍是 Stopped）。进程外的 BootReceiver 重复投递由 Service 的幂等串行兜底。
+`AUTO_CONNECT_ON_LAUNCH`（设置 →「应用行为」，默认关）与开机自启是两个独立开关：BootReceiver 只在 `SERVICE_WAS_RUNNING=true` 时恢复，自动连接与上次状态无关。实现挂在 `verifyAndSyncState` 内：两者回答的都是「app 打开时代理该不该跑」，放在一处才能与 ROOT attach 路径串行（`start()` 是异步的，attach intent 发出后 bridge 仍是 Stopped）。进程外的 BootReceiver 重复投递由 Service 的幂等串行兜底。
 
 1. 每进程只消费一次（controller 是 Koin single）：冷启动触发，回前台保持现状。
 2. 静默校验走 `startableSubscriptionId()`（无副作用版），没有可用订阅时直接跳过。
@@ -39,6 +39,14 @@ MainActivity 回到前台先串行刷新 ROOT 权限，再调用 `verifyAndSyncS
 Tun / Root / ProfileWorker 的 onCreate 均 `try { startForeground() } catch (Exception)`，覆盖 API 31+ 的 `ForegroundServiceStartNotAllowedException` 与 API 34+ 的 FGS type 异常。失败路径：Tun / Root 上报 Error + `stopSelf()`；ProfileWorker 置标记，收到 Intent 后转交 `ProfileUpdateJobService` 再停止。更新任务的存活不依赖 Activity。
 
 通知权限由「应用行为 → 应用通知」开关主动申请，首次启动不申请。开关读取 `NotificationManager.areNotificationsEnabled()`，拒绝后保持关闭；无法再次弹出授权框或用户要关闭时进入系统通知设置，返回时重新同步。前台服务仍按 Android 要求发布通知。
+
+代理的启动中、静态与动态通知共用「关闭」动作，通过不可变的显式 PendingIntent 进入非导出的 `NotificationActionReceiver`，取消待执行重启后由 Koin 单例 controller 停止当前模式。通知随 Service 的 `STOP_FOREGROUND_REMOVE` 移除；小图标复用 `ic_tile` 缩放后的应用前景轮廓。
+
+通知关闭也处理重启中的 Stopping：Service 取消 `restartJob`，`stopJob` 去重，重启与停止的清理共用 `cleanupMutex`，保证连续请求不会并发清理或在关闭后再次启动内核；VPN 授权撤销共用停止入口。
+
+通知 STOP 的不可变 Intent 携带所属服务类型，避免设置模式改变后停止错误服务；ROOT 停止不覆盖当前子模式，系统重建后从持久化状态恢复模式，并通过带进程归属校验的入口停止原内核。
+
+`DynamicNotificationManager` 在三种模式下统一管理刷新和权限广播。关闭动态通知、应用或渠道禁止通知、划掉通知时取消 `/traffic` 订阅；划掉状态保持到下次启动服务。权限广播与偏好事件驱动重新判断，不轮询通知状态；停止服务时一并取消监听器，通知发布在主线程串行执行。
 
 ## 配置变了就重启
 

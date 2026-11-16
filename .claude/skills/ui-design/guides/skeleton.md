@@ -12,6 +12,7 @@
 
 - miuix NavDisplay + 自定义 Navigator（push / replace / pop / popUntil）+ LocalNavigator。back stack 经 Route sealed 多态序列化持久化（`NavBackStackSaver`），新增路由加 `@Serializable` 即支持进程死亡恢复。`sealed interface Route` 自身保留 `@Serializable`：缺了照样编译通过，恢复时抛 `SerializationException`。
 - 根页面使用稳定业务 key 的 `HorizontalPager`，`beyondViewportPageCount = 0`，每页独立保留可保存状态。每页用 `rememberLifecycleOwner` 继承父生命周期，按 `visiblePagesInfo` 限制离屏页到 `CREATED`；逐帧动画另外按 RESUMED 门控。
+- 打开应用与磁贴长按分别使用 `launch_tab` / `tile_long_press_tab`，四个候选共用 `MainTab`。桌面启动和磁贴长按消费一次入口请求，清除子页并直接定位目标 Tab；最近任务、Activity 重建和系统页面返回保留导航状态，深链继续进入订阅表单。
 - 跨页面任务的弹窗在 `AppNavigation` 层收集状态并显示，不放进 Pager 或 NavDisplay 的页面生命周期内；启动时订阅更新由 `SubscriptionUpdateProgressDialog` 统一承接，取消与完成状态才能在首页及时生效。
 
 ## 毛玻璃

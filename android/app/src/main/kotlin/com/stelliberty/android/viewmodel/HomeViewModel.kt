@@ -35,6 +35,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -173,7 +174,7 @@ class HomeViewModel(
     private var mihomoPid: Int = -1
     private val systemInfo = PlatformSystemInfo()
 
-    private val uiVisible = MutableStateFlow(true)
+    private val uiVisible = MutableStateFlow(false)
 
     private var lastErrorToast: String? = null
 
@@ -456,10 +457,13 @@ class HomeViewModel(
 
     private fun startTrafficCollection() {
         trafficJob?.cancel()
-        primeTrafficHistory()
+        val repo = repository ?: return
         trafficJob = viewModelScope.launch {
-            repository?.trafficFlow()
-                ?.collect { traffic ->
+            uiVisible.collectLatest { visible ->
+                if (!visible) return@collectLatest
+                primeTrafficHistory()
+                repo.trafficFlow().collect { traffic ->
+                    if (repository !== repo) return@collect
                     upHistory.addLast(traffic.up)
                     downHistory.addLast(traffic.down)
                     while (upHistory.size > TRAFFIC_HISTORY_CAPACITY) upHistory.removeFirst()
@@ -477,6 +481,7 @@ class HomeViewModel(
                         _uiState.value = _uiState.value.copy(isRunning = true)
                     }
                 }
+            }
         }
     }
 
@@ -543,14 +548,18 @@ class HomeViewModel(
 
     private fun startMemoryCollection() {
         memoryJob?.cancel()
+        val repo = repository ?: return
         memoryJob = viewModelScope.launch {
-            repository?.memoryFlow()
-                ?.collect { memory ->
+            uiVisible.collectLatest { visible ->
+                if (!visible) return@collectLatest
+                repo.memoryFlow().collect { memory ->
+                    if (repository !== repo) return@collect
                     _memoryState.value = MemorySnapshot(
                         ramUsage = FormatUtils.formatBytes(memory.inuse),
                         ramTotal = if (memory.oslimit > 0) FormatUtils.formatBytes(memory.oslimit) else "-- MB",
                     )
                 }
+            }
         }
     }
 

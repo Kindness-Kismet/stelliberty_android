@@ -76,6 +76,8 @@ adb -s <device_id> shell run-as com.stelliberty.android tail -n 100 files/mihomo
 6. 依次判定：① `ok=true`；② 进程存活（`pidof`）；③ crash 日志为空；④ `state.get` 符合预期；⑤ 改了 UI 时用 `debug-control.sh -c list` 确认控件，再截图看排版。
 7. 真机测完锁屏。
 
+`state.get` 的 `notificationAllowed` 表示应用和代理通知渠道都允许显示，`notificationDismissed` 表示本次服务会话的通知已被划掉。验证关闭通知后的开销时，在应用后台比较通知更新时间与核心 API 连接；权限/渠道禁用或划掉后不再刷新，动态通知关闭后只保留静态通知。
+
 ## 常见情况
 
 - `page.open` 返回 ok 但页面没变：应用在后台，改用 `debug-open-page.sh`。

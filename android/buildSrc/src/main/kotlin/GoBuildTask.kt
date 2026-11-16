@@ -80,7 +80,8 @@ abstract class GoBuildTask : DefaultTask() {
         val goArch = ABI_TO_GOARCH[abi.get()]
             ?: error("Unsupported ABI: ${abi.get()}; expected one of ${ABI_TO_GOARCH.keys}")
 
-        val args = mutableListOf<String>("go", "build")
+        // 每个 Gradle 任务占一个 worker，内部包编译串行，避免重复扩张并发额度。
+        val args = mutableListOf<String>("go", "build", "-p=1")
         buildTags.get().takeIf { it.isNotEmpty() }?.let {
             args += "-tags"
             args += it.joinToString(",")

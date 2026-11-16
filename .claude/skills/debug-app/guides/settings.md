@@ -20,6 +20,10 @@ debug-call.sh -s <dev> -m settings.set_tun_mode -a root_tproxy
 
 布尔值用 `-e enabled:b:true`，字符串用 `-e value:s:xxx`；底层均存为字符串，`settings.get` 返回字符串形式。
 
+`launch_tab` / `tile_long_press_tab` 分别选择桌面打开与磁贴长按进入的底栏页，值为 `home` / `proxy` / `subscription` / `settings`，默认 `home`。设置入口 ID 为 `Settings.Entry.launchTab` / `Settings.Entry.tileLongPressTab`，单选项沿用 `Settings.Choice.<0-3>`。
+
+`dynamic_notification` 对 VPN / ROOT TUN / ROOT TPROXY 均有效，经 `settings.set` 修改后即时刷新运行中的通知；关闭时保留静态通知并取消通知流量 WS。权限和渠道禁用、划掉通知后的停止刷新通过系统界面验证。
+
 ## 范围
 
 `settings.*` 读写 `PlatformStorage`（SharedPreferences），键名见 `android/app/src/main/kotlin/com/stelliberty/android/platform/PlatformStorage.kt` 的 `StorageKeys`，也可直接 `settings.dump` 查看。

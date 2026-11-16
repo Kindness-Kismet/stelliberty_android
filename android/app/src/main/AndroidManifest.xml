@@ -42,6 +42,7 @@
             </intent-filter>
             <intent-filter>
                 <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 
@@ -120,6 +121,10 @@
 
         <receiver
             android:name=".service.AutoDelayReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".service.NotificationActionReceiver"
             android:exported="false" />
 
         <receiver

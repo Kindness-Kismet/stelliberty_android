@@ -7,6 +7,7 @@ import com.stelliberty.android.domain.model.MemoryData
 import com.stelliberty.android.domain.model.TrafficData
 import com.stelliberty.android.util.AppLogger
 import io.ktor.client.HttpClient
+import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.client.plugins.websocket.webSocket
 import io.ktor.websocket.Frame
@@ -23,6 +24,8 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.isActive
 import kotlinx.serialization.json.Json
+import okhttp3.OkHttpClient
+import okhttp3.WebSocket
 
 class MihomoWebSocket(
     private val apiClient: MihomoApiClient,
@@ -33,10 +36,21 @@ class MihomoWebSocket(
         coerceInputValues = true
     }
 
-    private val wsClient = HttpClient {
-        install(WebSockets) {
-            pingIntervalMillis = 20_000
+    private val socketClient = OkHttpClient()
+    private val wsClient = HttpClient(OkHttp) {
+        engine {
+            webSocketFactory = WebSocket.Factory { request, listener ->
+                val socket = socketClient.newWebSocket(request, listener)
+                object : WebSocket by socket {
+                    // 内核推送接口不处理关闭帧，取消时直接断开，避免等待握手期间继续收帧。
+                    override fun close(code: Int, reason: String?): Boolean {
+                        socket.cancel()
+                        return true
+                    }
+                }
+            }
         }
+        install(WebSockets)
     }
 
     private val _connectionState = MutableStateFlow(false)
@@ -109,10 +123,14 @@ class MihomoWebSocket(
             delay(backoffMs)
             backoffMs = (backoffMs * 2).coerceAtMost(MAX_BACKOFF_MS)
         }
-    }.flowOn(Dispatchers.Default)
+    // Ktor 握手生成 nonce 时会阻塞等待后台协程，IO 调度避免并发握手占满 Default 线程池。
+    }.flowOn(Dispatchers.IO)
 
     fun close() {
         wsClient.close()
+        socketClient.dispatcher.cancelAll()
+        socketClient.dispatcher.executorService.shutdown()
+        socketClient.connectionPool.evictAll()
     }
 
     companion object {

@@ -10,7 +10,6 @@ import com.stelliberty.android.ui.component.RestartRequiredHint
 import com.stelliberty.android.ui.component.TriStatePreference
 import com.stelliberty.android.ui.component.groupedCardItems
 import com.stelliberty.android.viewmodel.ClashFeaturesViewModel
-import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 
 @Composable
@@ -25,7 +24,6 @@ fun NetworkSettingsScreen(
     SettingsSubPage(title = stringResource(R.string.network_settings_title), onBack = onBack) {
         item { RestartRequiredHint() }
 
-        item { SmallTitle(text = stringResource(R.string.network_options)) }
         groupedCardItems(
             keyPrefix = "network_options",
             items = listOf(
@@ -70,7 +68,6 @@ fun NetworkSettingsScreen(
             ),
         )
 
-        item { SmallTitle(text = stringResource(R.string.network_sniffer)) }
         groupedCardItems(
             keyPrefix = "network_sniffer",
             items = listOf(

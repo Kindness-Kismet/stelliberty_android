@@ -6,6 +6,8 @@
 
 manager 是唯一持有 `close()` 责任的一方：按 bridge state 自动 connect / disconnect，原子地 close 旧实例并新建。它只看状态、不比对 endpoint，attach 重连多一次重建（< 50ms），换来无竞态。ViewModel 的 `setRepository` 只传信号。
 
+首页流量和内存 WS 只在 Activity 可见时收集，后台取消订阅，回前台重新连接；接收帧时核对 repository 身份。通知的流量 WS 独立于页面，仅在动态通知启用、应用和渠道允许通知、本次会话的通知未被划掉时收集。
+
 例外：`SubscriptionProxyResolver` / `RuleLatencyTester` 属于探测场景，可自建短生命周期 client，用 `use{}` 或 try/finally 关闭。订阅 fetch 走 JNI。
 
 ## 切换时取消旧协程
@@ -16,10 +18,10 @@ mihomo 重启或切订阅时，manager close 旧 client 并 emit 新 repo。消�
 
 ## WebSocket 重连
 
-Ktor 的 `for (frame in incoming)` 在 graceful close 时静默退出，`MihomoWebSocket.webSocketFlow` 因此自行实现无限重连 + 指数退避（1s→30s）+ 20s 心跳：
+Ktor 的 `for (frame in incoming)` 在 graceful close 时静默退出，`MihomoWebSocket.webSocketFlow` 因此自行实现无限重连 + 指数退避（1s→30s）。内核推送接口只写帧、不处理客户端的 ping / close；OkHttp WebSocket factory 在关闭时直接 cancel 底层连接，不发送需要服务端响应的心跳，避免取消后继续收帧等待超时。
 
 - `CancellationException` 排在通用 catch 之前并 rethrow，重连循环才能停下。
-- 末尾保留 `flowOn(Dispatchers.Default)`：消费点都在 Main，反序列化移出主线程。它引入的缓冲要求消费方额外校验 `repository !== repo`。
+- 末尾使用 `flowOn(Dispatchers.IO)`：Ktor 的 nonce 初始化会阻塞等待后台协程，并发握手放在 Default 会耗尽 CPU worker；解码仍在后台，缓冲要求消费方额外校验 `repository !== repo`。
 - `emit` 放在解析的 try 之外：两者包在一起时，下游异常会被当成坏帧吞掉，随后撞上 flow 异常透明性检查，表现为一次虚假的断线重连。
 - 消费侧的错误处理留在流内：取消以外的异常都转成重连。
 - `connectionState` 由四条流共享，语义是「任意一条连着」，按引用计数发布：计数与发布一起放在 `@Synchronized` 里；握手失败的那次未计数，`finally` 按实际计数递减。

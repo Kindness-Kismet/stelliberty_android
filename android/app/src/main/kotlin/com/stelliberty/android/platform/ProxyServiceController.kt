@@ -52,8 +52,7 @@ class ProxyServiceController(
         context.startService(intent)
     }
 
-    fun stop() {
-        val mode = activeModeOrStored()
+    fun stop(mode: TunMode = activeModeOrStored()) {
         val intent = buildServiceIntent(mode, Op.Stop)
         context.startService(intent)
     }
@@ -203,7 +202,9 @@ class ProxyServiceController(
                 Op.Restart -> StellibertyRootService.ACTION_RESTART
                 Op.Stop -> StellibertyRootService.ACTION_STOP
             }
-            StellibertyRootService.submodeExtra(mode)?.let { putExtra(StellibertyRootService.EXTRA_SUBMODE, it) }
+            if (op != Op.Stop) {
+                StellibertyRootService.submodeExtra(mode)?.let { putExtra(StellibertyRootService.EXTRA_SUBMODE, it) }
+            }
         }
     }
 

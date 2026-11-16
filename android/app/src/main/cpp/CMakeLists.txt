@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.22)
 project(stelliberty)
 
+# 每个 Native 任务共享一个编译/链接槽，整体并发由 Gradle worker 分配。
+set_property(GLOBAL PROPERTY JOB_POOLS stelliberty_native=1)
+set(CMAKE_JOB_POOL_COMPILE stelliberty_native)
+set(CMAKE_JOB_POOL_LINK stelliberty_native)
+
 # 体积优化
 set(STELLIBERTY_C_OPTS -Os -fvisibility=hidden -ffunction-sections -fdata-sections)
 set(STELLIBERTY_LINK_OPTS -Wl,--gc-sections -Wl,--strip-all -Wl,--exclude-libs,ALL)

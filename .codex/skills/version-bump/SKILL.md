@@ -33,7 +33,8 @@ git log --follow -p -- android/buildSrc/src/main/kotlin/ProjectConfig.kt
 
 同时阅读 `BASELINE_COMMIT..HEAD` 的提交与最终差异，并纳入用户明确要求随本次发布交付的工作区改动。
 
-- 同一功能的多次修改合并为最终结果；新增后又删除、改后复原的内容略去。
+- 按发布基线归类，同一功能的多次修改合并为最终结果；新功能开发期间的修正并入新增项，只有基线已有的缺陷才列为修复。
+- 新增后又删除、改后复原的内容略去。
 - 只写用户可感知的变化，格式化、依赖坐标与实现细节略去。
 - 内容如实：发布状态、数据与验证结果只写已确认的。
 - 确认问题已完整解决、且获得提交授权时，才使用关闭问题的引用。
@@ -46,24 +47,26 @@ git log --follow -p -- android/buildSrc/src/main/kotlin/ProjectConfig.kt
 - 空一行，单独一行 `---`，再空一行。
 - 简体中文条目在下，与英文的数量、顺序、变化类型、含义一一对应。
 - 只写条目：每条以 `- ` 开头，末尾不加标点。
+- 每条用短句直接说明改动，优先写“动作 + 对象”；只在影响理解时补充结果或触发条件。
+- 省略无助于理解的数量、范围枚举、实现方式和重复解释；保留影响适用范围的必要条件。
 - 没有用户可感知的变化时，两种语言各写一条准确的最小说明。
 
-句式按变化类型选用，描述对象、结果或被修复的后果：
+按变化类型使用简短句式，不套“对……进行了改善，现在……”等长句模板：
 
 ```markdown
-- Fixed an issue with {what} that previously caused {consequence}
-- Improved {feature}, which now {result}
-- Added {feature}, so you can now {action}
-- Removed {feature}; {scenario} is no longer available
-- Changed how {feature} works; it now {new behavior}
+- Added {feature}
+- Improved {feature}
+- Fixed {problem} when {condition}
+- Removed {item}
+- Changed {behavior}
 
 ---
 
-- 修复了{对象}的问题，该问题曾导致{后果}
-- 对{功能}进行了改善，现在{结果}
-- 新增了{功能}，现在可以{做什么}
-- 移除了{功能}，{场景}不再可用
-- 调整了{功能}的行为，现在{新行为}
+- 新增{功能}
+- 优化{功能}
+- 修复{条件}下的{问题}
+- 移除{对象}
+- 调整{行为}
 ```
 
 ## 4. 更新版本并验证

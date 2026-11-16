@@ -11,6 +11,8 @@ object RootTproxyApplier {
     internal const val MASK = 0x01000000
     internal const val TABLE = 2024
     internal const val PRIORITY = 7999
+    private const val IPV6_INITIAL_PRIORITY = 7998
+    private const val IPV6_INITIAL_TABLE = 2025
 
     // 端口的唯一定义在热点劫持那边，这里只是转出来给别处用，不要另写一个数字。
     internal const val TPROXY_PORT = RootTetherHijacker.TPROXY_PORT
@@ -67,6 +69,53 @@ object RootTproxyApplier {
         }
         val code = RootHelper.runRootScriptHeredoc(script, timeoutSeconds = w + 5L)
         return code == 0
+    }
+
+    // OUTPUT 打标晚于首次路由查找；上游没有 IPv6 默认路由时，先把选中 UID 送到本机接管。
+    fun refreshIpv6InitialRoutes(
+        appUid: Int,
+        selectedUids: Set<Int>,
+        mode: AppProxyMode,
+        required: Boolean,
+        localNetworks: List<String>,
+    ): Boolean {
+        val script = buildString {
+            appendLine("#!/system/bin/sh")
+            appendLine("set +e")
+            appendLine("while ip -6 rule del priority $IPV6_INITIAL_PRIORITY lookup $IPV6_INITIAL_TABLE 2>/dev/null; do :; done")
+            appendLine("ip -6 route flush table $IPV6_INITIAL_TABLE 2>/dev/null")
+            appendLine("set -e")
+            if (required) {
+                appendLine("ip -6 route add local default dev lo table $IPV6_INITIAL_TABLE")
+                // 独立路由表只补首次查找，内网和已连接网段继续交给系统路由。
+                for (network in (IptablesIntranet.V6 + localNetworks).distinct()) {
+                    appendLine("ip -6 route add throw $network table $IPV6_INITIAL_TABLE")
+                }
+                for (range in ipv6ProxyUidRanges(appUid, selectedUids, mode)) {
+                    appendLine("ip -6 rule add priority $IPV6_INITIAL_PRIORITY uidrange ${range.first}-${range.last} lookup $IPV6_INITIAL_TABLE")
+                }
+            }
+        }
+        val code = RootHelper.runRootScriptHeredoc(script, timeoutSeconds = 15)
+        AppLogger.info(TAG, "IPv6 initial routing: required=$required code=$code")
+        return code == 0
+    }
+
+    private fun ipv6ProxyUidRanges(appUid: Int, selectedUids: Set<Int>, mode: AppProxyMode): List<IntRange> {
+        if (mode == AppProxyMode.AllowSelected) {
+            return selectedUids.filter { it != 0 && it != appUid }.sorted().map { it..it }
+        }
+        // UID 0 保留核心的原生出站；系统 DNS 的接管由独立规则完成。
+        val excluded = (if (mode == AppProxyMode.DenySelected) selectedUids + appUid else setOf(appUid)).sorted()
+        return buildList {
+            var first = 1L
+            for (uid in excluded) {
+                if (uid < first) continue
+                if (first < uid) add(first.toInt() until uid)
+                first = uid.toLong() + 1
+            }
+            if (first <= Int.MAX_VALUE) add(first.toInt()..Int.MAX_VALUE)
+        }
     }
 
     private fun buildApplyScript(
@@ -248,6 +297,8 @@ object RootTproxyApplier {
         }
         sb.appendLine()
         sb.appendLine("# === ip rule + route ===")
+        sb.appendLine("while ip -6 rule del priority $IPV6_INITIAL_PRIORITY lookup $IPV6_INITIAL_TABLE 2>/dev/null; do :; done")
+        sb.appendLine("ip -6 route flush table $IPV6_INITIAL_TABLE 2>/dev/null")
         sb.appendLine("i=0; while [ \$i -lt 32 ] && ip rule del priority $PRIORITY 2>/dev/null; do i=\$((i+1)); done")
         sb.appendLine("i=0; while [ \$i -lt 32 ] && ip -6 rule del priority $PRIORITY 2>/dev/null; do i=\$((i+1)); done")
         sb.appendLine("ip  route flush table $TABLE 2>/dev/null")

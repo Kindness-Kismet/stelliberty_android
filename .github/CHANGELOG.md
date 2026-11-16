@@ -1,27 +1,17 @@
-- Added settings search and app language selection, so you can now find options quickly and choose English, Simplified Chinese, or Traditional Chinese
-- Improved appearance settings, which now offer separate top and bottom bar blur switches and app scaling from 80% to 120%
-- Improved proxy settings, which now organize routing mode, TUN stack, layout, display, and sorting in cascading menus
-- Improved latency testing, which now shows progress for each node, supports provider nodes, tests all groups from one toolbar action, and schedules automatic tests in the background
-- Changed how subscription import works; the add menu now opens file, URL, and QR code import directly
-- Added direct, system proxy, and core proxy download modes for subscriptions and overrides, and fixed the VPN system proxy pointing to a port the core was not listening on
-- Changed how automatic subscription updates work; they now run silently in the background, and notification access is requested through an explicit settings switch
-- Improved dialogs and operation feedback, which now apply edits on confirmation and show concise localized system toasts for import, save, and update results
-- Improved the home status and action cards, which now show clearer connection transitions and a full-width start button
-- Fixed an issue with DNS in ROOT modes that previously let system IPv4 or IPv6 DNS bypass the core or keep stale resolver results after network changes
-- Fixed issues with ROOT permission refresh and proxy lifecycle checks that previously required an app restart after authorization or reported false failures during timeouts and restarts
-- Fixed an issue with node names containing percent-encoded text that previously caused selection or latency requests to target the wrong name
+- Added separate page choices for app launch and tile long press
+- Added live traffic notifications for ROOT TUN and ROOT TPROXY
+- Added a notification Close button to stop the proxy
+- Changed the notification small icon to the app foreground outline
+- Reduced background overhead and stopped refreshing hidden or disabled notifications
+- Removed section headings from settings
+- Fixed ROOT TPROXY IPv6 connections when the upstream network lacks an IPv6 default route
 
 ---
 
-- 新增了设置搜索和应用语言选择，现在可以快速查找选项，并选择英文、简体中文或繁体中文
-- 对外观设置进行了改善，现在可以分别开关顶栏和底栏模糊，并在 80% 至 120% 之间调整应用缩放
-- 对代理设置进行了改善，现在通过级联菜单组织代理模式、TUN Stack、布局、显示和排序选项
-- 对延迟测试进行了改善，现在会显示每个节点的测速进度，支持 provider 节点，通过顶栏统一入口测试全部代理组，并在后台执行定时测速
-- 调整了订阅导入的行为，新增菜单现在可以直接进入文件、URL 或二维码导入
-- 新增了订阅和覆写下载的直连、系统代理及核心代理模式，并修复了 VPN 系统代理指向核心未监听端口的问题
-- 调整了订阅自动更新的行为，现在会在后台静默执行，并通过明确的设置开关申请通知权限
-- 对弹窗和操作反馈进行了改善，现在确认后才应用编辑，并通过简短的本地化系统提示显示导入、保存和更新结果
-- 对首页状态卡和操作卡进行了改善，现在会更清楚地显示连接状态变化，并提供铺满卡片宽度的启动按钮
-- 修复了 ROOT 模式下 DNS 的问题，该问题曾导致系统 IPv4 或 IPv6 DNS 绕过核心，或在网络变化后保留过期的解析结果
-- 修复了 ROOT 权限刷新和代理生命周期检测的问题，该问题曾导致授权后需要重新启动应用，或在检测超时及重启期间误报代理失败
-- 修复了节点名称包含百分号编码文本的问题，该问题曾导致节点选择或测速请求使用错误的名称
+- 新增桌面启动与磁贴长按的独立页面设置
+- 新增 ROOT TUN 和 ROOT TPROXY 实时流量通知
+- 新增通知“关闭”按钮，点击停止代理
+- 通知小图标改为应用前景轮廓
+- 降低后台开销，通知隐藏或禁用后停止刷新
+- 移除设置分组小标题
+- 修复上游缺少 IPv6 默认路由时 ROOT TPROXY 的 IPv6 连接失败

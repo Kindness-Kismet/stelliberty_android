@@ -34,6 +34,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
 
@@ -59,7 +61,9 @@ class StellibertyRootService : Service() {
     private val subscriptionStore: SubscriptionStore by inject()
     private val transformWriter: ProfileTransformWriter by inject()
     private var monitorJob: Job? = null
-    private var notificationRefreshJob: Job? = null
+    private var restartJob: Job? = null
+    private var stopJob: Job? = null
+    private val cleanupMutex = Mutex()
 
     @Volatile
     private var startJob: Job? = null
@@ -74,6 +78,7 @@ class StellibertyRootService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        currentSubmode = Submode.from(PlatformStorage(this).getString(StorageKeys.ROOT_SUBMODE_ACTIVE, ""))
         NotificationHelper.createChannels(this)
         try {
             startForeground(
@@ -92,21 +97,13 @@ class StellibertyRootService : Service() {
             stopSelf()
             return
         }
-        notificationRefreshJob = scope.launch {
-            ProxyServiceBridge.notificationRefresh.collect {
-                val state = ProxyServiceBridge.state.value
-                if (state.state == ProxyState.Running && isRootRunning(state.tunMode)) {
-                    dynamicNotification.stop()
-                    dynamicNotification.startOrFallbackStatic(
-                        PlatformStorage(this@StellibertyRootService),
-                        state.tunMode,
-                    )
-                }
-            }
-        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == ACTION_STOP) {
+            stopProxy()
+            return START_STICKY
+        }
         val requested = Submode.from(intent?.getStringExtra(EXTRA_SUBMODE))
         currentSubmode = if (intent?.hasExtra(EXTRA_SUBMODE) == true) {
             requested
@@ -121,7 +118,6 @@ class StellibertyRootService : Service() {
                 startProxy(subscriptionId, attachOnly)
             }
 
-            ACTION_STOP -> stopProxy()
             ACTION_RESTART -> {
                 val subscriptionId = intent.getStringExtra(ProxyServiceController.EXTRA_SUBSCRIPTION_ID)
                 restartProxy(subscriptionId)
@@ -129,9 +125,6 @@ class StellibertyRootService : Service() {
         }
         return START_STICKY
     }
-
-    private fun isRootRunning(mode: TunMode): Boolean =
-        mode == TunMode.RootTun || mode == TunMode.RootTproxy
 
     // attachOnly 表示「只重连已有进程，连不上就保持停止」，用户只是打开了应用、没要求启动。
     // 但用户主动点启动时可以抢占正在跑的 attachOnly——它没有挂起点，得靠自己检查取消标志主动让位。
@@ -232,7 +225,7 @@ class StellibertyRootService : Service() {
                                 applyTproxyRules(storage)
                         }
                     }
-                    val dnsApplied = routingApplied && dnsCoordinator.start(appUid, submode == Submode.Tproxy)
+                    val dnsApplied = routingApplied && startDnsCoordinator(storage, appUid, submode)
                     ensureActive()
                     if (!dnsApplied) {
                         failRoutingSetup(storage)
@@ -248,7 +241,7 @@ class StellibertyRootService : Service() {
                             mihomoPid = runner.pid
                         )
                     )
-                    dynamicNotification.startOrFallbackStatic(storage, tunMode)
+                    dynamicNotification.start(storage, tunMode)
                     storage.putString(StorageKeys.SERVICE_WAS_RUNNING, "true")
                     val workDir = if (subscriptionId != null) ProfileFileOps.getRuntimeDir(
                         this@StellibertyRootService,
@@ -393,7 +386,7 @@ class StellibertyRootService : Service() {
                 }
                 Submode.Tproxy -> applyTproxyRules(storage)
             }
-            val dnsApplied = routingApplied && dnsCoordinator.start(appUid, submode == Submode.Tproxy)
+            val dnsApplied = routingApplied && startDnsCoordinator(storage, appUid, submode)
             ensureActive()
             if (!dnsApplied) {
                 failRoutingSetup(storage)
@@ -410,7 +403,7 @@ class StellibertyRootService : Service() {
                     mihomoPid = runner.pid
                 )
             )
-            dynamicNotification.startOrFallbackStatic(storage, tunMode)
+            dynamicNotification.start(storage, tunMode)
             storage.putString(StorageKeys.SERVICE_WAS_RUNNING, "true")
             AppLogger.info(TAG, "Proxy running (ROOT $submode)")
 
@@ -428,14 +421,32 @@ class StellibertyRootService : Service() {
             storage.getString(StorageKeys.ROOT_TETHER_IFACES, RootTetherHijacker.DEFAULT_IFACES)
         )
         val proxyMode = AppProxyMode.parse(storage.getString(StorageKeys.APP_PROXY_MODE, ""))
+        val selectedUids = resolveProxyUids(storage)
+        val ipv6Enabled = storage.getString(StorageKeys.VPN_ALLOW_IPV6, "false") == "true"
+        return RootTproxyApplier.apply(appUid, selectedUids, proxyMode, ifaces, ipv6Enabled)
+    }
+
+    private suspend fun startDnsCoordinator(storage: PlatformStorage, appUid: Int, submode: Submode): Boolean {
+        val ipv6Routing: ((Boolean, List<String>) -> Boolean)? = if (
+            submode == Submode.Tproxy && storage.getString(StorageKeys.VPN_ALLOW_IPV6, "false") == "true"
+        ) {
+            val mode = AppProxyMode.parse(storage.getString(StorageKeys.APP_PROXY_MODE, ""))
+            val selectedUids = resolveProxyUids(storage)
+            val refresh: (Boolean, List<String>) -> Boolean = { hasDefaultRoute, localNetworks ->
+                RootTproxyApplier.refreshIpv6InitialRoutes(appUid, selectedUids, mode, !hasDefaultRoute, localNetworks)
+            }
+            refresh
+        } else null
+        return dnsCoordinator.start(appUid, submode == Submode.Tproxy, ipv6Routing)
+    }
+
+    private suspend fun resolveProxyUids(storage: PlatformStorage): Set<Int> {
         val packages = storage.getStringSet(StorageKeys.APP_PROXY_PACKAGES, emptySet())
-        val selectedUids = if (packages.isEmpty()) {
+        return if (packages.isEmpty()) {
             emptySet()
         } else {
             AppListProvider(this@StellibertyRootService).resolveUids(packages)
         }
-        val ipv6Enabled = storage.getString(StorageKeys.VPN_ALLOW_IPV6, "false") == "true"
-        return RootTproxyApplier.apply(appUid, selectedUids, proxyMode, ifaces, ipv6Enabled)
     }
 
     private suspend fun failRoutingSetup(storage: PlatformStorage) {
@@ -512,9 +523,18 @@ class StellibertyRootService : Service() {
     }
 
     private fun stopRunner(): Boolean {
-        if (runner.stop()) return true
+        val storage = PlatformStorage(this)
+        val storedPid = storage.getString(StorageKeys.ROOT_MIHOMO_PID, "").toIntOrNull()
+        // 服务被系统重建时 runner 尚未收养内核，沿用带进程归属校验的停止入口。
+        val stopped = if (runner.pid <= 0 && storedPid != null && storedPid > 0) {
+            RootHelper.stopMihomo(
+                storage.getString(StorageKeys.ROOT_TUN_DEVICE, RuntimeOverrideBuilder.DEFAULT_TUN_DEVICE),
+                storedPid,
+            )
+        } else runner.stop()
+        if (stopped) return true
         ProxyServiceBridge.updateState(
-            ProxyServiceStatus(ProxyState.Error, errorMessage = runner.errorMessage, tunMode = currentSubmode.tunMode)
+            ProxyServiceStatus(ProxyState.Error, errorMessage = getString(R.string.error_root_stop_failed), tunMode = currentSubmode.tunMode)
         )
         return false
     }
@@ -558,51 +578,58 @@ class StellibertyRootService : Service() {
     }
 
     private fun restartProxy(subscriptionId: String?) {
+        if (stopJob?.isActive == true) return
+        restartJob?.cancel()
         startJob?.cancel()
         dnsCoordinator.stopObserving()
         AppLogger.info(TAG, "Restarting proxy (ROOT)...")
         ProxyServiceBridge.updateState(ProxyServiceStatus(ProxyState.Stopping, tunMode = currentSubmode.tunMode))
         dynamicNotification.stop()
-        scope.launch {
-            startJob?.cancelAndJoin()
-            monitorJob?.cancelAndJoin()
-            val storage = PlatformStorage(this@StellibertyRootService)
-            val runningSubscriptionId = storage.getString(StorageKeys.ROOT_ACTIVE_SUBSCRIPTION_ID, "").ifEmpty { null }
-            if (!stopRunner()) return@launch
-            teardownAllRootRules()
-            runningSubscriptionId?.let { ProfileFileOps.cleanupRootRuntime(this@StellibertyRootService, it) }
-            clearPersistedState(storage)
-            withContext(Dispatchers.Main) {
-                startProxy(subscriptionId)
+        restartJob = scope.launch {
+            cleanupMutex.withLock {
+                startJob?.cancelAndJoin()
+                monitorJob?.cancelAndJoin()
+                val storage = PlatformStorage(this@StellibertyRootService)
+                val runningSubscriptionId = storage.getString(StorageKeys.ROOT_ACTIVE_SUBSCRIPTION_ID, "").ifEmpty { null }
+                if (!stopRunner()) return@launch
+                teardownAllRootRules()
+                runningSubscriptionId?.let { ProfileFileOps.cleanupRootRuntime(this@StellibertyRootService, it) }
+                clearPersistedState(storage)
+                withContext(Dispatchers.Main) {
+                    startProxy(subscriptionId)
+                }
             }
         }
     }
 
     private fun stopProxy() {
+        restartJob?.cancel()
+        if (stopJob?.isActive == true) return
         startJob?.cancel()
         dnsCoordinator.stopObserving()
         AppLogger.info(TAG, "Stopping proxy (ROOT)...")
         ProxyServiceBridge.updateState(ProxyServiceStatus(ProxyState.Stopping, tunMode = currentSubmode.tunMode))
         dynamicNotification.stop()
-        scope.launch {
-            startJob?.cancelAndJoin()
-            monitorJob?.cancelAndJoin()
-            val storage = PlatformStorage(this@StellibertyRootService)
-            val runningSubscriptionId = storage.getString(StorageKeys.ROOT_ACTIVE_SUBSCRIPTION_ID, "").ifEmpty { null }
-            if (!stopRunner()) return@launch
-            teardownAllRootRules()
-            runningSubscriptionId?.let { ProfileFileOps.cleanupRootRuntime(this@StellibertyRootService, it) }
-            clearPersistedState(storage)
-            storage.putString(StorageKeys.SERVICE_WAS_RUNNING, "false")
-            ProxyServiceBridge.markStopped(currentSubmode.tunMode)
-            stopForeground(STOP_FOREGROUND_REMOVE)
-            stopSelf()
+        stopJob = scope.launch {
+            cleanupMutex.withLock {
+                startJob?.cancelAndJoin()
+                monitorJob?.cancelAndJoin()
+                val storage = PlatformStorage(this@StellibertyRootService)
+                val runningSubscriptionId = storage.getString(StorageKeys.ROOT_ACTIVE_SUBSCRIPTION_ID, "").ifEmpty { null }
+                if (!stopRunner()) return@launch
+                teardownAllRootRules()
+                runningSubscriptionId?.let { ProfileFileOps.cleanupRootRuntime(this@StellibertyRootService, it) }
+                clearPersistedState(storage)
+                storage.putString(StorageKeys.SERVICE_WAS_RUNNING, "false")
+                ProxyServiceBridge.markStopped(currentSubmode.tunMode)
+                stopForeground(STOP_FOREGROUND_REMOVE)
+                stopSelf()
+            }
         }
     }
 
     override fun onDestroy() {
         dnsCoordinator.close()
-        notificationRefreshJob?.cancel()
         monitorJob?.cancel()
         dynamicNotification.stop()
         ProxyServiceBridge.markStoppedUnlessError(currentSubmode.tunMode)

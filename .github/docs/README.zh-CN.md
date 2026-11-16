@@ -168,7 +168,9 @@ python scripts/build.py --dev
 |---|---|
 | `python scripts/build.py compile --dev` | 只编译调试版 Kotlin，跳过原生内核构建 |
 | `python scripts/build.py --dev` | 构建调试版 APK |
-| `python scripts/build.py` | 构建正式 APK |
+| `python scripts/build.py` | 显示构建帮助 |
+| `python scripts/build.py apk` | 构建正式 APK |
+| `python scripts/build.py --dev --jobs 12` | 指定 1～64 个 Gradle worker，默认 12 |
 | `python scripts/build.py --abi x86_64` | 指定目标架构 |
 | `python scripts/build.py --version 1.0.1-beta1` | 临时覆盖安装包版本，不修改源码中的版本号 |
 | `python scripts/prebuild.py --refresh-geo` | 更新内置 GeoIP 资源 |

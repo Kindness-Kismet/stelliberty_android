@@ -24,6 +24,7 @@ import com.stelliberty.android.platform.PlatformStorage
 import com.stelliberty.android.platform.StorageKeys
 import com.stelliberty.android.ui.component.AdaptiveTopAppBar
 import com.stelliberty.android.ui.component.CardItem
+import com.stelliberty.android.ui.component.PreferenceLayout
 import com.stelliberty.android.ui.component.blur.BlurredBar
 import com.stelliberty.android.ui.component.blur.rememberBlurBackdrop
 import com.stelliberty.android.ui.component.groupedCardItems
@@ -33,7 +34,6 @@ import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.preference.SwitchPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -91,10 +91,9 @@ fun VpnSettingsScreen(
                 .overScrollVertical()
                 .nestedScroll(scrollBehavior.nestedScrollConnection),
             contentPadding = PaddingValues(
-                top = innerPadding.calculateTopPadding(),
+                top = innerPadding.calculateTopPadding() + PreferenceLayout.TopSpacing,
             ),
         ) {
-            item { SmallTitle(text = stringResource(R.string.vpn_tunnel)) }
             groupedCardItems(
                 keyPrefix = "vpn_tunnel",
                 outerBottomPadding = 0.dp,
