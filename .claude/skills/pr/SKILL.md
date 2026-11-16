@@ -34,18 +34,19 @@ Uncommitted changes are absent from a remote PR. Include them in a draft only wh
 
 Title: the commit skill's `<scope>: <summary>` convention — English, imperative, sentence case, at most 72 characters, no trailing period — covering the final PR scope.
 
-Body: start with the concrete problem and resulting behavior. Add a trigger and before/after example when useful, and a non-obvious cause or tradeoff when a reviewer needs it. A small change needs one or two sentences plus validation.
+PR 正文直观、简洁地说明比较范围内的最终变化，适当润色，让读者容易看懂新增、改善和修复了什么。
 
-- Summarize the final implementation; merge repeated changes and leave reverted work and session history out.
-- List actual validation commands and outcomes, distinguishing Kotlin compilation, APK packaging, device verification, and CI.
-- Mention limitations, compatibility, or release effects when the change supports them.
-- Link related issues when known; use a closing keyword only when the PR fully resolves the issue.
-- Follow a repository PR template if one exists; otherwise use short prose and add sections only where they help.
-- When the scope changes, rewrite the title and body around the final result.
+- 发布 PR 先核对基准版本和目标版本，在开头写明版本范围；功能 PR 按实际分支差异描述，不编造版本号。
+- 按功能合并相关改动，省略已被回退或替代的中间方案；用简短段落或条目描述具体问题和最终行为，避免实现流水账。
+- 测试细节、构建与审查结果、用户的本地要求、对话过程及后续工作安排保留在提交说明或本地记录中，不写进 PR 正文。
+- 已知相关 issue 时附上链接；只有完整解决问题时才使用关闭关键词。
+- 范围变化后，按最终结果重写标题和正文。
 
 Release preparation uses the [version-bump skill](../version-bump/SKILL.md); `.github/CHANGELOG.md` keeps its bilingual format while the PR text stays English. Ordinary PRs leave versions and the changelog as they are.
 
 ## Validate the proposed head
+
+以下要求供准备和审查时内部核对，不作为 PR 正文模板。
 
 Apply the validation in the [commit skill](../commit/SKILL.md#validate-and-finish) and the affected subsystem skills. Check the full comparison with `git diff --check BASE...HEAD`, check pending edits separately, and confirm the tracked-file allowlist and skill mirror parity.
 
