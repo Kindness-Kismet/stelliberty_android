@@ -48,7 +48,6 @@ import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.blur.layerBackdrop
@@ -141,7 +140,6 @@ fun RootSettingsScreen(
             ),
         ) {
             item { RestartRequiredHint() }
-            item { SmallTitle(text = stringResource(R.string.root_section_device)) }
             groupedCardItems(
                 keyPrefix = "root_device",
                 outerBottomPadding = 12.dp,
@@ -181,7 +179,6 @@ fun RootSettingsScreen(
                     },
                 ),
             )
-            item { SmallTitle(text = stringResource(R.string.root_section_tether)) }
             if (showTproxyWarning) {
                 item {
                     Card(

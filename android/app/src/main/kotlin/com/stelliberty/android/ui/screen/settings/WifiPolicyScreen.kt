@@ -35,6 +35,7 @@ import com.stelliberty.android.platform.WifiPolicyController
 import com.stelliberty.android.platform.showToast
 import com.stelliberty.android.ui.component.AdaptiveTopAppBar
 import com.stelliberty.android.ui.component.CardItem
+import com.stelliberty.android.ui.component.PreferenceLayout
 import com.stelliberty.android.ui.component.blur.BlurredBar
 import com.stelliberty.android.ui.component.blur.rememberBlurBackdrop
 import com.stelliberty.android.ui.component.groupedCardItems
@@ -45,7 +46,6 @@ import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.preference.ArrowPreference
@@ -268,12 +268,11 @@ fun WifiPolicyScreen(
                     .nestedScroll(scrollBehavior.nestedScrollConnection)
                     .imePadding(),
                 contentPadding = PaddingValues(
-                    top = innerPadding.calculateTopPadding(),
+                    top = innerPadding.calculateTopPadding() + PreferenceLayout.TopSpacing,
                     start = sidePadding,
                     end = sidePadding,
                 ),
             ) {
-                item { SmallTitle(text = stringResource(R.string.wifi_policy_basic)) }
                 groupedCardItems(
                     keyPrefix = "wifi_policy_control",
                     items = listOf(
@@ -330,7 +329,6 @@ fun WifiPolicyScreen(
                     ),
                 )
 
-                item { SmallTitle(text = stringResource(R.string.wifi_policy_ssids_title)) }
                 groupedCardItems(
                     keyPrefix = "wifi_policy_ssids",
                     items = ssidCardItems,

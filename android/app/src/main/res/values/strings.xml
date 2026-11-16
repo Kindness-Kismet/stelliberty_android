@@ -310,7 +310,6 @@
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
-    <string name="settings_group_automation">Automation</string>
     <string name="clash_features_title">Clash Features</string>
     <string name="clash_features_summary">Network, ports, system integration, DNS, and core options</string>
     <string name="port_control_title">Port Control</string>
@@ -322,7 +321,6 @@
     <string name="data_management_title">Data Management</string>
     <string name="age_key_title">Age Keys</string>
     <string name="age_key_summary">Generate key pairs for encrypted subscriptions</string>
-    <string name="settings_general">General</string>
     <string name="settings_tun_mode">Tunnel Mode</string>
     <string name="settings_tun_vpn_summary">via VpnService</string>
     <string name="settings_tun_root_tun_summary">owns TUN device</string>
@@ -406,7 +404,6 @@
 
     <!-- VPN Settings -->
     <string name="vpn_settings_title">VPN Settings</string>
-    <string name="vpn_tunnel">VPN Tunnel</string>
     <string name="vpn_bypass_private">Bypass Private Network</string>
     <string name="vpn_bypass_private_summary">Exclude LAN addresses from VPN routing</string>
     <string name="vpn_allow_bypass">Allow App Bypass</string>
@@ -421,8 +418,6 @@
     <!-- ROOT Mode -->
     <string name="root_settings_title">ROOT Settings</string>
     <string name="root_settings_summary">TUN device name, hotspot client traffic</string>
-    <string name="root_section_device">TUN Device</string>
-    <string name="root_section_tether">Hotspot</string>
     <string name="root_tether_mode_title">Hotspot client traffic</string>
     <string name="root_tether_mode_bypass">Bypass proxy</string>
     <string name="root_tether_mode_proxy">Through proxy</string>
@@ -441,13 +436,11 @@
 
     <!-- Network Settings -->
     <string name="network_settings_title">Network</string>
-    <string name="network_proxy_ports">Proxy Ports</string>
     <string name="network_http_port">HTTP Port</string>
     <string name="network_socks_port">SOCKS Port</string>
     <string name="network_redir_port">Redir Port</string>
     <string name="network_tproxy_port">TProxy Port</string>
     <string name="network_mixed_port">Mixed Port</string>
-    <string name="network_options">Network Options</string>
     <string name="network_allow_lan">Allow LAN</string>
     <string name="network_bind_address">Bind Address</string>
     <string name="network_dns_enable">Enable DNS</string>
@@ -471,7 +464,6 @@
 
     <!-- Wi-Fi Policy -->
     <string name="wifi_policy_title">Wi-Fi Auto Switch</string>
-    <string name="wifi_policy_basic">Basic</string>
     <string name="wifi_policy_enable">Enable</string>
     <string name="wifi_policy_enable_summary">Apply policy when current Wi-Fi matches the list</string>
     <string name="wifi_policy_notify_switch">Switch notifications</string>
@@ -483,7 +475,6 @@
     <string name="wifi_policy_action_stop_summary">Stop proxy on matched Wi-Fi, restart after disconnecting</string>
     <string name="wifi_policy_action_direct">Direct mode</string>
     <string name="wifi_policy_action_direct_summary">Switch the running proxy to Direct mode without restarting</string>
-    <string name="wifi_policy_ssids_title">Wi-Fi Names</string>
     <string name="wifi_policy_ssid_add_placeholder">Wi-Fi name</string>
     <string name="wifi_policy_ssid_add">Add SSID</string>
     <string name="wifi_policy_ssid_scan">Fill current Wi-Fi</string>
@@ -502,7 +493,6 @@
     <string name="performance_geodata_mode">Geodata Mode</string>
     <string name="network_tcp_concurrent">TCP Concurrent</string>
     <string name="performance_find_process_mode">Process Match Mode</string>
-    <string name="network_sniffer">Sniffer</string>
     <string name="network_sniffer_enable">Enable Sniffer</string>
     <string name="network_sniffer_force_dns_mapping">Force DNS Mapping</string>
     <string name="network_sniffer_parse_pure_ip">Parse Pure IP</string>
@@ -531,7 +521,6 @@
     <string name="app_proxy_applied">Per-app proxy applied</string>
 
     <!-- External Control -->
-    <string name="external_control_title">External Controller</string>
     <string name="external_control_ip">API Address</string>
     <string name="external_control_controller_hint">Bind address for the HTTP API (e.g. 127.0.0.1:9090). 0.0.0.0 will be automatically overwritten with 127.0.0.1.</string>
     <string name="external_control_secret">API Secret</string>

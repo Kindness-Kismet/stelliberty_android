@@ -13,12 +13,12 @@ import com.stelliberty.android.platform.ProxyServiceBridge
 import com.stelliberty.android.platform.StorageKeys
 import com.stelliberty.android.platform.TunMode
 import com.stelliberty.android.ui.component.CardItem
+import com.stelliberty.android.ui.component.PreferenceLayout
 import com.stelliberty.android.ui.component.SingleChoicePreference
 import com.stelliberty.android.ui.component.groupedCardItems
 import com.stelliberty.android.ui.navigation.MainTab
 import com.stelliberty.android.util.AppLogger
 import kotlinx.collections.immutable.toImmutableList
-import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
 import top.yukonga.miuix.kmp.preference.SwitchPreference
@@ -61,7 +61,11 @@ fun AppBehaviorScreen(
         TunMode.fromStorage(storage.getString(StorageKeys.TUN_MODE, TunMode.Vpn.storageValue)) == TunMode.Vpn
     }
 
-    SettingsSubPage(title = stringResource(R.string.app_behavior_title), onBack = onBack) {
+    SettingsSubPage(
+        title = stringResource(R.string.app_behavior_title),
+        onBack = onBack,
+        topSpacing = PreferenceLayout.TopSpacing,
+    ) {
         groupedCardItems(
             keyPrefix = "app_behavior_navigation",
             items = listOf(
@@ -89,7 +93,6 @@ fun AppBehaviorScreen(
                 },
             ),
         )
-        item { SmallTitle(text = stringResource(R.string.settings_group_automation)) }
         groupedCardItems(
             keyPrefix = "app_behavior_automation",
             items = buildList {
@@ -138,7 +141,6 @@ fun AppBehaviorScreen(
             },
         )
 
-        item { SmallTitle(text = stringResource(R.string.settings_general)) }
         groupedCardItems(
             keyPrefix = "app_behavior_general",
             items = buildList {

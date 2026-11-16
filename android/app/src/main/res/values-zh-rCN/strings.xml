@@ -308,7 +308,6 @@
 
     <!-- Settings -->
     <string name="settings_title">设置</string>
-    <string name="settings_group_automation">自动化</string>
     <string name="clash_features_title">Clash 特性</string>
     <string name="clash_features_summary">网络、端口、系统集成、DNS 与核心参数</string>
     <string name="port_control_title">端口控制</string>
@@ -320,7 +319,6 @@
     <string name="data_management_title">数据管理</string>
     <string name="age_key_title">Age 密钥</string>
     <string name="age_key_summary">为加密订阅生成密钥对</string>
-    <string name="settings_general">通用</string>
     <string name="settings_tun_mode">隧道模式</string>
     <string name="settings_tun_vpn_summary">通过 VpnService</string>
     <string name="settings_tun_root_tun_summary">自建 TUN 设备</string>
@@ -404,7 +402,6 @@
 
     <!-- VPN Settings -->
     <string name="vpn_settings_title">VPN 设置</string>
-    <string name="vpn_tunnel">VPN 隧道</string>
     <string name="vpn_bypass_private">绕过私有网络</string>
     <string name="vpn_bypass_private_summary">排除局域网地址，不通过 VPN 路由</string>
     <string name="vpn_allow_bypass">允许应用绕过</string>
@@ -419,8 +416,6 @@
     <!-- ROOT 模式 -->
     <string name="root_settings_title">ROOT 设置</string>
     <string name="root_settings_summary">TUN 设备名、热点客户端流量</string>
-    <string name="root_section_device">TUN 设备</string>
-    <string name="root_section_tether">热点</string>
     <string name="root_tether_mode_title">热点客户端流量</string>
     <string name="root_tether_mode_bypass">绕过代理</string>
     <string name="root_tether_mode_proxy">走代理</string>
@@ -439,13 +434,11 @@
 
     <!-- Network Settings -->
     <string name="network_settings_title">网络设置</string>
-    <string name="network_proxy_ports">代理端口</string>
     <string name="network_http_port">HTTP 端口</string>
     <string name="network_socks_port">SOCKS 端口</string>
     <string name="network_redir_port">Redir 端口</string>
     <string name="network_tproxy_port">TProxy 端口</string>
     <string name="network_mixed_port">Mixed 端口</string>
-    <string name="network_options">网络选项</string>
     <string name="network_allow_lan">允许局域网</string>
     <string name="network_bind_address">绑定地址</string>
     <string name="network_dns_enable">启用 DNS</string>
@@ -469,7 +462,6 @@
 
     <!-- Wi-Fi 策略 -->
     <string name="wifi_policy_title">Wi-Fi 自动切换</string>
-    <string name="wifi_policy_basic">基本</string>
     <string name="wifi_policy_enable">启用</string>
     <string name="wifi_policy_enable_summary">当前 Wi-Fi 匹配列表时自动应用策略</string>
     <string name="wifi_policy_notify_switch">切换通知</string>
@@ -481,7 +473,6 @@
     <string name="wifi_policy_action_stop_summary">匹配 Wi-Fi 时停止代理，断开后自动启动</string>
     <string name="wifi_policy_action_direct">Direct 模式</string>
     <string name="wifi_policy_action_direct_summary">无需重启，直接把运行中的代理切到 Direct 模式</string>
-    <string name="wifi_policy_ssids_title">Wi-Fi 名称</string>
     <string name="wifi_policy_ssid_add_placeholder">Wi-Fi 名称</string>
     <string name="wifi_policy_ssid_add">添加 SSID</string>
     <string name="wifi_policy_ssid_scan">填入当前 Wi-Fi</string>
@@ -500,7 +491,6 @@
     <string name="performance_geodata_mode">Geodata 模式</string>
     <string name="network_tcp_concurrent">TCP 并发</string>
     <string name="performance_find_process_mode">进程匹配模式</string>
-    <string name="network_sniffer">嗅探器</string>
     <string name="network_sniffer_enable">启用嗅探器</string>
     <string name="network_sniffer_force_dns_mapping">强制 DNS 映射</string>
     <string name="network_sniffer_parse_pure_ip">解析纯 IP</string>
@@ -529,7 +519,6 @@
     <string name="app_proxy_applied">已应用分应用代理</string>
 
     <!-- External Control -->
-    <string name="external_control_title">外部控制器</string>
     <string name="external_control_ip">API 地址</string>
     <string name="external_control_controller_hint">HTTP API 的监听地址（例如 127.0.0.1:9090）。0.0.0.0 将被自动覆写为 127.0.0.1。</string>
     <string name="external_control_secret">API 密钥</string>

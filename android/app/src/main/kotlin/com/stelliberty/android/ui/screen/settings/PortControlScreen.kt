@@ -12,7 +12,6 @@ import com.stelliberty.android.ui.component.FieldHint
 import com.stelliberty.android.ui.component.RestartRequiredHint
 import com.stelliberty.android.ui.component.groupedCardItems
 import com.stelliberty.android.viewmodel.ClashFeaturesViewModel
-import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 
 @Composable
@@ -40,7 +39,6 @@ fun PortControlScreen(
     SettingsSubPage(title = stringResource(R.string.port_control_title), onBack = onBack) {
         item { RestartRequiredHint() }
 
-        item { SmallTitle(text = stringResource(R.string.network_proxy_ports)) }
         groupedCardItems(
             keyPrefix = "port_proxy",
             items = listOf(
@@ -52,7 +50,6 @@ fun PortControlScreen(
             ),
         )
 
-        item { SmallTitle(text = stringResource(R.string.external_control_title)) }
         groupedCardItems(
             keyPrefix = "port_controller",
             items = listOf(
