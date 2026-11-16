@@ -11,7 +11,6 @@ import com.stelliberty.android.platform.BootStartManager
 import com.stelliberty.android.platform.PlatformStorage
 import com.stelliberty.android.platform.ProxyServiceBridge
 import com.stelliberty.android.platform.StorageKeys
-import com.stelliberty.android.platform.TunMode
 import com.stelliberty.android.ui.component.CardItem
 import com.stelliberty.android.ui.component.PreferenceLayout
 import com.stelliberty.android.ui.component.SingleChoicePreference
@@ -56,11 +55,6 @@ fun AppBehaviorScreen(
     var appLogLevel by remember {
         mutableStateOf(storage.getString(StorageKeys.APP_LOG_LEVEL, AppLogger.DEFAULT_LEVEL))
     }
-    // ROOT 模式的通知固定为静态，动态通知只在 VPN 模式可选。
-    val isVpnMode = remember {
-        TunMode.fromStorage(storage.getString(StorageKeys.TUN_MODE, TunMode.Vpn.storageValue)) == TunMode.Vpn
-    }
-
     SettingsSubPage(
         title = stringResource(R.string.app_behavior_title),
         onBack = onBack,
@@ -157,12 +151,8 @@ fun AppBehaviorScreen(
                 add(CardItem("dynamicNotification") {
                     SwitchPreference(
                         title = stringResource(R.string.settings_dynamic_notification),
-                        summary = stringResource(
-                            if (isVpnMode) R.string.settings_dynamic_notification_summary
-                            else R.string.settings_dynamic_notification_summary_root_unsupported
-                        ),
-                        checked = isDynamicNotificationEnabled && isVpnMode,
-                        enabled = isVpnMode,
+                        summary = stringResource(R.string.settings_dynamic_notification_summary),
+                        checked = isDynamicNotificationEnabled,
                         onCheckedChange = { checked ->
                             storage.putString(StorageKeys.DYNAMIC_NOTIFICATION, checked.toString())
                             isDynamicNotificationEnabled = checked

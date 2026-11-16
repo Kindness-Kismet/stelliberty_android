@@ -15,6 +15,7 @@
 
     <!-- VPN Notifications -->
     <string name="notification_loading">Starting…</string>
+    <string name="notification_close">Close</string>
     <string name="settings_launch_tab">Page on app launch</string>
     <string name="settings_tile_long_press_tab">Page on tile long press</string>
     <string name="notification_running_title">Stelliberty Running</string>
@@ -337,7 +338,6 @@
     <string name="settings_wifi_policy_summary">Stop service or use DIRECT on selected Wi-Fi</string>
     <string name="settings_dynamic_notification">Dynamic Notification</string>
     <string name="settings_dynamic_notification_summary">Show real-time speed and traffic in notification</string>
-    <string name="settings_dynamic_notification_summary_root_unsupported">VPN mode only</string>
     <string name="update_proxy_mode">Update Proxy</string>
     <string name="update_proxy_direct">Direct</string>
     <string name="update_proxy_system">System Proxy</string>

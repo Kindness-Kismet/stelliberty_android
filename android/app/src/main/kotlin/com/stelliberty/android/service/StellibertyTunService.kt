@@ -33,6 +33,8 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
 
@@ -50,7 +52,9 @@ class StellibertyTunService : VpnService() {
     private val transformWriter: ProfileTransformWriter by inject()
     private var tunFd: Int = -1
     private var monitorJob: Job? = null
-    private var notificationRefreshJob: Job? = null
+    private var restartJob: Job? = null
+    private var stopJob: Job? = null
+    private val cleanupMutex = Mutex()
 
     @Volatile
     private var startJob: Job? = null
@@ -74,17 +78,6 @@ class StellibertyTunService : VpnService() {
             )
             stopSelf()
             return
-        }
-        notificationRefreshJob = scope.launch {
-            ProxyServiceBridge.notificationRefresh.collect {
-                val state = ProxyServiceBridge.state.value
-                if (state.state == ProxyState.Running && state.tunMode == TunMode.Vpn) {
-                    dynamicNotification.stop()
-                    dynamicNotification.startOrFallbackStatic(
-                        PlatformStorage(this@StellibertyTunService),
-                    )
-                }
-            }
         }
     }
 
@@ -344,7 +337,7 @@ class StellibertyTunService : VpnService() {
                 )
             )
 
-            dynamicNotification.startOrFallbackStatic(storage)
+            dynamicNotification.start(storage)
             PlatformStorage(this@StellibertyTunService).putString(StorageKeys.SERVICE_WAS_RUNNING, "true")
             AppLogger.info(TAG, "Proxy running, fd=$fd")
 
@@ -382,33 +375,41 @@ class StellibertyTunService : VpnService() {
     }
 
     private fun restartProxy(subscriptionId: String?) {
+        if (stopJob?.isActive == true) return
+        restartJob?.cancel()
         AppLogger.info(TAG, "Restarting proxy...")
         ProxyServiceBridge.updateState(ProxyServiceStatus(ProxyState.Stopping, tunMode = TunMode.Vpn))
         dynamicNotification.stop()
-        scope.launch {
-            startJob?.cancelAndJoin()
-            monitorJob?.cancelAndJoin()
-            runner.stop()
-            closeTunFd()
-            withContext(Dispatchers.Main) {
-                startProxy(subscriptionId)
+        restartJob = scope.launch {
+            cleanupMutex.withLock {
+                startJob?.cancelAndJoin()
+                monitorJob?.cancelAndJoin()
+                runner.stop()
+                closeTunFd()
+                withContext(Dispatchers.Main) {
+                    startProxy(subscriptionId)
+                }
             }
         }
     }
 
     private fun stopProxy() {
+        restartJob?.cancel()
+        if (stopJob?.isActive == true) return
         AppLogger.info(TAG, "Stopping proxy...")
         ProxyServiceBridge.updateState(ProxyServiceStatus(ProxyState.Stopping, tunMode = TunMode.Vpn))
         dynamicNotification.stop()
-        scope.launch {
-            startJob?.cancelAndJoin()
-            monitorJob?.cancelAndJoin()
-            runner.stop()
-            closeTunFd()
-            PlatformStorage(this@StellibertyTunService).putString(StorageKeys.SERVICE_WAS_RUNNING, "false")
-            ProxyServiceBridge.markStopped(TunMode.Vpn)
-            stopForeground(STOP_FOREGROUND_REMOVE)
-            stopSelf()
+        stopJob = scope.launch {
+            cleanupMutex.withLock {
+                startJob?.cancelAndJoin()
+                monitorJob?.cancelAndJoin()
+                runner.stop()
+                closeTunFd()
+                PlatformStorage(this@StellibertyTunService).putString(StorageKeys.SERVICE_WAS_RUNNING, "false")
+                ProxyServiceBridge.markStopped(TunMode.Vpn)
+                stopForeground(STOP_FOREGROUND_REMOVE)
+                stopSelf()
+            }
         }
     }
 
@@ -432,7 +433,6 @@ class StellibertyTunService : VpnService() {
     }
 
     override fun onDestroy() {
-        notificationRefreshJob?.cancel()
         monitorJob?.cancel()
         dynamicNotification.stop()
         runner.stop()
@@ -446,18 +446,7 @@ class StellibertyTunService : VpnService() {
 
     override fun onRevoke() {
         AppLogger.info(TAG, "VPN revoked by system")
-        ProxyServiceBridge.updateState(ProxyServiceStatus(ProxyState.Stopping, tunMode = TunMode.Vpn))
-        dynamicNotification.stop()
-        PlatformStorage(this).putString(StorageKeys.SERVICE_WAS_RUNNING, "false")
-        scope.launch {
-            startJob?.cancelAndJoin()
-            monitorJob?.cancelAndJoin()
-            runner.stop()
-            closeTunFd()
-            ProxyServiceBridge.markStopped(TunMode.Vpn)
-            stopForeground(STOP_FOREGROUND_REMOVE)
-            stopSelf()
-        }
+        stopProxy()
     }
 
     companion object {

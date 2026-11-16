@@ -9,11 +9,12 @@ import android.content.Intent
 import androidx.core.app.NotificationCompat
 import com.stelliberty.android.MainActivity
 import com.stelliberty.android.R
+import com.stelliberty.android.platform.TunMode
 
 // 常驻服务与事件使用独立的固定编号，避免互相覆盖或取消。
 object NotificationHelper {
 
-    private const val CHANNEL_VPN = "stelliberty_vpn"
+    const val CHANNEL_VPN = "stelliberty_vpn"
     const val NOTIFICATION_ID_VPN = 1
 
     private const val CHANNEL_PROFILE_STATUS = "stelliberty_profile_status"
@@ -76,8 +77,10 @@ object NotificationHelper {
         return Notification.Builder(context, CHANNEL_VPN)
             .setContentTitle(title)
             .setContentText(content)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_tile)
             .setContentIntent(pendingIntent)
+            .addAction(stopAction(context))
+            .setDeleteIntent(dismissIntent(context))
             .setOngoing(true)
             .setCategory(Notification.CATEGORY_SERVICE)
             .setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE)
@@ -119,14 +122,45 @@ object NotificationHelper {
         return Notification.Builder(context, CHANNEL_VPN)
             .setContentTitle("$profileName • $uploadTotal↑ $downloadTotal↓")
             .setContentText("$uploadSpeed↑ $downloadSpeed↓")
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_tile)
             .setContentIntent(pendingIntent)
+            .addAction(stopAction(context))
+            .setDeleteIntent(dismissIntent(context))
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setShowWhen(false)
             .setCategory(Notification.CATEGORY_SERVICE)
             .setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE)
             .build()
+    }
+
+    private fun stopAction(context: Context): Notification.Action {
+        val intent = Intent(context, NotificationActionReceiver::class.java).apply {
+            action = NotificationActionReceiver.ACTION_STOP
+            val mode = if (context is StellibertyRootService) TunMode.RootTun else TunMode.Vpn
+            putExtra(NotificationActionReceiver.EXTRA_SERVICE_MODE, mode.storageValue)
+        }
+        val pendingIntent = PendingIntent.getBroadcast(
+            context, 0, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        return Notification.Action.Builder(
+            null,
+            context.getString(R.string.notification_close),
+            pendingIntent,
+        ).build()
+    }
+
+    private fun dismissIntent(context: Context): PendingIntent = PendingIntent.getBroadcast(
+        context, 0,
+        Intent(context, NotificationActionReceiver::class.java).setAction(NotificationActionReceiver.ACTION_DISMISS),
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
+
+    fun canShowProxyNotification(context: Context): Boolean {
+        val manager = context.getSystemService(NotificationManager::class.java)
+        return manager.areNotificationsEnabled() &&
+            manager.getNotificationChannel(CHANNEL_VPN)?.importance != NotificationManager.IMPORTANCE_NONE
     }
 
     fun buildWifiPolicyServiceNotification(context: Context): Notification {

@@ -41,6 +41,7 @@ internal fun runSettingsCommand(action: String, arg: String?, extras: Bundle?): 
                 debugResult(true, "$key=$items", command, key, "$key=${items.joinToString(",")}")
             } else {
                 storage.putString(key, value)
+                if (key == StorageKeys.DYNAMIC_NOTIFICATION) ProxyServiceBridge.requestNotificationRefresh()
                 debugResult(true, "$key=$value", command, key, "$key=$value")
             }
         }

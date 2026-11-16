@@ -75,4 +75,4 @@ sing-tun `auto_route` 的 catch-all ip rule（priority 9002）不区分本机与
 
 ## 通知
 
-ROOT 模式使用静态通知：`DynamicNotificationManager.startOrFallbackStatic` 在 `tunMode != Vpn` 时走静态分支，忽略 `DYNAMIC_NOTIFICATION` 偏好；设置开关在 ROOT 模式下 `enabled=false` 并附说明。VPN 靠 `BIND_VPN_SERVICE` 让进程处于 `BOUND_FOREGROUND_SERVICE`，CPU 保持活跃；ROOT 没有系统 binding，Activity 进后台后设备进入 idle，1Hz 的 `/traffic` WS 帧被合并、`notify()` 被批处理，动态通知随之冻结。`PARTIAL_WAKE_LOCK` 会被系统置为 DISABLED，且只阻止 SoC suspend、挡不住 CPU idle；唯一根治是引导用户开启 `IGNORE_BATTERY_OPTIMIZATIONS`，这里按平台限制处理。ROOT TUN 下 mihomo 持续 `read(tun_fd)` 让设备保持活跃，属于偶然现象。
+VPN / ROOT TUN / ROOT TPROXY 共用 `DYNAMIC_NOTIFICATION` 偏好与 `DynamicNotificationManager`，按内核 `/traffic` 推送刷新累计流量和速率。后台与息屏刷新受 Android 调度约束，不为通知持有唤醒锁或轮询保活；通知被划掉、应用或渠道禁用时取消通知流量订阅，重新启动服务后恢复本次会话的通知显示。

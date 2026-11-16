@@ -459,7 +459,11 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun refreshNotificationPermission() {
-        notificationsEnabled.value = getSystemService(NotificationManager::class.java).areNotificationsEnabled()
+        val enabled = getSystemService(NotificationManager::class.java).areNotificationsEnabled()
+        if (notificationsEnabled.value != enabled) {
+            notificationsEnabled.value = enabled
+            ProxyServiceBridge.requestNotificationRefresh()
+        }
     }
 
     private fun changeNotificationPermission(enabled: Boolean) {

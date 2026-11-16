@@ -46,9 +46,12 @@ object ProxyServiceBridge {
 
     private val _notificationRefresh = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val notificationRefresh: SharedFlow<Unit> = _notificationRefresh.asSharedFlow()
+    private val _notificationDismissed = MutableStateFlow(false)
+    val notificationDismissed: StateFlow<Boolean> = _notificationDismissed.asStateFlow()
 
     fun updateState(status: ProxyServiceStatus) {
         _state.value = status
+        if (status.state == ProxyState.Starting) _notificationDismissed.value = false
     }
 
     // 冷启动填初始值、停止态改模式两处共用。只动 tunMode 一个字段：整体覆盖会把 Error 的错误
@@ -77,5 +80,9 @@ object ProxyServiceBridge {
 
     fun requestNotificationRefresh() {
         _notificationRefresh.tryEmit(Unit)
+    }
+
+    fun dismissNotification() {
+        _notificationDismissed.value = true
     }
 }

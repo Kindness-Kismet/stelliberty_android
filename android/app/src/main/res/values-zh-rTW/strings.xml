@@ -13,6 +13,7 @@
 
     <!-- VPN Notifications -->
     <string name="notification_loading">正在啟動…</string>
+    <string name="notification_close">關閉</string>
     <string name="settings_launch_tab">開啟應用程式時的頁面</string>
     <string name="settings_tile_long_press_tab">長按圖塊時的頁面</string>
     <string name="notification_running_title">Stelliberty 執行中</string>
@@ -335,7 +336,6 @@
     <string name="settings_wifi_policy_summary">在指定 Wi-Fi 下停止服務或改為直連</string>
     <string name="settings_dynamic_notification">動態通知</string>
     <string name="settings_dynamic_notification_summary">在通知列顯示即時網速與流量</string>
-    <string name="settings_dynamic_notification_summary_root_unsupported">僅限 VPN 模式</string>
     <string name="update_proxy_mode">更新代理模式</string>
     <string name="update_proxy_direct">直連</string>
     <string name="update_proxy_system">系統代理</string>

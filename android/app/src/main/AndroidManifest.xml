@@ -124,6 +124,10 @@
             android:exported="false" />
 
         <receiver
+            android:name=".service.NotificationActionReceiver"
+            android:exported="false" />
+
+        <receiver
             android:name=".service.ProfileReceiver"
             android:enabled="true"
             android:exported="false">

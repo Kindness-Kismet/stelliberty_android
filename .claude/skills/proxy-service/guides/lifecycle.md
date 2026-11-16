@@ -40,6 +40,14 @@ Tun / Root / ProfileWorker 的 onCreate 均 `try { startForeground() } catch (Ex
 
 通知权限由「应用行为 → 应用通知」开关主动申请，首次启动不申请。开关读取 `NotificationManager.areNotificationsEnabled()`，拒绝后保持关闭；无法再次弹出授权框或用户要关闭时进入系统通知设置，返回时重新同步。前台服务仍按 Android 要求发布通知。
 
+代理的启动中、静态与动态通知共用「关闭」动作，通过不可变的显式 PendingIntent 进入非导出的 `NotificationActionReceiver`，取消待执行重启后由 Koin 单例 controller 停止当前模式。通知随 Service 的 `STOP_FOREGROUND_REMOVE` 移除；小图标复用 `ic_tile` 缩放后的应用前景轮廓。
+
+通知关闭也处理重启中的 Stopping：Service 取消 `restartJob`，`stopJob` 去重，重启与停止的清理共用 `cleanupMutex`，保证连续请求不会并发清理或在关闭后再次启动内核；VPN 授权撤销共用停止入口。
+
+通知 STOP 的不可变 Intent 携带所属服务类型，避免设置模式改变后停止错误服务；ROOT 停止不覆盖当前子模式，系统重建后从持久化状态恢复模式，并通过带进程归属校验的入口停止原内核。
+
+`DynamicNotificationManager` 在三种模式下统一管理刷新和权限广播。关闭动态通知、应用或渠道禁止通知、划掉通知时取消 `/traffic` 订阅；划掉状态保持到下次启动服务。权限广播与偏好事件驱动重新判断，不轮询通知状态；停止服务时一并取消监听器，通知发布在主线程串行执行。
+
 ## 配置变了就重启
 
 决策单点是 [ProxyServiceController.restartWhenReady](../../../../android/app/src/main/kotlin/com/stelliberty/android/platform/ProxyServiceController.kt)，读 ProxyServiceBridge：`uiState.isRunning` 在 Starting 窗口内仍为 false（同步加载 provider 时可达一分钟），以它为准会漏掉重启。Starting / Stopping 过渡态挂起等待收敛：落到 Running 补一次重启，落到 Stopped / Error 放弃（尊重用户中途的手动停止）。两个调用方：
