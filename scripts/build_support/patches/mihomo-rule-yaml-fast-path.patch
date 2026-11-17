@@ -1,0 +1,82 @@
+diff --git a/rules/provider/provider.go b/rules/provider/provider.go
+index 2e7829ae..de91f8cc 100644
+--- a/rules/provider/provider.go
++++ b/rules/provider/provider.go
+@@ -183,6 +183,7 @@ func rulesParse(buf []byte, strategy ruleStrategy, format P.RuleFormat) (ruleStr
+ 	firstLineBuffer := pool.GetBuffer()
+ 	defer pool.PutBuffer(firstLineBuffer)
+ 	firstLineLength := 0
++	simpleHeader := false
+ 
+ 	s := 0 // search start index
+ 	for s < len(buf) {
+@@ -220,6 +221,14 @@ func rulesParse(buf []byte, strategy ruleStrategy, format P.RuleFormat) (ruleStr
+ 			if trimLine[0] == '#' { // comment
+ 				continue
+ 			}
++			if simpleHeader && firstLineLength > 0 {
++				if rule, ok := simpleYAMLRule(line); ok {
++					if rule != "" {
++						strategy.Insert(rule)
++					}
++					continue
++				}
++			}
+ 			firstLineBuffer.Write(line)
+ 			if firstLineLength == 0 { // find payload head
+ 				firstLineLength = firstLineBuffer.Len()
+@@ -228,6 +237,8 @@ func rulesParse(buf []byte, strategy ruleStrategy, format P.RuleFormat) (ruleStr
+ 				err := yaml.Unmarshal(firstLineBuffer.Bytes(), schema)
+ 				firstLineBuffer.Truncate(firstLineLength)
+ 				if err == nil && (len(schema.Rules) > 0 || len(schema.Payload) > 0) { // found
++					header := bytes.TrimSpace(firstLineBuffer.Bytes())
++					simpleHeader = bytes.Equal(header, []byte("payload:")) || bytes.Equal(header, []byte("rules:"))
+ 					continue
+ 				}
+ 
+@@ -266,6 +277,45 @@ func rulesParse(buf []byte, strategy ruleStrategy, format P.RuleFormat) (ruleStr
+ 	return strategy, nil
+ }
+ 
++// 仅加速独立列表头下的简单 ASCII 标量；转义、标签、别名与复杂语法交给 YAML 解析器。
++func simpleYAMLRule(line []byte) (string, bool) {
++	line = bytes.Trim(line, " \r\n")
++	if len(line) < 3 || line[0] != '-' || line[1] != ' ' {
++		return "", false
++	}
++	value := bytes.Trim(line[2:], " ")
++	if len(value) == 0 {
++		return "", false
++	}
++	quote := value[0]
++	if quote == '\'' || quote == '"' {
++		if len(value) < 2 || value[len(value)-1] != quote {
++			return "", false
++		}
++		value = value[1 : len(value)-1]
++		for _, ch := range value {
++			if ch < 0x20 || ch > 0x7e || ch == quote || (quote == '"' && ch == '\\') {
++				return "", false
++			}
++		}
++		return string(value), true
++	}
++	if value[0] == ',' || bytes.Equal(value, []byte("-")) || value[len(value)-1] == ':' || bytes.Equal(value, []byte("null")) || bytes.Equal(value, []byte("Null")) || bytes.Equal(value, []byte("NULL")) {
++		return "", false
++	}
++	for _, ch := range value {
++		if ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch >= '0' && ch <= '9' {
++			continue
++		}
++		switch ch {
++		case '.', '-', '_', '+', '/', ':', ',':
++		default:
++			return "", false
++		}
++	}
++	return string(value), true
++}
++
+ func rulesParseInline(rs []string, strategy ruleStrategy) ruleStrategy {
+ 	strategy.Reset()
+ 	for _, r := range rs {

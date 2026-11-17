@@ -16,6 +16,8 @@ build 的 `--jobs` 默认 12，范围 1～64，实际命令透传 `--max-workers
 
 独有修复：`hub/route/common.go` 仅在 `RawPath` 非空时解码路由参数，避免节点名中的转义文本被二次解码。更新上游时保留这项语义，删除上游已吸收的补丁，并更新 `mihomo.version`、应用 Go 模块依赖与子模块指针；应用前验证干净源码，重复执行验证幂等性，两个 ABI 都完成完整构建。
 
+`rules/provider/provider.go` 对独立 `payload:` / `rules:` 列表头下的简单 ASCII 标量直接取值，减少大型规则集的逐行 YAML 解析开销；转义、标签、别名与复杂语法仍走 YAML 解析器。维护补丁时核对规则内容、复杂语法与空值处理一致。
+
 `prebuild.py` 首次下载最新稳定版 Go 到 `build/go/` 并校验官方 SHA256，日常构建离线复用；`--refresh-go` 检查更新，本地与发布工作流共用这套流程。`go.mod` 的兼容级别不能当作实际编译器版本。
 
 编译入口为 Gradle 注入便携 Go 的 `GOROOT` / `PATH` 和 `GOTOOLCHAIN=local`。实际版本通过 `stelliberty.goVersion` 传入 `GoBuildTask` 的任务输入，升级编译器必须触发内核重编译。
