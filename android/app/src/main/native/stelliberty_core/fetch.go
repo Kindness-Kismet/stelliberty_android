@@ -14,7 +14,6 @@ import (
 	"io"
 	"mime"
 	"net"
-	"net/http"
 	"net/netip"
 	"net/url"
 	"os"
@@ -26,9 +25,13 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/metacubex/http"
+	"github.com/metacubex/mihomo/component/ca"
+	"github.com/metacubex/mihomo/component/dialer"
 	clashHttp "github.com/metacubex/mihomo/component/http"
 	"github.com/metacubex/mihomo/config"
 	Const "github.com/metacubex/mihomo/constant"
+	"github.com/metacubex/mihomo/log"
 )
 
 const fetchTimeout = 60 * time.Second
@@ -97,14 +100,11 @@ func runFetchAndValid(
 		effectiveUA = clashHttp.UA()
 	}
 
-	var options []clashHttp.Option
-	if httpProxy != "" {
-		proxyURL, err := url.Parse(httpProxy)
-		if err != nil {
-			return nil, fmt.Errorf("parse http proxy: %w", err)
-		}
-		options = append(options, clashHttp.WithDialer(connectDialer{proxyAddr: proxyURL.Host}))
+	client, err := newFetchClient(httpProxy)
+	if err != nil {
+		return nil, err
 	}
+	defer client.CloseIdleConnections()
 
 	configPath := P.Join(workDir, "config.yaml")
 	result := &FetchResult{}
@@ -123,9 +123,11 @@ func runFetchAndValid(
 			Progress:    -1,
 			MaxProgress: -1,
 		})
-		if err := fetchURL(ctx, u, configPath, result, effectiveUA, options); err != nil {
+		started := time.Now()
+		if err := fetchURL(ctx, u, configPath, result, effectiveUA, client); err != nil {
 			return nil, err
 		}
+		log.Infoln("Configuration fetch complete in %dms", time.Since(started).Milliseconds())
 	}
 
 	raw, err := os.ReadFile(configPath)
@@ -144,7 +146,7 @@ func runFetchAndValid(
 	patchProvidersPath(rawCfg, providersDir)
 	result.BuiltinChainProxyNames = builtinChainProxyNames(rawCfg.Proxy)
 
-	prefetchProviders(ctx, token, rawCfg, effectiveUA, options)
+	prefetchProviders(ctx, token, rawCfg, effectiveUA, client)
 
 	if ctx.Err() != nil {
 		return nil, ctx.Err()
@@ -187,7 +189,48 @@ func setProgress(token int32, p FetchProgress) {
 	}
 }
 
-func fetchURL(ctx context.Context, u *url.URL, dest string, result *FetchResult, userAgent string, options []clashHttp.Option) error {
+// 连接只在一次导入内复用，结束时关闭，下一次导入按最新代理设置重新拨号。
+func newFetchClient(httpProxy string) (*http.Client, error) {
+	tlsConfig, err := ca.GetTLSConfig(ca.Option{})
+	if err != nil {
+		return nil, err
+	}
+	dial := func(ctx context.Context, network, address string) (net.Conn, error) {
+		return dialer.DialContext(ctx, network, address)
+	}
+	if httpProxy != "" {
+		proxyURL, err := url.Parse(httpProxy)
+		if err != nil {
+			return nil, fmt.Errorf("parse http proxy: %w", err)
+		}
+		dial = connectDialer{proxyAddr: proxyURL.Host}.DialContext
+	}
+	return &http.Client{Transport: &http.Transport{
+		DialContext:           dial,
+		TLSClientConfig:       tlsConfig,
+		ForceAttemptHTTP2:     true,
+		MaxIdleConns:          prefetchConcurrency,
+		MaxIdleConnsPerHost:   prefetchConcurrency,
+		IdleConnTimeout:       30 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: time.Second,
+	}}, nil
+}
+
+func fetchRequest(ctx context.Context, client *http.Client, u *url.URL, userAgent string) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", userAgent)
+	if user := u.User; user != nil {
+		password, _ := user.Password()
+		req.SetBasicAuth(user.Username(), password)
+	}
+	return client.Do(req)
+}
+
+func fetchURL(ctx context.Context, u *url.URL, dest string, result *FetchResult, userAgent string, client *http.Client) error {
 	scheme := strings.ToLower(u.Scheme)
 	if scheme != "http" && scheme != "https" {
 		return fmt.Errorf("unsupported scheme %s", u.Scheme)
@@ -196,8 +239,7 @@ func fetchURL(ctx context.Context, u *url.URL, dest string, result *FetchResult,
 	subCtx, cancel := context.WithTimeout(ctx, fetchTimeout)
 	defer cancel()
 
-	header := http.Header{"User-Agent": []string{userAgent}}
-	resp, err := clashHttp.HttpRequest(subCtx, u.String(), http.MethodGet, header, nil, options...)
+	resp, err := fetchRequest(subCtx, client, u, userAgent)
 	if err != nil {
 		return fmt.Errorf("http request: %w", err)
 	}
@@ -281,7 +323,7 @@ func parseUserinfo(header string, result *FetchResult) {
 	}
 }
 
-func prefetchProviders(ctx context.Context, token int32, cfg *config.RawConfig, userAgent string, options []clashHttp.Option) {
+func prefetchProviders(ctx context.Context, token int32, cfg *config.RawConfig, userAgent string, client *http.Client) {
 	type item struct {
 		key  string
 		url  string
@@ -305,6 +347,7 @@ func prefetchProviders(ctx context.Context, token int32, cfg *config.RawConfig, 
 	if total == 0 {
 		return
 	}
+	started := time.Now()
 	setProgress(token, FetchProgress{
 		Action:      "FetchProviders",
 		Args:        []string{items[0].key},
@@ -328,7 +371,9 @@ func prefetchProviders(ctx context.Context, token int32, cfg *config.RawConfig, 
 				return
 			}
 			if u, err := url.Parse(it.url); err == nil {
-				_ = fetchProvider(ctx, u, it.dest, userAgent, options)
+				if err := fetchProvider(ctx, u, it.dest, userAgent, client); err != nil {
+					log.Warnln("Prefetch provider %s failed: %v", it.key, err)
+				}
 			}
 			setProgress(token, FetchProgress{
 				Action:      "FetchProviders",
@@ -339,6 +384,7 @@ func prefetchProviders(ctx context.Context, token int32, cfg *config.RawConfig, 
 		}(it)
 	}
 	wg.Wait()
+	log.Infoln("Provider prefetch complete: %d providers in %dms", total, time.Since(started).Milliseconds())
 }
 
 func writeFileAtomic(dest string, src io.Reader) (int64, error) {
@@ -374,11 +420,10 @@ func writeFileAtomic(dest string, src io.Reader) (int64, error) {
 	return n, nil
 }
 
-func fetchProvider(ctx context.Context, u *url.URL, dest string, userAgent string, options []clashHttp.Option) error {
+func fetchProvider(ctx context.Context, u *url.URL, dest string, userAgent string, client *http.Client) error {
 	subCtx, cancel := context.WithTimeout(ctx, fetchTimeout)
 	defer cancel()
-	header := http.Header{"User-Agent": []string{userAgent}}
-	resp, err := clashHttp.HttpRequest(subCtx, u.String(), http.MethodGet, header, nil, options...)
+	resp, err := fetchRequest(subCtx, client, u, userAgent)
 	if err != nil {
 		return err
 	}
