@@ -12,7 +12,6 @@ user_invocable: true
 - 返回 Bundle 的 `ok=true` 才算成功。
 - 改单项设置用 `settings.set` 写明确值，当前状态始终确定。
 - `proxy.list` / `select` / `test_*` 与全部 `dns.*` 需要 mihomo 在跑，未运行时返回 `ok=false, message=Proxy is not running`，属预期结果。
-- VPN 链路可在真机或模拟器上验证，首次启动需处理系统 VPN 授权框；ROOT 两种模式在有 su 的设备上测。
 
 ## 业务逻辑用业务指令验证
 
