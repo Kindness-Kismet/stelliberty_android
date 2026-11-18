@@ -1,0 +1,78 @@
+diff --git a/adapter/provider/healthcheck.go b/adapter/provider/healthcheck.go
+index 822a00d5..bf112ef7 100644
+--- a/adapter/provider/healthcheck.go
++++ b/adapter/provider/healthcheck.go
+@@ -21,6 +21,22 @@ type HealthCheckOption struct {
+ 	Interval uint
+ }
+ 
++var autoHealthChecksGate sync.RWMutex
++
++// 自动测速等待配置与规则加载完成，手动测速保持即时执行。
++func PauseAutoHealthChecks() func() {
++	autoHealthChecksGate.Lock()
++	return autoHealthChecksGate.Unlock
++}
++
++func (hc *HealthCheck) autoCheck() {
++	autoHealthChecksGate.RLock()
++	autoHealthChecksGate.RUnlock()
++	if hc.ctx.Err() == nil {
++		hc.check()
++	}
++}
++
+ type extraOption struct {
+ 	expectedStatus utils.IntRanges[uint16]
+ 	filters        map[string]struct{}
+@@ -43,14 +59,14 @@ type HealthCheck struct {
+ 
+ func (hc *HealthCheck) process() {
+ 	ticker := time.NewTicker(hc.interval)
+-	go hc.check()
++	go hc.autoCheck()
+ 	for {
+ 		select {
+ 		case <-ticker.C:
+ 			lastTouch := hc.lastTouch.Load()
+ 			since := time.Since(lastTouch)
+ 			if !hc.lazy || since < hc.interval {
+-				hc.check()
++				hc.autoCheck()
+ 			} else {
+ 				log.Debugln("Skip once health check because we are lazy")
+ 			}
+diff --git a/adapter/provider/provider.go b/adapter/provider/provider.go
+index fa7d56bc..e545e1fa 100644
+--- a/adapter/provider/provider.go
++++ b/adapter/provider/provider.go
+@@ -107,7 +107,7 @@ func (bp *baseProvider) setProxies(proxies []C.Proxy) {
+ 	bp.version += 1
+ 	bp.healthCheck.setProxies(proxies)
+ 	if bp.healthCheck.auto() {
+-		go bp.healthCheck.check()
++		go bp.healthCheck.autoCheck()
+ 	}
+ }
+ 
+diff --git a/hub/executor/executor.go b/hub/executor/executor.go
+index 796face2..941ea210 100644
+--- a/hub/executor/executor.go
++++ b/hub/executor/executor.go
+@@ -14,6 +14,7 @@ import (
+ 	"github.com/metacubex/mihomo/adapter"
+ 	"github.com/metacubex/mihomo/adapter/inbound"
+ 	"github.com/metacubex/mihomo/adapter/outboundgroup"
++	"github.com/metacubex/mihomo/adapter/provider"
+ 	"github.com/metacubex/mihomo/component/auth"
+ 	"github.com/metacubex/mihomo/component/ca"
+ 	"github.com/metacubex/mihomo/component/dialer"
+@@ -84,6 +85,8 @@ func ParseWithBytes(buf []byte) (*config.Config, error) {
+ func ApplyConfig(cfg *config.Config, force bool) {
+ 	mux.Lock()
+ 	defer mux.Unlock()
++	resumeHealthChecks := provider.PauseAutoHealthChecks()
++	defer resumeHealthChecks()
+ 	log.SetLevel(cfg.General.LogLevel)
+ 
+ 	tunnel.OnSuspend()

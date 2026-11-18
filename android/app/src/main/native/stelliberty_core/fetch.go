@@ -31,7 +31,9 @@ import (
 	clashHttp "github.com/metacubex/mihomo/component/http"
 	"github.com/metacubex/mihomo/config"
 	Const "github.com/metacubex/mihomo/constant"
+	PProvider "github.com/metacubex/mihomo/constant/provider"
 	"github.com/metacubex/mihomo/log"
+	RP "github.com/metacubex/mihomo/rules/provider"
 )
 
 const fetchTimeout = 60 * time.Second
@@ -162,6 +164,7 @@ func runFetchAndValid(
 	if err != nil {
 		return nil, fmt.Errorf("validate config: %w", err)
 	}
+	warmRuleProviders(ctx, rawCfg)
 	destroyProviders(cfg)
 
 	return result, nil
@@ -328,9 +331,10 @@ func prefetchProviders(ctx context.Context, token int32, cfg *config.RawConfig, 
 		key  string
 		url  string
 		dest string
+		rule map[string]any
 	}
 	var items []item
-	forEachProviders(cfg, func(_, _ int, key string, provider map[string]any, _ string) {
+	forEachProviders(cfg, func(_, _ int, key string, provider map[string]any, kind string) {
 		vehicle, _ := provider["type"].(string)
 		urlStr, _ := provider["url"].(string)
 		dest, _ := provider["path"].(string)
@@ -340,7 +344,11 @@ func prefetchProviders(ctx context.Context, token int32, cfg *config.RawConfig, 
 		if _, err := os.Stat(dest); err == nil {
 			return
 		}
-		items = append(items, item{key: key, url: urlStr, dest: dest})
+		it := item{key: key, url: urlStr, dest: dest}
+		if kind == "rules" {
+			it.rule = provider
+		}
+		items = append(items, it)
 	})
 
 	total := len(items)
@@ -373,6 +381,8 @@ func prefetchProviders(ctx context.Context, token int32, cfg *config.RawConfig, 
 			if u, err := url.Parse(it.url); err == nil {
 				if err := fetchProvider(ctx, u, it.dest, userAgent, client); err != nil {
 					log.Warnln("Prefetch provider %s failed: %v", it.key, err)
+				} else if it.rule != nil && ctx.Err() == nil {
+					warmRuleProvider(it.key, it.rule)
 				}
 			}
 			setProgress(token, FetchProgress{
@@ -385,6 +395,43 @@ func prefetchProviders(ctx context.Context, token int32, cfg *config.RawConfig, 
 	}
 	wg.Wait()
 	log.Infoln("Provider prefetch complete: %d providers in %dms", total, time.Since(started).Milliseconds())
+}
+
+func warmRuleProviders(ctx context.Context, cfg *config.RawConfig) {
+	for name, rule := range cfg.RuleProvider {
+		if ctx.Err() != nil {
+			return
+		}
+		warmRuleProvider(name, rule)
+	}
+}
+
+func warmRuleProvider(name string, rule map[string]any) {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Debugln("Provider %s compiled cache preparation panic: %v", name, err)
+		}
+	}()
+	if kind, _ := rule["type"].(string); kind != "http" {
+		return
+	}
+	behaviorText, _ := rule["behavior"].(string)
+	behavior, err := PProvider.ParseBehavior(behaviorText)
+	if err != nil || behavior == PProvider.Classical {
+		return
+	}
+	format := PProvider.YamlRule
+	if text, _ := rule["format"].(string); text != "" {
+		format, err = PProvider.ParseRuleFormat(text)
+		if err != nil {
+			return
+		}
+	}
+	url, _ := rule["url"].(string)
+	path, _ := rule["path"].(string)
+	if err := RP.WarmCompiledRuleCache(name, url, path, behavior, format); err != nil {
+		log.Debugln("Provider %s compiled cache preparation skipped: %v", name, err)
+	}
 }
 
 func writeFileAtomic(dest string, src io.Reader) (int64, error) {

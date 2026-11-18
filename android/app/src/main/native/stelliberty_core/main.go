@@ -8,13 +8,16 @@ import "C"
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"unsafe"
 
 	"github.com/metacubex/mihomo/component/age"
+	"github.com/metacubex/mihomo/component/geodata/router"
 	"github.com/metacubex/mihomo/component/http"
 	"github.com/metacubex/mihomo/constant"
+	RP "github.com/metacubex/mihomo/rules/provider"
 )
 
 // Go 的崩溃穿过 C 边界会直接终止宿主进程，而这些函数是在应用自己的进程里跑的，死的是整个应用。
@@ -35,9 +38,17 @@ var (
 )
 
 //export stellibertyCoreInit
-func stellibertyCoreInit(homeDir *C.char) {
+func stellibertyCoreInit(homeDir, cacheDir *C.char) {
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Fprintln(os.Stderr, "core initialization panic:", err)
+		}
+	}()
 	initOnce.Do(func() {
 		constant.SetHomeDir(C.GoString(homeDir))
+		ruleCacheDir := filepath.Join(C.GoString(cacheDir), "rule-cache")
+		RP.SetCompiledRuleCacheDir(ruleCacheDir)
+		router.SetDomainMatcherCacheDir(filepath.Join(ruleCacheDir, "geosite"))
 		// 面板按 UA 里的客户端名与版本裁剪节点（如 CMFA < 2.9.0 不下发 Hysteria2），版本必须如实；
 		// 取内核 global-ua 默认值，与运行时刷新 provider 一致。
 		http.SetUA("clash.meta/" + constant.Version)

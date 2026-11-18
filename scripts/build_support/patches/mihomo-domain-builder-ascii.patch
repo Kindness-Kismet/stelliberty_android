@@ -1,0 +1,127 @@
+diff --git a/component/trie/domain_set.go b/component/trie/domain_set.go
+index 17fe90ff..46dedb43 100644
+--- a/component/trie/domain_set.go
++++ b/component/trie/domain_set.go
+@@ -36,6 +36,13 @@ type DomainSetBuilder struct {
+ // Insert validates and adds a domain pattern to the builder. It accepts the
+ // same domain syntax as [DomainTrie.Insert].
+ func (b *DomainSetBuilder) Insert(domain string) error {
++	if key, exact, ok := simpleDomainKey(domain); ok {
++		if exact {
++			b.keys = append(b.keys, key[:len(key)-2])
++		}
++		b.keys = append(b.keys, key)
++		return nil
++	}
+ 	parts, err := ValidAndSplitDomain(domain)
+ 	if err != nil {
+ 		return err
+@@ -50,6 +57,48 @@ func (b *DomainSetBuilder) Insert(domain string) error {
+ 	return nil
+ }
+ 
++// 常见 ASCII 域名直接校验并反转；复杂通配符与 Unicode 保留完整语法校验。
++func simpleDomainKey(domain string) (key string, exact, ok bool) {
++	start := 0
++	if strings.HasPrefix(domain, "+.") {
++		start = 2
++		exact = true
++	} else if strings.HasPrefix(domain, ".") {
++		start = 1
++	}
++	if len(domain) <= start || domain[len(domain)-1] == '.' {
++		return "", false, false
++	}
++	dot := true
++	for i := start; i < len(domain); i++ {
++		c := domain[i]
++		if c == '.' {
++			if dot {
++				return "", false, false
++			}
++			dot = true
++			continue
++		}
++		if !(c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '-' || c == '_') {
++			return "", false, false
++		}
++		dot = false
++	}
++	var reversed strings.Builder
++	reversed.Grow(len(domain) + 1)
++	for i := len(domain) - 1; i >= 0; i-- {
++		c := domain[i]
++		if c >= 'A' && c <= 'Z' {
++			c += 'a' - 'A'
++		}
++		reversed.WriteByte(c)
++	}
++	if start == 1 {
++		reversed.WriteByte('+')
++	}
++	return reversed.String(), exact, true
++}
++
+ func (b *DomainSetBuilder) insert(parts []string) {
+ 	if parts[0] == dotWildcard {
+ 		parts[0] = complexWildcard
+diff --git a/component/trie/domain_set_bin.go b/component/trie/domain_set_bin.go
+index 27d15802..1c536b81 100644
+--- a/component/trie/domain_set_bin.go
++++ b/component/trie/domain_set_bin.go
+@@ -18,11 +18,8 @@ func (ss *DomainSet) WriteBin(w io.Writer) (err error) {
+ 	if err != nil {
+ 		return err
+ 	}
+-	for _, d := range ss.leaves {
+-		err = binary.Write(w, binary.BigEndian, d)
+-		if err != nil {
+-			return err
+-		}
++	if err = binary.Write(w, binary.BigEndian, ss.leaves); err != nil {
++		return err
+ 	}
+ 
+ 	// labelBitmap
+@@ -30,11 +27,8 @@ func (ss *DomainSet) WriteBin(w io.Writer) (err error) {
+ 	if err != nil {
+ 		return err
+ 	}
+-	for _, d := range ss.labelBitmap {
+-		err = binary.Write(w, binary.BigEndian, d)
+-		if err != nil {
+-			return err
+-		}
++	if err = binary.Write(w, binary.BigEndian, ss.labelBitmap); err != nil {
++		return err
+ 	}
+ 
+ 	// labels
+@@ -73,11 +67,8 @@ func ReadDomainSetBin(r io.Reader) (ds *DomainSet, err error) {
+ 		return nil, errors.New("length is invalid")
+ 	}
+ 	ds.leaves = make([]uint64, length)
+-	for i := int64(0); i < length; i++ {
+-		err = binary.Read(r, binary.BigEndian, &ds.leaves[i])
+-		if err != nil {
+-			return nil, err
+-		}
++	if err = binary.Read(r, binary.BigEndian, ds.leaves); err != nil {
++		return nil, err
+ 	}
+ 
+ 	// labelBitmap
+@@ -89,11 +80,8 @@ func ReadDomainSetBin(r io.Reader) (ds *DomainSet, err error) {
+ 		return nil, errors.New("length is invalid")
+ 	}
+ 	ds.labelBitmap = make([]uint64, length)
+-	for i := int64(0); i < length; i++ {
+-		err = binary.Read(r, binary.BigEndian, &ds.labelBitmap[i])
+-		if err != nil {
+-			return nil, err
+-		}
++	if err = binary.Read(r, binary.BigEndian, ds.labelBitmap); err != nil {
++		return nil, err
+ 	}
+ 
+ 	// labels

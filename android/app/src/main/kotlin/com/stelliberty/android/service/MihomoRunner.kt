@@ -94,10 +94,12 @@ class MihomoRunner(private val context: Context) {
         }
 
         try {
+            val ruleCacheDir = File(context.cacheDir, "rule-cache").apply { mkdirs() }
             val args = buildList {
                 add("-d"); add(workDir.absolutePath)
                 add("-f"); add(configFile.absolutePath)
                 add("--override-json"); add(overrideJsonPath)
+                add("--rule-cache-dir"); add(ruleCacheDir.absolutePath)
                 if (transformPath != null) {
                     add("--transform"); add(transformPath)
                 }

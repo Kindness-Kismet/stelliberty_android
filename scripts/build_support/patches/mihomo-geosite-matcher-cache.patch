@@ -1,0 +1,337 @@
+diff --git a/component/geodata/router/condition.go b/component/geodata/router/condition.go
+index dd5b45bf..44a15c42 100644
+--- a/component/geodata/router/condition.go
++++ b/component/geodata/router/condition.go
+@@ -1,13 +1,22 @@
+ package router
+ 
+ import (
++	"bytes"
++	"crypto/sha256"
++	"encoding/binary"
++	"encoding/json"
+ 	"fmt"
+ 	"net/netip"
++	"os"
++	"path/filepath"
++	"sort"
+ 	"strings"
+ 
++	"github.com/metacubex/mihomo/common/utils"
+ 	"github.com/metacubex/mihomo/component/cidr"
+ 	"github.com/metacubex/mihomo/component/geodata/strmatcher"
+ 	"github.com/metacubex/mihomo/component/trie"
++	"github.com/metacubex/mihomo/log"
+ )
+ 
+ var matcherTypeMap = map[Domain_Type]strmatcher.Type{
+@@ -39,9 +48,20 @@ type DomainMatcher interface {
+ type succinctDomainMatcher struct {
+ 	set           *trie.DomainSet
+ 	otherMatchers []strmatcher.Matcher
++	otherPatterns []domainMatcherPattern
+ 	count         int
+ }
+ 
++type domainMatcherPattern struct {
++	Type  Domain_Type `json:"type"`
++	Value string      `json:"value"`
++}
++
++type domainMatcherMetadata struct {
++	Count    int                    `json:"count"`
++	Patterns []domainMatcherPattern `json:"patterns"`
++}
++
+ func (m *succinctDomainMatcher) ApplyDomain(domain string) bool {
+ 	isMatched := m.set.Has(domain)
+ 	if !isMatched {
+@@ -60,6 +80,38 @@ func (m *succinctDomainMatcher) Count() int {
+ }
+ 
+ func NewSuccinctMatcherGroup(domains []*Domain) (DomainMatcher, error) {
++	cachePath, sourceHash := domainMatcherCacheKey(domains)
++	return newSuccinctMatcherGroup(domains, cachePath, sourceHash)
++}
++
++func DomainMatcherCacheEnabled() bool {
++	return domainMatcherCacheDir != ""
++}
++
++func LoadGeoSiteMatcherCache(key [sha256.Size]byte) DomainMatcher {
++	if !DomainMatcherCacheEnabled() {
++		return nil
++	}
++	matcher := readDomainMatcherCache(filepath.Join(domainMatcherCacheDir, fmt.Sprintf("%x.matcher", key)), key)
++	if matcher == nil {
++		return nil
++	}
++	log.Infoln("[GeoSite] loaded compiled matcher with %d domains", matcher.Count())
++	return matcher
++}
++
++func NewGeoSiteMatcherGroup(domains []*Domain, key [sha256.Size]byte) (DomainMatcher, error) {
++	if !DomainMatcherCacheEnabled() {
++		return newSuccinctMatcherGroup(domains, "", key)
++	}
++	return newSuccinctMatcherGroup(domains, filepath.Join(domainMatcherCacheDir, fmt.Sprintf("%x.matcher", key)), key)
++}
++
++func newSuccinctMatcherGroup(domains []*Domain, cachePath string, sourceHash [sha256.Size]byte) (DomainMatcher, error) {
++	if cached := readDomainMatcherCache(cachePath, sourceHash); cached != nil && cached.Count() == len(domains) {
++		log.Infoln("[GeoSite] loaded compiled matcher with %d domains", len(domains))
++		return cached, nil
++	}
+ 	var builder trie.DomainSetBuilder
+ 	m := &succinctDomainMatcher{
+ 		count: len(domains),
+@@ -72,6 +124,7 @@ func NewSuccinctMatcherGroup(domains []*Domain) (DomainMatcher, error) {
+ 				return nil, err
+ 			}
+ 			m.otherMatchers = append(m.otherMatchers, matcher)
++			m.otherPatterns = append(m.otherPatterns, domainMatcherPattern{Type: d.Type, Value: d.Value})
+ 
+ 		case Domain_Domain:
+ 			err := builder.Insert("+." + d.Value)
+@@ -87,9 +140,177 @@ func NewSuccinctMatcherGroup(domains []*Domain) (DomainMatcher, error) {
+ 		}
+ 	}
+ 	m.set = builder.Build()
++	if cachePath != "" && m.set != nil {
++		if err := writeDomainMatcherCache(cachePath, sourceHash, m); err != nil {
++			log.Debugln("[GeoSite] compiled matcher cache write failed: %v", err)
++		}
++	}
+ 	return m, nil
+ }
+ 
++var domainMatcherCacheDir string
++var domainMatcherCacheMagic = [4]byte{'S', 'M', 'C', 2}
++
++const domainMatcherCacheHeader = 4 + 2*sha256.Size
++const domainMatcherCacheBudget = 16 * 1024 * 1024
++
++func SetDomainMatcherCacheDir(dir string) {
++	domainMatcherCacheDir = dir
++}
++
++// 按筛选后的域名类型与内容取键，属性筛选和地理数据更新自然生成新缓存。
++func domainMatcherCacheKey(domains []*Domain) (string, [sha256.Size]byte) {
++	if domainMatcherCacheDir == "" || len(domains) < 1024 {
++		return "", [sha256.Size]byte{}
++	}
++	hash := sha256.New()
++	var header [8]byte
++	for _, domain := range domains {
++		binary.BigEndian.PutUint32(header[:4], uint32(domain.Type))
++		binary.BigEndian.PutUint32(header[4:], uint32(len(domain.Value)))
++		hash.Write(header[:])
++		hash.Write(utils.ImmutableBytesFromString(domain.Value))
++	}
++	var sourceHash [sha256.Size]byte
++	copy(sourceHash[:], hash.Sum(nil))
++	return filepath.Join(domainMatcherCacheDir, fmt.Sprintf("%x.matcher", sourceHash)), sourceHash
++}
++
++func readDomainMatcherCache(path string, sourceHash [sha256.Size]byte) *succinctDomainMatcher {
++	if path == "" {
++		return nil
++	}
++	cache, err := os.ReadFile(path)
++	if err != nil || len(cache) <= domainMatcherCacheHeader {
++		return nil
++	}
++	data := cache[domainMatcherCacheHeader:]
++	dataHash := sha256.Sum256(data)
++	if !bytes.Equal(cache[:4], domainMatcherCacheMagic[:]) ||
++		!bytes.Equal(cache[4:4+sha256.Size], sourceHash[:]) ||
++		!bytes.Equal(cache[4+sha256.Size:domainMatcherCacheHeader], dataHash[:]) {
++		return nil
++	}
++	if len(data) < 4 {
++		return nil
++	}
++	metadataSize := int(binary.BigEndian.Uint32(data[:4]))
++	if metadataSize > len(data)-4 {
++		return nil
++	}
++	var metadata domainMatcherMetadata
++	if err := json.Unmarshal(data[4:4+metadataSize], &metadata); err != nil || metadata.Count < 1 {
++		return nil
++	}
++	set, err := trie.ReadDomainSetBin(bytes.NewReader(data[4+metadataSize:]))
++	if err != nil {
++		return nil
++	}
++	matcher := &succinctDomainMatcher{set: set, count: metadata.Count, otherPatterns: metadata.Patterns}
++	for _, pattern := range metadata.Patterns {
++		kind, exists := matcherTypeMap[pattern.Type]
++		if !exists || (pattern.Type != Domain_Plain && pattern.Type != Domain_Regex) {
++			return nil
++		}
++		other, err := kind.New(pattern.Value)
++		if err != nil {
++			return nil
++		}
++		matcher.otherMatchers = append(matcher.otherMatchers, other)
++	}
++	return matcher
++}
++
++func writeDomainMatcherCache(path string, sourceHash [sha256.Size]byte, matcher *succinctDomainMatcher) error {
++	var buffer bytes.Buffer
++	buffer.Write(domainMatcherCacheMagic[:])
++	buffer.Write(sourceHash[:])
++	buffer.Write(make([]byte, sha256.Size))
++	metadata, err := json.Marshal(domainMatcherMetadata{Count: matcher.count, Patterns: matcher.otherPatterns})
++	if err != nil {
++		return err
++	}
++	if err := binary.Write(&buffer, binary.BigEndian, uint32(len(metadata))); err != nil {
++		return err
++	}
++	buffer.Write(metadata)
++	if err := matcher.set.WriteBin(&buffer); err != nil {
++		return err
++	}
++	data := buffer.Bytes()
++	if len(data) > domainMatcherCacheBudget {
++		return fmt.Errorf("domain matcher cache exceeds %d bytes", domainMatcherCacheBudget)
++	}
++	dataHash := sha256.Sum256(data[domainMatcherCacheHeader:])
++	copy(data[4+sha256.Size:domainMatcherCacheHeader], dataHash[:])
++	dir := filepath.Dir(path)
++	if err := os.MkdirAll(dir, 0770); err != nil {
++		return err
++	}
++	info, err := os.Stat(dir)
++	if err != nil {
++		return err
++	}
++	if info.Mode().Perm() != 0770 {
++		if err := os.Chmod(dir, 0770); err != nil {
++			return err
++		}
++	}
++	tmp, err := os.CreateTemp(dir, ".domain-matcher-*")
++	if err != nil {
++		return err
++	}
++	defer os.Remove(tmp.Name())
++	if _, err := tmp.Write(data); err != nil {
++		tmp.Close()
++		return err
++	}
++	if err := tmp.Chmod(0640); err != nil {
++		tmp.Close()
++		return err
++	}
++	if err := tmp.Close(); err != nil {
++		return err
++	}
++	if err := os.Rename(tmp.Name(), path); err != nil {
++		return err
++	}
++	pruneDomainMatcherCache(dir, path)
++	return nil
++}
++
++func pruneDomainMatcherCache(dir, keep string) {
++	type entry struct {
++		path string
++		info os.FileInfo
++	}
++	items, err := os.ReadDir(dir)
++	if err != nil {
++		return
++	}
++	var files []entry
++	var total int64
++	for _, item := range items {
++		if item.IsDir() || !strings.HasSuffix(item.Name(), ".matcher") {
++			continue
++		}
++		info, err := item.Info()
++		if err == nil {
++			total += info.Size()
++			files = append(files, entry{filepath.Join(dir, item.Name()), info})
++		}
++	}
++	sort.Slice(files, func(i, j int) bool { return files[i].info.ModTime().Before(files[j].info.ModTime()) })
++	for _, file := range files {
++		if total <= domainMatcherCacheBudget {
++			break
++		}
++		if file.path != keep && os.Remove(file.path) == nil {
++			total -= file.info.Size()
++		}
++	}
++}
++
+ type v2rayDomainMatcher struct {
+ 	matchers strmatcher.IndexMatcher
+ 	count    int
+diff --git a/component/geodata/utils.go b/component/geodata/utils.go
+index ee7946a6..5c447bf2 100644
+--- a/component/geodata/utils.go
++++ b/component/geodata/utils.go
+@@ -1,7 +1,10 @@
+ package geodata
+ 
+ import (
++	"crypto/sha256"
+ 	"fmt"
++	"io"
++	"os"
+ 	"strings"
+ 
+ 	"github.com/metacubex/mihomo/common/singleflight"
+@@ -96,6 +99,12 @@ func LoadGeoSiteMatcher(countryCode string) (router.DomainMatcher, error) {
+ 	}
+ 	matcher, err, shared := loadGeoSiteMatcherSF.Do(matcherName, func() (router.DomainMatcher, error) {
+ 		log.Infoln("Load GeoSite rule: %s", matcherName)
++		cacheKey, cacheAvailable := geoSiteMatcherCacheKey(matcherName)
++		if cacheAvailable {
++			if cached := router.LoadGeoSiteMatcherCache(cacheKey); cached != nil {
++				return cached, nil
++			}
++		}
+ 		domains, err, shared := loadGeoSiteMatcherListSF.Do(listName, func() ([]*router.Domain, error) {
+ 			geoLoader, err := GetGeoDataLoader(geoLoaderName)
+ 			if err != nil {
+@@ -136,6 +145,8 @@ func LoadGeoSiteMatcher(countryCode string) (router.DomainMatcher, error) {
+ 		*/
+ 		if geoSiteMatcher == "mph" {
+ 			return router.NewMphMatcherGroup(domains)
++		} else if cacheAvailable {
++			return router.NewGeoSiteMatcherGroup(domains, cacheKey)
+ 		} else {
+ 			return router.NewSuccinctMatcherGroup(domains)
+ 		}
+@@ -153,6 +164,26 @@ func LoadGeoSiteMatcher(countryCode string) (router.DomainMatcher, error) {
+ 	return matcher, nil
+ }
+ 
++// 完整数据内容与筛选条件共同取键，命中后直接恢复匹配器，跳过原始域名列表的解码。
++func geoSiteMatcherCacheKey(name string) ([sha256.Size]byte, bool) {
++	var key [sha256.Size]byte
++	if geoSiteMatcher != "succinct" || !router.DomainMatcherCacheEnabled() {
++		return key, false
++	}
++	file, err := os.Open(C.Path.GeoSite())
++	if err != nil {
++		return key, false
++	}
++	defer file.Close()
++	hash := sha256.New()
++	if _, err := io.Copy(hash, file); err != nil {
++		return key, false
++	}
++	hash.Write([]byte("\x00" + geoLoaderName + "\x00" + name))
++	copy(key[:], hash.Sum(nil))
++	return key, true
++}
++
+ var loadGeoIPMatcherSF = singleflight.Group[router.IPMatcher]{StoreResult: true}
+ 
+ func LoadGeoIPMatcher(country string) (router.IPMatcher, error) {

@@ -1,0 +1,210 @@
+diff --git a/rules/provider/provider.go b/rules/provider/provider.go
+index de91f8c..fa946b5 100644
+--- a/rules/provider/provider.go
++++ b/rules/provider/provider.go
+@@ -2,10 +2,16 @@ package provider
+ 
+ import (
+ 	"bytes"
++	"crypto/sha256"
++	"encoding/binary"
+ 	"encoding/json"
+ 	"errors"
++	"fmt"
+ 	"io"
++	"os"
++	"path/filepath"
+ 	"runtime"
++	"sort"
+ 	"strings"
+ 	"time"
+ 
+@@ -14,6 +20,7 @@ import (
+ 	"github.com/metacubex/mihomo/component/resource"
+ 	C "github.com/metacubex/mihomo/constant"
+ 	P "github.com/metacubex/mihomo/constant/provider"
++	"github.com/metacubex/mihomo/log"
+ 	"github.com/metacubex/mihomo/rules/common"
+ )
+ 
+@@ -140,7 +147,12 @@ func NewRuleSetProvider(name string, behavior P.RuleBehavior, format P.RuleForma
+ 		rp.strategy = rulesParseInline(payload, rp.strategy)
+ 	}
+ 	rp.Fetcher = resource.NewFetcher(name, interval, vehicle, bundleFile, func(bytes []byte) (ruleStrategy, error) {
+-		return rulesParse(bytes, newStrategy(behavior, parse), format)
++		cachePath := ""
++		if vehicle.Type() == P.HTTP && compiledRuleCacheDir != "" {
++			urlHash := sha256.Sum256([]byte(vehicle.Url()))
++			cachePath = filepath.Join(compiledRuleCacheDir, fmt.Sprintf("%x-%d-%d.compiled", urlHash, behavior, format))
++		}
++		return rulesParseWithCache(name, bytes, newStrategy(behavior, parse), format, cachePath)
+ 	}, onUpdate)
+ 
+ 	wrapper := &RuleSetProvider{
+@@ -388,3 +400,166 @@ func NewInlineProvider(name string, behavior P.RuleBehavior, payload []string, p
+ 	//runtime.SetFinalizer(wrapper, (*InlineProvider).Close)
+ 	return wrapper
+ }
++
++// 缓存版本随规则语义或匹配结构的序列化格式变化递增。
++var ruleCacheMagic = [4]byte{'S', 'R', 'C', 1}
++
++const ruleCacheHeaderSize = 6 + 2*sha256.Size
++const ruleCacheMinSize = 64 * 1024
++const ruleCacheMaxBytes = 32 * 1024 * 1024
++
++var compiledRuleCacheDir string
++
++func SetCompiledRuleCacheDir(dir string) {
++	compiledRuleCacheDir = dir
++	if dir != "" {
++		_ = ensureRuleCacheDir(dir)
++	}
++}
++
++// 导入下载与运行时共享内容校验和匹配结构，预编译只处理支持缓存的本地规则。
++func WarmCompiledRuleCache(name, url, path string, behavior P.RuleBehavior, format P.RuleFormat) error {
++	if compiledRuleCacheDir == "" || (behavior != P.Domain && behavior != P.IPCIDR) || format == P.MrsRule {
++		return nil
++	}
++	buf, err := os.ReadFile(path)
++	if err != nil {
++		return err
++	}
++	if len(buf) < ruleCacheMinSize {
++		return nil
++	}
++	urlHash := sha256.Sum256([]byte(url))
++	cachePath := filepath.Join(compiledRuleCacheDir, fmt.Sprintf("%x-%d-%d.compiled", urlHash, behavior, format))
++	_, err = rulesParseWithCache(name, buf, newStrategy(behavior, nil), format, cachePath)
++	return err
++}
++
++// ROOT 重新创建被系统回收的目录时，应用仍可通过共同的 GID 读取缓存。
++func ensureRuleCacheDir(dir string) error {
++	if err := os.MkdirAll(dir, 0770); err != nil {
++		return err
++	}
++	info, err := os.Stat(dir)
++	if err != nil {
++		return err
++	}
++	if info.Mode().Perm() == 0770 {
++		return nil
++	}
++	return os.Chmod(dir, 0770)
++}
++
++func rulesParseWithCache(name string, buf []byte, strategy ruleStrategy, format P.RuleFormat, cachePath string) (ruleStrategy, error) {
++	mrs, supported := strategy.(mrsRuleStrategy)
++	if !supported || format == P.MrsRule || cachePath == "" || len(buf) < ruleCacheMinSize {
++		return rulesParse(buf, strategy, format)
++	}
++	started := time.Now()
++	sourceHash := sha256.Sum256(buf)
++	if cache, err := os.ReadFile(cachePath); err == nil && len(cache) > ruleCacheHeaderSize+8 {
++		data := cache[ruleCacheHeaderSize:]
++		dataHash := sha256.Sum256(data)
++		if bytes.Equal(cache[:4], ruleCacheMagic[:]) && cache[4] == strategy.Behavior().Byte() && cache[5] == byte(format) &&
++			bytes.Equal(cache[6:6+sha256.Size], sourceHash[:]) && bytes.Equal(cache[6+sha256.Size:ruleCacheHeaderSize], dataHash[:]) {
++			count := binary.BigEndian.Uint64(data[:8])
++			if count <= uint64(len(buf)) {
++				if err := mrs.FromMrs(bytes.NewReader(data[8:]), int(count)); err == nil {
++					log.Infoln("[Provider] %s loaded compiled rules in %dms", name, time.Since(started).Milliseconds())
++					return strategy, nil
++				}
++			}
++		}
++	}
++	parsed, err := rulesParse(buf, strategy, format)
++	if err != nil {
++		return nil, err
++	}
++	if parsed.Count() > 0 {
++		if err := writeRuleCache(cachePath, sourceHash, format, parsed.(mrsRuleStrategy)); err != nil {
++			log.Debugln("[Provider] %s compiled rule cache write failed: %v", name, err)
++		}
++	}
++	log.Infoln("[Provider] %s compiled rules in %dms", name, time.Since(started).Milliseconds())
++	return parsed, nil
++}
++
++// 原始规则保持不变，派生缓存原子替换；损坏或写入失败时仍使用原始规则。
++func writeRuleCache(path string, sourceHash [sha256.Size]byte, format P.RuleFormat, strategy mrsRuleStrategy) error {
++	var cache bytes.Buffer
++	cache.Write(ruleCacheMagic[:])
++	cache.WriteByte(strategy.Behavior().Byte())
++	cache.WriteByte(byte(format))
++	cache.Write(sourceHash[:])
++	cache.Write(make([]byte, sha256.Size))
++	if err := binary.Write(&cache, binary.BigEndian, uint64(strategy.Count())); err != nil {
++		return err
++	}
++	if err := strategy.WriteMrs(&cache); err != nil {
++		return err
++	}
++	data := cache.Bytes()
++	if len(data) > ruleCacheMaxBytes {
++		return fmt.Errorf("compiled rule cache exceeds %d bytes", ruleCacheMaxBytes)
++	}
++	dataHash := sha256.Sum256(data[ruleCacheHeaderSize:])
++	copy(data[6+sha256.Size:ruleCacheHeaderSize], dataHash[:])
++	if err := ensureRuleCacheDir(filepath.Dir(path)); err != nil {
++		return err
++	}
++	tmp, err := os.CreateTemp(filepath.Dir(path), ".rule-cache-*")
++	if err != nil {
++		return err
++	}
++	defer os.Remove(tmp.Name())
++	if _, err := tmp.Write(data); err != nil {
++		tmp.Close()
++		return err
++	}
++	// ROOT 进程的主 GID 是应用 UID，应用可读取同一缓存目录中的派生文件。
++	if err := tmp.Chmod(0640); err != nil {
++		tmp.Close()
++		return err
++	}
++	if err := tmp.Close(); err != nil {
++		return err
++	}
++	if err := os.Rename(tmp.Name(), path); err != nil {
++		return err
++	}
++	pruneRuleCache(filepath.Dir(path), path)
++	return nil
++}
++
++func pruneRuleCache(dir, keep string) {
++	type entry struct {
++		path string
++		info os.FileInfo
++	}
++	items, err := os.ReadDir(dir)
++	if err != nil {
++		return
++	}
++	var files []entry
++	var total int64
++	for _, item := range items {
++		if item.IsDir() || !strings.HasSuffix(item.Name(), ".compiled") {
++			continue
++		}
++		info, err := item.Info()
++		if err != nil {
++			continue
++		}
++		total += info.Size()
++		files = append(files, entry{filepath.Join(dir, item.Name()), info})
++	}
++	sort.Slice(files, func(i, j int) bool { return files[i].info.ModTime().Before(files[j].info.ModTime()) })
++	for _, file := range files {
++		if total <= ruleCacheMaxBytes {
++			break
++		}
++		if file.path != keep && os.Remove(file.path) == nil {
++			total -= file.info.Size()
++		}
++	}
++}

@@ -2,7 +2,9 @@
 
 ## JNI in-process
 
-fetch + provider prefetch + Parse 三步经 `StellibertyCoreBridge.fetchAndValid` 在进程内完成，与 runtime 共用 GeoIP，并受 processLock 串行保护。`StellibertyApplication.onCreate` 先 `StellibertyCoreBridge.init(homeDir)` 把 `constant.SetHomeDir` 指向共享 GeoIP 目录 `files/mihomo/geodata/`，再起后台线程解压地理数据；`fetchAndValid` 与 `validateTransform` 进入 native 前先 `ProfileFileOps.awaitGeodata()`，否则 Parse 读到缺失的文件会让 mihomo 往同一目录现场下载。`fetchAndValid` 内部分配 token，每 150ms 轮询一次进度。
+fetch + provider prefetch + Parse 三步经 `StellibertyCoreBridge.fetchAndValid` 在进程内完成，与 runtime 共用 GeoIP，并受 processLock 串行保护。`StellibertyApplication.onCreate` 先 `StellibertyCoreBridge.init(homeDir, cacheDir)` 设置共享 GeoIP 目录 `files/mihomo/geodata/` 与匹配结构缓存，再起后台线程解压地理数据；`fetchAndValid` 与 `validateTransform` 进入 native 前先 `ProfileFileOps.awaitGeodata()`，否则 Parse 读到缺失的文件会让 mihomo 往同一目录现场下载。`fetchAndValid` 内部分配 token，每 150ms 轮询一次进度。
+
+HTTP domain / ipcidr 规则预取成功后，在同一下载协程中准备匹配结构缓存；配置校验后补齐已有 provider 的缓存，首次启动可直接读取。取消时停止准备后续规则，派生缓存写入失败不影响原始配置校验。
 
 ## 取消语义
 

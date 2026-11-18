@@ -14,9 +14,11 @@ import (
 	"os/signal"
 	"path/filepath"
 	"syscall"
+	"time"
 	"unsafe"
 
 	"github.com/metacubex/mihomo/component/age"
+	"github.com/metacubex/mihomo/component/geodata/router"
 	"github.com/metacubex/mihomo/component/updater"
 	"github.com/metacubex/mihomo/config"
 	Const "github.com/metacubex/mihomo/constant"
@@ -24,6 +26,7 @@ import (
 	"github.com/metacubex/mihomo/hub/executor"
 	"github.com/metacubex/mihomo/listener"
 	"github.com/metacubex/mihomo/log"
+	RP "github.com/metacubex/mihomo/rules/provider"
 )
 
 //export mihomoEntry
@@ -46,6 +49,8 @@ func mihomoEntry(argc C.int, argv **C.char) (result C.int) {
 }
 
 func runMihomo() int {
+	preparationStarted := time.Now()
+	log.Infoln("Runtime config preparation started")
 	fs := flag.NewFlagSet("mihomo", flag.ExitOnError)
 	var (
 		homeDir            string
@@ -55,6 +60,7 @@ func runMihomo() int {
 		overrideJSON       string
 		transformPath      string
 		ageSecretKey       string
+		ruleCacheDir       string
 	)
 	fs.StringVar(&homeDir, "d", "", "set configuration directory")
 	fs.StringVar(&configFile, "f", "", "specify configuration file")
@@ -63,8 +69,13 @@ func runMihomo() int {
 	fs.StringVar(&secret, "secret", "", "override RESTful API secret")
 	fs.StringVar(&externalController, "ext-ctl", "", "override external controller address")
 	fs.StringVar(&ageSecretKey, "age-secret-key", "", "age secret key to decrypt age-armor encrypted configuration")
+	fs.StringVar(&ruleCacheDir, "rule-cache-dir", "", "directory for compiled rule provider caches")
 	if err := fs.Parse(os.Args[1:]); err != nil {
 		return 2
+	}
+	RP.SetCompiledRuleCacheDir(ruleCacheDir)
+	if ruleCacheDir != "" {
+		router.SetDomainMatcherCacheDir(filepath.Join(ruleCacheDir, "geosite"))
 	}
 
 	net.DefaultResolver.PreferGo = true
@@ -129,6 +140,7 @@ func runMihomo() int {
 	}
 
 	ready := registerRuntimeProbe()
+	log.Infoln("Runtime config preparation complete in %dms", time.Since(preparationStarted).Milliseconds())
 	if err := hub.Parse(configBytes, options...); err != nil {
 		log.Fatalln("Parse config: %s", err.Error())
 	}

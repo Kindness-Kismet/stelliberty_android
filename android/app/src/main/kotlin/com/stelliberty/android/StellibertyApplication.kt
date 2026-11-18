@@ -68,7 +68,7 @@ class StellibertyApplication : Application() {
         )
         initToastPlatform(this)
         NotificationHelper.createChannels(this)
-        StellibertyCoreBridge.init(homeDir = ProfileFileOps.getGeodataDir(this).absolutePath)
+        StellibertyCoreBridge.init(homeDir = ProfileFileOps.getGeodataDir(this).absolutePath, cacheDir = cacheDir.absolutePath)
         // 解压不能堵住启动；读地理数据的地方各自等 awaitGeodata()。
         thread(name = "geodata-extract") { ProfileFileOps.extractGeodata(this) }
         updateScheduler.start()
