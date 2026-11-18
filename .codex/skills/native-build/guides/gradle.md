@@ -22,6 +22,8 @@ HTTP domain / ipcidr 规则源达到 64 KiB 时，在 `MihomoRunner` 传入的 `
 
 GeoSite succinct 匹配器在同一目录的 `geosite/` 下缓存完整域名集合、正则与关键词及规则计数；以 GeoSite 原文 SHA-256、loader 与筛选条件取键，命中时跳过原始列表解码。缓存核对版本与内容 SHA-256，总量限 16 MiB；格式与语义变化时递增 `domainMatcherCacheMagic`。
 
+GeoSite 内存列表与匹配器同样按源内容和 loader 分版本，源变更时释放旧版本；另一进程可更新共享数据库。列表加载前后核对源内容，发生变化时丢弃结果并重试一次，避免把旧列表保存到新源的缓存键下。
+
 `DomainSetBuilder` 的普通 ASCII 域名直接校验并反转，复杂通配符与 Unicode 使用原语法；匹配集合的二进制读写使用整段数组，格式与 MRS 保持一致。
 
 配置应用期间通过 `PauseAutoHealthChecks` 等待自动测速，配置与规则加载完成后恢复；手动测速即时执行。

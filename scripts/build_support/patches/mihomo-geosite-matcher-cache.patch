@@ -1,5 +1,5 @@
 diff --git a/component/geodata/router/condition.go b/component/geodata/router/condition.go
-index dd5b45bf..44a15c42 100644
+index dd5b45bf..e6e221c8 100644
 --- a/component/geodata/router/condition.go
 +++ b/component/geodata/router/condition.go
 @@ -1,13 +1,22 @@
@@ -106,7 +106,7 @@ index dd5b45bf..44a15c42 100644
  }
  
 +var domainMatcherCacheDir string
-+var domainMatcherCacheMagic = [4]byte{'S', 'M', 'C', 2}
++var domainMatcherCacheMagic = [4]byte{'S', 'M', 'C', 3}
 +
 +const domainMatcherCacheHeader = 4 + 2*sha256.Size
 +const domainMatcherCacheBudget = 16 * 1024 * 1024
@@ -272,66 +272,199 @@ index dd5b45bf..44a15c42 100644
  	matchers strmatcher.IndexMatcher
  	count    int
 diff --git a/component/geodata/utils.go b/component/geodata/utils.go
-index ee7946a6..5c447bf2 100644
+index ee7946a6..2b75f02d 100644
 --- a/component/geodata/utils.go
 +++ b/component/geodata/utils.go
-@@ -1,7 +1,10 @@
+@@ -1,8 +1,13 @@
  package geodata
  
  import (
 +	"crypto/sha256"
++	"errors"
  	"fmt"
 +	"io"
 +	"os"
  	"strings"
++	"sync"
  
  	"github.com/metacubex/mihomo/common/singleflight"
-@@ -96,6 +99,12 @@ func LoadGeoSiteMatcher(countryCode string) (router.DomainMatcher, error) {
+ 	"github.com/metacubex/mihomo/component/geodata/router"
+@@ -94,63 +99,134 @@ func LoadGeoSiteMatcher(countryCode string) (router.DomainMatcher, error) {
+ 	if !attrs.IsEmpty() {
+ 		matcherName += "@" + attrs.String()
  	}
- 	matcher, err, shared := loadGeoSiteMatcherSF.Do(matcherName, func() (router.DomainMatcher, error) {
- 		log.Infoln("Load GeoSite rule: %s", matcherName)
-+		cacheKey, cacheAvailable := geoSiteMatcherCacheKey(matcherName)
+-	matcher, err, shared := loadGeoSiteMatcherSF.Do(matcherName, func() (router.DomainMatcher, error) {
+-		log.Infoln("Load GeoSite rule: %s", matcherName)
+-		domains, err, shared := loadGeoSiteMatcherListSF.Do(listName, func() ([]*router.Domain, error) {
+-			geoLoader, err := GetGeoDataLoader(geoLoaderName)
++	matcher, err := loadGeoSiteMatcher(listName, matcherName, countryCode, attrs)
++	if err != nil {
++		return nil, err
++	}
++	if not {
++		matcher = router.NewNotDomainMatcherGroup(matcher)
++	}
++	return matcher, nil
++}
++
++var errGeoSiteChanged = errors.New("GeoSite database changed while loading")
++
++var geoSiteCacheVersionMu sync.Mutex
++var geoSiteCacheSourceKey string
++
++func useGeoSiteCacheSource(sourceKey string) {
++	geoSiteCacheVersionMu.Lock()
++	defer geoSiteCacheVersionMu.Unlock()
++	if geoSiteCacheSourceKey != sourceKey {
++		ClearGeoSiteCache()
++		geoSiteCacheSourceKey = sourceKey
++	}
++}
++
++func loadGeoSiteMatcher(listName, matcherName, countryCode string, attrs *AttributeList) (router.DomainMatcher, error) {
++	for attempt := 0; attempt < 2; attempt++ {
++		cacheKey, sourceKey, cacheAvailable := geoSiteMatcherCacheKey(matcherName)
++		matcherFlightKey, listFlightKey := matcherName, listName
 +		if cacheAvailable {
-+			if cached := router.LoadGeoSiteMatcherCache(cacheKey); cached != nil {
-+				return cached, nil
-+			}
++			useGeoSiteCacheSource(sourceKey)
++			matcherFlightKey = fmt.Sprintf("%x", cacheKey)
++			listFlightKey = sourceKey + "\x00" + listName
 +		}
- 		domains, err, shared := loadGeoSiteMatcherListSF.Do(listName, func() ([]*router.Domain, error) {
- 			geoLoader, err := GetGeoDataLoader(geoLoaderName)
++		matcher, err, shared := loadGeoSiteMatcherSF.Do(matcherFlightKey, func() (router.DomainMatcher, error) {
++			log.Infoln("Load GeoSite rule: %s", matcherName)
++			if cacheAvailable {
++				if cached := router.LoadGeoSiteMatcherCache(cacheKey); cached != nil {
++					return cached, nil
++				}
++			}
++			domains, err, shared := loadGeoSiteMatcherListSF.Do(listFlightKey, func() ([]*router.Domain, error) {
++				geoLoader, err := GetGeoDataLoader(geoLoaderName)
++				if err != nil {
++					return nil, err
++				}
++				return geoLoader.LoadGeoSite(listName)
++			})
  			if err != nil {
-@@ -136,6 +145,8 @@ func LoadGeoSiteMatcher(countryCode string) (router.DomainMatcher, error) {
- 		*/
- 		if geoSiteMatcher == "mph" {
- 			return router.NewMphMatcherGroup(domains)
-+		} else if cacheAvailable {
-+			return router.NewGeoSiteMatcherGroup(domains, cacheKey)
- 		} else {
- 			return router.NewSuccinctMatcherGroup(domains)
- 		}
-@@ -153,6 +164,26 @@ func LoadGeoSiteMatcher(countryCode string) (router.DomainMatcher, error) {
- 	return matcher, nil
- }
++				if !shared {
++					loadGeoSiteMatcherListSF.Forget(listFlightKey) // don't store the error result
++				}
+ 				return nil, err
+ 			}
+-			return geoLoader.LoadGeoSite(listName)
+-		})
+-		if err != nil {
+-			if !shared {
+-				loadGeoSiteMatcherListSF.Forget(listName) // don't store the error result
++			// 共享数据库可由另一进程更新，旧列表与新版本的缓存键不能混用。
++			if cacheAvailable {
++				currentKey, _, available := geoSiteMatcherCacheKey(matcherName)
++				if !available || currentKey != cacheKey {
++					loadGeoSiteMatcherListSF.Forget(listFlightKey)
++					return nil, errGeoSiteChanged
++				}
+ 			}
+-			return nil, err
+-		}
  
+-		if attrs.IsEmpty() {
+-			if strings.Contains(countryCode, "@") {
+-				log.Warnln("empty attribute list: %s", countryCode)
+-			}
+-		} else {
+-			filteredDomains := make([]*router.Domain, 0, len(domains))
+-			hasAttrMatched := false
+-			for _, domain := range domains {
+-				if attrs.Match(domain) {
+-					hasAttrMatched = true
+-					filteredDomains = append(filteredDomains, domain)
++			if attrs.IsEmpty() {
++				if strings.Contains(countryCode, "@") {
++					log.Warnln("empty attribute list: %s", countryCode)
++				}
++			} else {
++				filteredDomains := make([]*router.Domain, 0, len(domains))
++				hasAttrMatched := false
++				for _, domain := range domains {
++					if attrs.Match(domain) {
++						hasAttrMatched = true
++						filteredDomains = append(filteredDomains, domain)
++					}
+ 				}
++				if !hasAttrMatched {
++					log.Warnln("attribute match no rule: geosite: %s", countryCode)
++				}
++				domains = filteredDomains
+ 			}
+-			if !hasAttrMatched {
+-				log.Warnln("attribute match no rule: geosite: %s", countryCode)
++
++			/**
++			linear: linear algorithm
++			matcher, err := router.NewDomainMatcher(domains)
++			mph：minimal perfect hash algorithm
++			*/
++			if geoSiteMatcher == "mph" {
++				return router.NewMphMatcherGroup(domains)
++			} else if cacheAvailable {
++				return router.NewGeoSiteMatcherGroup(domains, cacheKey)
++			} else {
++				return router.NewSuccinctMatcherGroup(domains)
+ 			}
+-			domains = filteredDomains
++		})
++		if errors.Is(err, errGeoSiteChanged) {
++			loadGeoSiteMatcherSF.Forget(matcherFlightKey)
++			continue
+ 		}
+-
+-		/**
+-		linear: linear algorithm
+-		matcher, err := router.NewDomainMatcher(domains)
+-		mph：minimal perfect hash algorithm
+-		*/
+-		if geoSiteMatcher == "mph" {
+-			return router.NewMphMatcherGroup(domains)
+-		} else {
+-			return router.NewSuccinctMatcherGroup(domains)
++		if err != nil {
++			if !shared {
++				loadGeoSiteMatcherSF.Forget(matcherFlightKey) // don't store the error result
++			}
++			return nil, err
+ 		}
+-	})
++		return matcher, nil
++	}
++	return nil, errGeoSiteChanged
++}
++
 +// 完整数据内容与筛选条件共同取键，命中后直接恢复匹配器，跳过原始域名列表的解码。
-+func geoSiteMatcherCacheKey(name string) ([sha256.Size]byte, bool) {
++func geoSiteMatcherCacheKey(name string) ([sha256.Size]byte, string, bool) {
 +	var key [sha256.Size]byte
 +	if geoSiteMatcher != "succinct" || !router.DomainMatcherCacheEnabled() {
-+		return key, false
++		return key, "", false
 +	}
 +	file, err := os.Open(C.Path.GeoSite())
-+	if err != nil {
-+		return key, false
-+	}
+ 	if err != nil {
+-		if !shared {
+-			loadGeoSiteMatcherSF.Forget(matcherName) // don't store the error result
+-		}
+-		return nil, err
++		return key, "", false
+ 	}
+-	if not {
+-		matcher = router.NewNotDomainMatcherGroup(matcher)
 +	defer file.Close()
 +	hash := sha256.New()
 +	if _, err := io.Copy(hash, file); err != nil {
-+		return key, false
-+	}
++		return key, "", false
+ 	}
+-
+-	return matcher, nil
++	sourceKey := fmt.Sprintf("%x\x00%s", hash.Sum(nil), geoLoaderName)
 +	hash.Write([]byte("\x00" + geoLoaderName + "\x00" + name))
 +	copy(key[:], hash.Sum(nil))
-+	return key, true
-+}
-+
- var loadGeoIPMatcherSF = singleflight.Group[router.IPMatcher]{StoreResult: true}
++	return key, sourceKey, true
+ }
  
- func LoadGeoIPMatcher(country string) (router.IPMatcher, error) {
+ var loadGeoIPMatcherSF = singleflight.Group[router.IPMatcher]{StoreResult: true}
