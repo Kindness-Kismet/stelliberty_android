@@ -22,28 +22,31 @@ internal object RootDnsHijacker {
         return null
     }
 
-    fun apply(appUid: Int, ipv6Nat: Boolean, fallbackInterfaces: List<String>, includeForwarded: Boolean): Boolean {
+    fun apply(
+        appUid: Int,
+        ipv6Nat: Boolean,
+        fallbackInterfaces: List<String>,
+        includeForwarded: Boolean,
+        networkIds: List<Int>,
+    ): Boolean {
         val script = buildString {
             appendLine("#!/system/bin/sh")
             appendLine("set +e")
-            appendTeardown(this)
+            appendTeardown(this, ipv6Nat)
             appendLine("set -e")
             appendApply(this, appUid, ipv6Nat, includeForwarded)
             if (fallbackInterfaces.isNotEmpty()) appendIpv6Fallback(this, appUid, fallbackInterfaces, check = false)
-        }
-        val code = RootHelper.runRootScriptHeredoc(script)
-        AppLogger.info(TAG, "DNS interception finished code=$code")
-        return code == 0
-    }
-
-    fun rulesPresent(appUid: Int, ipv6Nat: Boolean, fallbackInterfaces: List<String>, includeForwarded: Boolean): Boolean {
-        val script = buildString {
-            appendLine("#!/system/bin/sh")
-            appendLine("set -e")
             appendChecks(this, appUid, ipv6Nat, includeForwarded)
             if (fallbackInterfaces.isNotEmpty()) appendIpv6Fallback(this, appUid, fallbackInterfaces, check = true)
+            // minSdk 31 起的 IDnsResolver 将清缓存固定为事务 11，异常 Parcel 会中止启动。
+            for (netId in networkIds) {
+                appendLine("reply=\$(service call dnsresolver 11 i32 $netId)")
+                appendLine("printf '%s\\n' \"\$reply\" | grep -Eq \"^Result:[[:space:]]*Parcel\\([[:space:]]*00000000[[:space:]]+'[^']*'[[:space:]]*\\)\$\"")
+            }
         }
-        return RootHelper.runRootScriptHeredoc(script) == 0
+        val code = RootHelper.runRootScriptHeredoc(IptablesBatch.apply(script))
+        AppLogger.info(TAG, "DNS interception and cache flush finished code=$code")
+        return code == 0
     }
 
     private fun appendApply(sb: StringBuilder, appUid: Int, ipv6Nat: Boolean, includeForwarded: Boolean) {
@@ -97,26 +100,21 @@ internal object RootDnsHijacker {
         sb.appendLine("$IPT6 -t filter ${if (check) "-C" else "-I"} OUTPUT -j $CHAIN_V6_FALLBACK")
     }
 
-    fun flushNetworkCache(netId: Int): Boolean {
-        // minSdk 31 起的稳定 IDnsResolver AIDL 将 flushNetworkCache 固定为事务 11。
-        val result = runCommand("service call dnsresolver 11 i32 $netId", 5)
-        val success = result.code == 0 && SUCCESS_PARCEL.matches(result.output)
-        if (!success) AppLogger.warn(TAG, "System DNS cache flush failed: netId=$netId code=${result.code} ${result.output}")
-        return success
-    }
-
-    fun appendTeardown(sb: StringBuilder) {
-        for (ipt in listOf(IPT4, IPT6)) {
-            sb.appendLine("while $ipt -t nat -D PREROUTING -j $CHAIN_PRE 2>/dev/null; do :; done")
-            sb.appendLine("while $ipt -t nat -D OUTPUT -j $CHAIN_OUT 2>/dev/null; do :; done")
-            for (chain in listOf(CHAIN_PRE, CHAIN_OUT)) {
+    fun appendTeardown(sb: StringBuilder, ipv6Nat: Boolean? = null) {
+        for (ipt in if (ipv6Nat == false) listOf(IPT4) else listOf(IPT4, IPT6)) {
+            for ((chain, hook) in listOf(CHAIN_PRE to "PREROUTING", CHAIN_OUT to "OUTPUT")) {
+                sb.appendLine("if $ipt -t nat -S $chain >/dev/null 2>&1; then")
+                sb.appendLine("while $ipt -t nat -D $hook -j $chain 2>/dev/null; do :; done")
                 sb.appendLine("$ipt -t nat -F $chain 2>/dev/null")
                 sb.appendLine("$ipt -t nat -X $chain 2>/dev/null")
+                sb.appendLine("fi")
             }
         }
+        sb.appendLine("if $IPT6 -t filter -S $CHAIN_V6_FALLBACK >/dev/null 2>&1; then")
         sb.appendLine("while $IPT6 -t filter -D OUTPUT -j $CHAIN_V6_FALLBACK 2>/dev/null; do :; done")
         sb.appendLine("$IPT6 -t filter -F $CHAIN_V6_FALLBACK 2>/dev/null")
         sb.appendLine("$IPT6 -t filter -X $CHAIN_V6_FALLBACK 2>/dev/null")
+        sb.appendLine("fi")
     }
 
     private fun runCommand(command: String, timeoutSeconds: Long): RootHelper.ShellOutcome = try {
@@ -130,6 +128,4 @@ internal object RootDnsHijacker {
         if (ipv6Nat) listOf(IPT4, IPT6) else listOf(IPT4)
 
     private fun tag(label: String): String = "-m comment --comment stelliberty:dns:$label"
-
-    private val SUCCESS_PARCEL = Regex("""Result:\s*Parcel\(\s*00000000\s+'[^']*'\s*\)""")
 }

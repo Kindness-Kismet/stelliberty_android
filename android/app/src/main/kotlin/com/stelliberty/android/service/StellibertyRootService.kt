@@ -3,6 +3,7 @@ package com.stelliberty.android.service
 import android.app.Service
 import android.content.Intent
 import android.os.IBinder
+import android.os.SystemClock
 import com.stelliberty.android.R
 import com.stelliberty.android.StellibertyApplication
 import com.stelliberty.android.data.repository.OverrideJsonStore
@@ -28,8 +29,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
@@ -140,6 +143,7 @@ class StellibertyRootService : Service() {
         }
         startJobAttachOnly = attachOnly
         startJob = scope.launch {
+            val startupStartedAt = SystemClock.elapsedRealtime()
             inFlight?.join()
             val submode = currentSubmode
             val tunMode = submode.tunMode
@@ -354,17 +358,36 @@ class StellibertyRootService : Service() {
             )
 
             val subscription = subscriptionId?.let(subscriptionStore::findImported)
-            val success = runner.start(
-                subscriptionId = subscriptionId,
-                useRoot = true,
-                overrideJsonPath = overrideFile.absolutePath,
-                secret = secret,
-                externalController = extCtl,
-                ageSecretKey = subscription?.ageSecretKey.orEmpty(),
-                transformPath = transformWriter.writeRuntime(subscription),
-            )
+            val (success, dnsApplied) = coroutineScope {
+                val natSupport = async { RootDnsHijacker.probeIpv6Nat() }
+                // DNS 与 TPROXY 只依赖固定 UID 和端口，停止时等待规则安装与内核启动共同收敛。
+                val routing = async {
+                    val applied = submode != Submode.Tproxy || applyTproxyRules(storage)
+                    ensureActive()
+                    applied && startDnsCoordinator(storage, appUid, submode, natSupport.await())
+                }
+                val coreStarted = runner.start(
+                    subscriptionId = subscriptionId,
+                    useRoot = true,
+                    overrideJsonPath = overrideFile.absolutePath,
+                    secret = secret,
+                    externalController = extCtl,
+                    ageSecretKey = subscription?.ageSecretKey.orEmpty(),
+                    transformPath = transformWriter.writeRuntime(subscription),
+                )
+                if (!coreStarted) {
+                    routing.cancelAndJoin()
+                    natSupport.cancelAndJoin()
+                    false to false
+                } else {
+                    // TUN 热点规则的 goto 目标由内核创建，必须等内核就绪。
+                    if (submode == Submode.Tun) applyTetherRules(storage, tproxyForTether)
+                    true to routing.await()
+                }
+            }
             ensureActive()
             if (!success) {
+                teardownAllRootRules()
                 val errorMsg = runner.errorMessage.ifBlank { getString(R.string.error_start_failed) }
                 AppLogger.error(TAG, "Failed to start mihomo (ROOT): $errorMsg")
                 ProxyServiceBridge.updateState(
@@ -379,14 +402,6 @@ class StellibertyRootService : Service() {
             storage.putString(StorageKeys.ROOT_TETHER_MODE_ACTIVE, tetherModeRequested)
             storage.putString(StorageKeys.ROOT_SUBMODE_ACTIVE, submode.storageValue)
 
-            val routingApplied = when (submode) {
-                Submode.Tun -> {
-                    applyTetherRules(storage, tproxyForTether)
-                    true
-                }
-                Submode.Tproxy -> applyTproxyRules(storage)
-            }
-            val dnsApplied = routingApplied && startDnsCoordinator(storage, appUid, submode)
             ensureActive()
             if (!dnsApplied) {
                 failRoutingSetup(storage)
@@ -405,7 +420,7 @@ class StellibertyRootService : Service() {
             )
             dynamicNotification.start(storage, tunMode)
             storage.putString(StorageKeys.SERVICE_WAS_RUNNING, "true")
-            AppLogger.info(TAG, "Proxy running (ROOT $submode)")
+            AppLogger.info(TAG, "Proxy running (ROOT $submode), startup=${SystemClock.elapsedRealtime() - startupStartedAt}ms")
 
             val workDir = if (subscriptionId != null) ProfileFileOps.getRuntimeDir(
                 this@StellibertyRootService,
@@ -426,7 +441,12 @@ class StellibertyRootService : Service() {
         return RootTproxyApplier.apply(appUid, selectedUids, proxyMode, ifaces, ipv6Enabled)
     }
 
-    private suspend fun startDnsCoordinator(storage: PlatformStorage, appUid: Int, submode: Submode): Boolean {
+    private suspend fun startDnsCoordinator(
+        storage: PlatformStorage,
+        appUid: Int,
+        submode: Submode,
+        ipv6NatSupport: Boolean? = RootDnsHijacker.probeIpv6Nat(),
+    ): Boolean {
         val ipv6Routing: ((Boolean, List<String>) -> Boolean)? = if (
             submode == Submode.Tproxy && storage.getString(StorageKeys.VPN_ALLOW_IPV6, "false") == "true"
         ) {
@@ -437,7 +457,7 @@ class StellibertyRootService : Service() {
             }
             refresh
         } else null
-        return dnsCoordinator.start(appUid, submode == Submode.Tproxy, ipv6Routing)
+        return dnsCoordinator.start(appUid, submode == Submode.Tproxy, ipv6Routing, ipv6NatSupport)
     }
 
     private suspend fun resolveProxyUids(storage: PlatformStorage): Set<Int> {

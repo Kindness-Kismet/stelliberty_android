@@ -58,6 +58,7 @@ internal class RootDnsCoordinator(context: Context, parentScope: CoroutineScope)
         appUid: Int,
         includeForwarded: Boolean,
         refreshIpv6Routing: ((Boolean, List<String>) -> Boolean)? = null,
+        ipv6NatSupport: Boolean? = RootDnsHijacker.probeIpv6Nat(),
     ): Boolean = mutex.withLock {
         try {
             currentCoroutineContext().ensureActive()
@@ -65,7 +66,7 @@ internal class RootDnsCoordinator(context: Context, parentScope: CoroutineScope)
             this.includeForwarded = includeForwarded
             this.refreshIpv6Routing = refreshIpv6Routing
             previousIpv6Routing = null
-            val supported = RootDnsHijacker.probeIpv6Nat() ?: return@withLock false
+            val supported = ipv6NatSupport ?: return@withLock false
             currentCoroutineContext().ensureActive()
             ipv6Nat = supported
             beginObserving()
@@ -168,17 +169,9 @@ internal class RootDnsCoordinator(context: Context, parentScope: CoroutineScope)
             .distinct()
             .sorted()
         previousNetworks = null
-        val installed = RootDnsHijacker.apply(appUid, ipv6Nat, fallbackInterfaces, includeForwarded)
+        val installed = RootDnsHijacker.apply(appUid, ipv6Nat, fallbackInterfaces, includeForwarded, networks.map { it.netId })
         currentCoroutineContext().ensureActive()
         if (!observing || !installed) return false
-        val present = RootDnsHijacker.rulesPresent(appUid, ipv6Nat, fallbackInterfaces, includeForwarded)
-        currentCoroutineContext().ensureActive()
-        if (!observing || !present) return false
-        for (network in networks) {
-            if (!RootDnsHijacker.flushNetworkCache(network.netId)) return false
-            currentCoroutineContext().ensureActive()
-            if (!observing) return false
-        }
         previousNetworks = networks
         AppLogger.info(TAG, "System DNS interception ready: ipv6Nat=$ipv6Nat fallbackInterfaces=$fallbackInterfaces networks=${networks.size}")
         return true

@@ -37,7 +37,7 @@ object RootTproxyApplier {
         ipv6Enabled: Boolean,
     ): Boolean {
         AppLogger.info(TAG, "apply: appUid=$appUid mode=$mode selected=${selectedUids.size} ifaces=$tetherIfaces ipv6=$ipv6Enabled")
-        val script = buildApplyScript(appUid, selectedUids, mode, tetherIfaces, ipv6Enabled)
+        val script = IptablesBatch.apply(buildApplyScript(appUid, selectedUids, mode, tetherIfaces, ipv6Enabled))
         val code = RootHelper.runRootScriptHeredoc(script, timeoutSeconds = 20)
         AppLogger.info(TAG, "apply finished code=$code")
         return code == 0
@@ -129,7 +129,7 @@ object RootTproxyApplier {
         val sb = StringBuilder()
         sb.appendLine("#!/system/bin/sh")
         sb.appendLine("set +e")
-        sb.append(buildTeardownScript(includeShebang = false))
+        sb.append(buildTeardownScript(includeShebang = false, includeDns = false))
         sb.appendLine("set -e")
         sb.appendLine()
         sb.appendLine("# === 1. ip rule + route ===")
@@ -271,7 +271,7 @@ object RootTproxyApplier {
         return sb.toString()
     }
 
-    private fun buildTeardownScript(includeShebang: Boolean = true): String {
+    private fun buildTeardownScript(includeShebang: Boolean = true, includeDns: Boolean = true): String {
         val sb = StringBuilder()
         if (includeShebang) {
             sb.appendLine("#!/system/bin/sh")
@@ -282,7 +282,7 @@ object RootTproxyApplier {
             sb.appendLine("$t -t mangle -D PREROUTING -j $CHAIN_PRE 2>/dev/null")
             sb.appendLine("$t -t mangle -D OUTPUT -j $CHAIN_OUT 2>/dev/null")
         }
-        RootDnsHijacker.appendTeardown(sb)
+        if (includeDns) RootDnsHijacker.appendTeardown(sb)
         sb.appendLine()
         // 必须先把所有链清空再统一删：`-X` 要求引用计数为 0，而 CHAIN_PRE 里挂着
         // `-j CHAIN_DIVERT`。清空与删除交替做，删 DIVERT 时 PRE 还没清，它就会被静默留下。

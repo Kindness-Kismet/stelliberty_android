@@ -98,7 +98,6 @@ object RootTetherHijacker {
             Mode.BYPASS -> applyBypass(interfaces)
             Mode.PROXY -> if (tproxySupported) applyTproxy(interfaces) else applyProxyFallback(interfaces)
         }
-        dumpState()
     }
 
     // 绝不能查主路由表：系统的主表里没有默认路由（默认路由分散在各个上行接口自己的表里），
@@ -187,26 +186,31 @@ object RootTetherHijacker {
         applyIpRuleAction(interfaces, action = "lookup $TUN_TABLE", label = "proxy-fallback")
 
     private fun applyIpRuleAction(interfaces: List<String>, action: String, label: String) {
-        for (iface in interfaces) {
-            val escaped = RootHelper.escapeShellSingleQuoted(iface)
-            val v4 = runWithOutput("ip rule add iif $escaped $action priority $PRIORITY_V4")
-            val v6 = runWithOutput("ip -6 rule add iif $escaped $action priority $PRIORITY_V6")
-            AppLogger.info(TAG, "$label iif=$iface v4[code=${v4.code}, out=${v4.output.oneLine()}] v6[code=${v6.code}, out=${v6.output.oneLine()}]")
-
-            val v4Subnets = resolveSubnets(iface, v6 = false)
-            val v6Subnets = resolveSubnets(iface, v6 = true)
-            for (net in v4Subnets) {
-                val r = runWithOutput("ip rule add to $net $action priority $PRIORITY_RETURN_V4")
-                AppLogger.info(TAG, "$label return to=$net code=${r.code} out=${r.output.oneLine()}")
-            }
-            for (net in v6Subnets) {
-                val r = runWithOutput("ip -6 rule add to $net $action priority $PRIORITY_RETURN_V6")
-                AppLogger.info(TAG, "$label return (v6) to=$net code=${r.code} out=${r.output.oneLine()}")
-            }
-            if (v4Subnets.isEmpty() && v6Subnets.isEmpty()) {
-                AppLogger.warn(TAG, "iif=$iface has no resolvable subnet (interface down or no IP), return-path rule skipped")
+        val script = buildString {
+            for (iface in interfaces) {
+                val escaped = RootHelper.escapeShellSingleQuoted(iface)
+                for ((ip, priority) in listOf("ip" to PRIORITY_V4, "ip -6" to PRIORITY_V6)) {
+                    appendLine("$ip rule add iif $escaped $action priority $priority")
+                    appendLine("echo ${RootHelper.escapeShellSingleQuoted("$label iif=$iface $ip")} code=\$?")
+                }
+                val v4Subnets = resolveSubnets(iface, v6 = false)
+                val v6Subnets = resolveSubnets(iface, v6 = true)
+                for ((ip, priority, subnets) in listOf(
+                    Triple("ip", PRIORITY_RETURN_V4, v4Subnets),
+                    Triple("ip -6", PRIORITY_RETURN_V6, v6Subnets),
+                )) {
+                    for (net in subnets) {
+                        appendLine("$ip rule add to $net $action priority $priority")
+                        appendLine("echo ${RootHelper.escapeShellSingleQuoted("$label return to=$net $ip")} code=\$?")
+                    }
+                }
+                if (v4Subnets.isEmpty() && v6Subnets.isEmpty()) {
+                    AppLogger.warn(TAG, "iif=$iface has no resolvable subnet (interface down or no IP), return-path rule skipped")
+                }
             }
         }
+        val result = runWithOutput(script)
+        AppLogger.info(TAG, "$label routing: code=${result.code}\n${result.output}")
     }
 
     private fun resolveSubnets(iface: String, v6: Boolean): List<String> {
@@ -362,18 +366,6 @@ object RootTetherHijacker {
     }
 
     private fun tag(label: String): String = "-m comment --comment \"$COMMENT_TAG_PREFIX$label\""
-
-    private fun dumpState() {
-        val script = listOf(
-            "ip rule show (v4)" to "ip rule show",
-            "ip -6 rule show" to "ip -6 rule show",
-            "route table main" to "ip route show table main",
-            "route table $TUN_TABLE" to "ip route show table $TUN_TABLE",
-            "route table $FWMARK_TABLE" to "ip route show table $FWMARK_TABLE",
-            "iptables mangle -S" to "$IPT4 -t mangle -S",
-        ).joinToString("\n") { (label, cmd) -> "echo '$SECTION_MARK$label'; $cmd" }
-        AppLogger.info(TAG, "tether state dump:\n${runWithOutput(script).output}")
-    }
 
     private data class ShellResult(val code: Int, val output: String)
 

@@ -2,6 +2,7 @@ package com.stelliberty.android.service
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.os.SystemClock
 import android.net.VpnService
 import android.os.ParcelFileDescriptor
 import android.system.Os
@@ -105,6 +106,7 @@ class StellibertyTunService : VpnService() {
             return
         }
         startJob = scope.launch {
+            val startupStartedAt = SystemClock.elapsedRealtime()
             AppLogger.info(TAG, "Starting proxy, subscription: $subscriptionId")
             // 带了订阅编号就必须能读到它的配置，读不到说明文件坏了或没落盘，属于错误。
             // 没带编号是「一条订阅都没有」，写一份内置配置照常启动，流量直连。
@@ -339,7 +341,7 @@ class StellibertyTunService : VpnService() {
 
             dynamicNotification.start(storage)
             PlatformStorage(this@StellibertyTunService).putString(StorageKeys.SERVICE_WAS_RUNNING, "true")
-            AppLogger.info(TAG, "Proxy running, fd=$fd")
+            AppLogger.info(TAG, "Proxy running, fd=$fd startup=${SystemClock.elapsedRealtime() - startupStartedAt}ms")
 
             val monitorWorkDir = if (subscriptionId != null) {
                 ProfileFileOps.getSubscriptionDir(this@StellibertyTunService, subscriptionId)

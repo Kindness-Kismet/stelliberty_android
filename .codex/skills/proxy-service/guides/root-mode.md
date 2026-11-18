@@ -10,7 +10,9 @@ ROOT 内核通过 `su -g <应用 UID>` 保持 UID 0 并使用应用 UID 作为�
 
 DNS 的 IPv6 处理独立于 `VPN_ALLOW_IPV6`：ip6tables NAT 可用时安装 IPv6 REDIRECT；明确缺少 NAT 表时，仅在同一非 VPN、具有 INTERNET 能力的网络同时提供 IPv4 / IPv6 DNS 时，按该网络接口拒绝 IPv6 TCP / UDP 53，促使 netd 改用已劫持的 IPv4 DNS。只提供 IPv6 DNS 的接口保持放行。核心 GID 与应用 UID 始终绕过；su 超时、锁等待与执行异常按能力未知处理，不能记成缺少 NAT。
 
-启动与 attach 在发布 Running 前强制刷新一次 DNS 规则并清理 Android resolver 网络缓存；`dns.flush_cache` 只清 mihomo 缓存。`Network.networkHandle` 高 32 位提供 netId，稳定 `IDnsResolver` AIDL 的事务 11 为 `flushNetworkCache`；只接受无异常的零值 Parcel，su 退出 0 不代表 Binder 调用成功。
+启动与 attach 在发布 Running 前强制刷新一次 DNS 规则并清理 Android resolver 网络缓存，安装、核对与缓存清理在单次 `su` 内完成；`dns.flush_cache` 只清 mihomo 缓存。`Network.networkHandle` 高 32 位提供 netId，稳定 `IDnsResolver` AIDL 的事务 11 为 `flushNetworkCache`；只接受无异常的零值 Parcel，su 退出 0 不代表 Binder 调用成功。
+
+DNS 与 TPROXY 安装和内核加载并行，启动成功等待两者完成，失败或取消等待安装收敛后清理规则。ROOT TUN 的热点规则依赖内核创建的 goto 目标，在内核就绪后安装。DNS 清理先查询自有链，存在时再撤销挂接、清空和删除。
 
 DNS 回调按 DNS / 接口快照去重，ROOT TPROXY 的 IPv6 入口另按默认路由 / 直连网段快照刷新，二者与启动刷新共用串行锁；停止先注销普通与默认网络回调、等待进行中的刷新，再拆规则，销毁时注销并取消回调任务。应用被杀后的 ROOT 内核保留规则，重新打开时 attach 刷新当前网络。
 
@@ -25,6 +27,8 @@ DNS 与 TPROXY 安装脚本在清理旧规则后启用 `set -e`，关键命令�
 所有 iptables / ip6tables 调用带 **`-w <秒>`**（裸 `-w` 是无限等待，撞锁会让启动链永久挂起）。秒数已并进工具令牌（`IPT4` / `IPT6` / `IPT_BINS`），新增命令一律用令牌拼接；`runWithOutput` 自动注入，只识别带数字的 `-w`，超时放宽到 `IPT_WAIT_SECONDS + 5`，等锁的时间才不会被算成 su 错误。
 
 抢不到 xtables.lock 的退出码是 **4**（resource problem），与「内核没有该 target」相同。`probeTproxySupport()` 因此按「等锁 → 撞锁退避重试 → 重试耗尽仍是锁问题时**返回 true**」处理，交给真正的 apply 验证：误判「支持」只会让 apply 失败并留下日志，误判「不支持」会中止 ROOT TPROXY 启动。
+
+TPROXY 与 DNS 通过 `IptablesBatch` 合并连续的静态 `-N` / `-A` / `-I` 命令，使用同一表的 `iptables-restore / ip6tables-restore --noflush -w <秒>` 保留其他规则；含 Shell 展开、接口转义与条件分支的命令按原顺序执行。restore 工具缺失时执行原命令，批量安装失败由 `set -e` 中止并交给 Service 清理。
 
 ## IPv6 门控
 
@@ -71,7 +75,7 @@ sing-tun `auto_route` 的 catch-all ip rule（priority 9002）不区分本机与
 - **attach 路径**：tproxy-port 是否监听在 mihomo 启动时就已确定，app 被杀期间若用户改了 tether mode，规则会与实际错位。`ROOT_TETHER_MODE_ACTIVE` 保存启动成功时的快照，attach 前比对，不一致时走 fresh restart。attach 后按需 re-apply：先用 `anyRulesPresent()` 探测锚点（依次按 xt_comment 前缀 `stelliberty:tether:` / `stelliberty:tproxy:`、chain 名、priority），存在则跳过，缺失才 re-apply，覆盖系统重启或与 box_for_magisk 共存时规则被清的情况。`ROOT_ATTACH_FORCE_REAPPLY=true` 强制重建（诊断开关）。
 - **接口识别（手填）**：用户在 RootSettingsScreen 填 CSV（`ROOT_TETHER_IFACES`，默认 `wlan1,wlan2`），编辑对话框的「检测当前接口」列出候选（`NetworkInterface` 中 UP、有 site-local IPv4、不在蜂窝 / 隧道黑名单的接口，默认排除 `wlan0`）。采用手填：`TETHER_STATE_CHANGED` 的 extras 在 Android 11+ 属于 @hide，正则白名单也覆盖不全 OEM 命名。
 - **回程规则按 InterfaceAddress 计算 CIDR**：Android main 表没有 default route，回程规则由 `NetworkInterface.getByName` 读 InterfaceAddress + prefix 算出网段。接口未就绪（热点后开）时 WARN 并跳过，重启代理后重新 apply。`ip rule add iif <name>` 可按名预注册、接口出现即生效；`ip rule add to <subnet>` 需要 apply 时已有地址。生命周期：startProxy（含 attach）后 apply；stop / restart / 死亡三条路径 teardown（NonCancellable），两类规则都执行，任意前置状态都能清干净，末尾 `verifyClean()` 扫描锚点，有残留再重试一轮。本机流量的全 TPROXY 牵涉 AppProxy、DNS、fake-ip、IPv6 DNS 防泄漏整条链，属于独立重构，本模式只覆盖热点。
-- **root 批量操作走单次 su**：Magisk 下每次 `su` 约 30~100ms。`teardown`（ip rule 删到失败为止 + `-S` 转 `-D`）、`verifyClean`、`dumpState`、apply 的约 60 条命令都合并成一次调用；有数据依赖的两步操作也在 shell 里完成（`iptables -S PREROUTING | grep | sed 's/^-A/-D/' | while read`）。多条查询用 `echo '--- <key>'` 分段，在 Kotlin 侧切回。`MihomoRunner.waitForReady` 的 ROOT 判活间隔固定 2s，与就绪文件的 100ms 轮询分开（判活要 fork su）。
+- **root 批量操作走单次 su**：`teardown`（ip rule 删到失败为止 + `-S` 转 `-D`）、`verifyClean` 与 apply 的同一阶段命令合并调用；有数据依赖的两步操作也在 shell 里完成（`iptables -S PREROUTING | grep | sed 's/^-A/-D/' | while read`）。多条查询用 `echo '--- <key>'` 分段，在 Kotlin 侧切回。`MihomoRunner.waitForReady` 的 ROOT 判活间隔固定 2s，与控制接口的 100ms 就绪轮询分开（判活要 fork su）。
 
 ## 通知
 
