@@ -358,13 +358,16 @@ class StellibertyRootService : Service() {
             )
 
             val subscription = subscriptionId?.let(subscriptionStore::findImported)
+            val transformPath = transformWriter.writeRuntime(subscription)
             val (success, dnsApplied) = coroutineScope {
                 val natSupport = async { RootDnsHijacker.probeIpv6Nat() }
                 // DNS 与 TPROXY 只依赖固定 UID 和端口，停止时等待规则安装与内核启动共同收敛。
                 val routing = async {
+                    // 探测先完成，避免与自己的批量安装竞争 xtables 锁。
+                    val ipv6NatSupport = natSupport.await() ?: return@async false
                     val applied = submode != Submode.Tproxy || applyTproxyRules(storage)
                     ensureActive()
-                    applied && startDnsCoordinator(storage, appUid, submode, natSupport.await())
+                    applied && startDnsCoordinator(storage, appUid, submode, ipv6NatSupport)
                 }
                 val coreStarted = runner.start(
                     subscriptionId = subscriptionId,
@@ -373,7 +376,7 @@ class StellibertyRootService : Service() {
                     secret = secret,
                     externalController = extCtl,
                     ageSecretKey = subscription?.ageSecretKey.orEmpty(),
-                    transformPath = transformWriter.writeRuntime(subscription),
+                    transformPath = transformPath,
                 )
                 if (!coreStarted) {
                     routing.cancelAndJoin()
