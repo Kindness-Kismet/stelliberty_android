@@ -48,12 +48,14 @@ Tun / Root / ProfileWorker 的 onCreate 均 `try { startForeground() } catch (Ex
 
 `DynamicNotificationManager` 在三种模式下统一管理刷新和权限广播。关闭动态通知、应用或渠道禁止通知、划掉通知时取消 `/traffic` 订阅；划掉状态保持到下次启动服务。权限广播与偏好事件驱动重新判断，不轮询通知状态；停止服务时一并取消监听器，通知发布在主线程串行执行。
 
-## 配置变了就重启
+## 重启与订阅重载
 
-决策单点是 [ProxyServiceController.restartWhenReady](../../../../android/app/src/main/kotlin/com/stelliberty/android/platform/ProxyServiceController.kt)，读 ProxyServiceBridge：`uiState.isRunning` 在 Starting 窗口内仍为 false（同步加载 provider 时可达一分钟），以它为准会漏掉重启。Starting / Stopping 过渡态挂起等待收敛：落到 Running 补一次重启，落到 Stopped / Error 放弃（尊重用户中途的手动停止）。两个调用方：
+决策单点是 [ProxyServiceController.restartWhenReady](../../../../android/app/src/main/kotlin/com/stelliberty/android/platform/ProxyServiceController.kt)，读 ProxyServiceBridge：`uiState.isRunning` 在 Starting 窗口内仍为 false（同步加载 provider 时可达一分钟），以它为准会漏掉重启。前台状态核对不得把 Stopping 强制改成 Stopped，终态由 Service 发布。Starting / Stopping 过渡态挂起等待收敛：落到 Running 补一次重启，落到 Stopped / Error 放弃（尊重用户中途的手动停止）。两个调用方：
 
 - `onActiveSubscriptionChanged()`：切换或删除 active；删光最后一条时改为 stop + `cancelPendingRestart()`。
-- `restartAfterProfileUpdate(uuid)`：见 `subscription` skill 的 `guides/lifecycle.md`。
+- 服务、隧道、端口与用户覆写设置变更。
+
+当前订阅更新通过 `reloadAfterProfileUpdate(uuid)`，首页热重载通过 `reload`。Service 持清理锁与订阅处理锁，重新核对活跃订阅和 Running 状态后调用内核；已发出的重载请求等待结果再允许停止或重启。配置重载保持 Running，仅置 `isReloading`，成功递增 `configurationRevision`；详见 `subscription/guides/lifecycle.md`。
 
 重启是整进程重来：VPN 杀进程并重建 TUN fd；ROOT 另清 `runtime/{uuid}/` 沙箱（provider 缓存保留）与持久化 PID，强制全新启动读取新配置。
 

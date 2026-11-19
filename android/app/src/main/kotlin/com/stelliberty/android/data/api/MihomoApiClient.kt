@@ -13,6 +13,8 @@ import com.stelliberty.android.domain.model.RulesResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.timeout
+import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.websocket.WebSockets
@@ -45,7 +47,8 @@ class MihomoApiClient(
         coerceInputValues = true
     }
 
-    private val client = HttpClient {
+    private val client = HttpClient(OkHttp) {
+        engine { config { proxy(java.net.Proxy.NO_PROXY) } }
         install(ContentNegotiation) {
             json(json)
         }
@@ -68,10 +71,19 @@ class MihomoApiClient(
         return response.body()
     }
 
-    suspend fun getConfig(): MihomoConfig {
-        val response = client.get("$baseUrl/configs")
+    suspend fun getConfig(timeoutMillis: Long = 60_000): MihomoConfig {
+        val response = client.get("$baseUrl/configs") {
+            timeout { requestTimeoutMillis = timeoutMillis }
+        }
         ensureSuccess(response, "configs")
         return response.body()
+    }
+
+    suspend fun reloadConfig(pid: Int) {
+        val response = client.post("$baseUrl/stelliberty/reload") {
+            url { parameters.append("pid", pid.toString()) }
+        }
+        ensureSuccess(response, "reload configuration")
     }
 
     suspend fun getProxies(): ProxiesResponse {

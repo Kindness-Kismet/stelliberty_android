@@ -69,6 +69,7 @@ import io.github.g00fy2.quickie.ScanCustomCode
 import io.github.g00fy2.quickie.config.BarcodeFormat
 import io.github.g00fy2.quickie.config.ScannerConfig
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -221,7 +222,6 @@ class MainActivity : ComponentActivity() {
         clashFeaturesViewModel = get()
         appProxyViewModel = get()
         subscriptionViewModel = get()
-        subscriptionViewModel.runStartupUpdates()
         proxyViewModel = get()
         homeViewModel = get()
 
@@ -232,6 +232,19 @@ class MainActivity : ComponentActivity() {
                 providerViewModel.setRepository(repo)
                 connectionViewModel.setRepository(repo)
                 dnsQueryViewModel.setRepository(repo)
+            }
+        }
+        lifecycleScope.launch {
+            var revision = 0L
+            ProxyServiceBridge.state.collect { status ->
+                if (status.configurationRevision != revision) {
+                    revision = status.configurationRevision
+                    if (revision > 0) {
+                        proxyViewModel.loadProxies()
+                        providerViewModel.loadProviders()
+                        homeViewModel.refreshAfterReload()
+                    }
+                }
             }
         }
 
@@ -449,7 +462,16 @@ class MainActivity : ComponentActivity() {
                 }
             }
             // 授权刷新完成后再重连或自动启动，避免使用旧权限与旧模式。
-            serviceController.verifyAndSyncState()
+            val connecting = serviceController.verifyAndSyncState()
+            if (connecting) {
+                kotlinx.coroutines.withTimeoutOrNull(5_000) {
+                    serviceController.status.first { it.state != ProxyState.Stopped }
+                }
+            }
+            serviceController.status.first {
+                it.state != ProxyState.Starting && it.state != ProxyState.Stopping
+            }
+            subscriptionViewModel.runStartupUpdates()
         }
     }
 

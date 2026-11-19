@@ -45,6 +45,7 @@ internal val PROXY_METHODS = setOf(
     "proxy.start",
     "proxy.stop",
     "proxy.restart",
+    "proxy.reload",
     "proxy.set_mode",
     "proxy.select",
     "proxy.test_group",

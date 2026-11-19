@@ -71,7 +71,7 @@ class ProfileProcessor(
                     val imported = repo.queryImported(uuid)
                         ?: throw IllegalArgumentException("Profile $uuid not found")
                     val snap = PendingSnapshot.of(imported)
-                    val dir = fileManager.prepareProcessing(uuid)
+                    val dir = fileManager.prepareProcessing(uuid, reuseImported = true)
                     fileManager.readImportedFile(uuid, "config.yaml")?.let {
                         fileManager.writeProcessingConfig(dir, it)
                     }

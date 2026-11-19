@@ -36,10 +36,6 @@ data class Subscription(
     @SerialName("CustomChainProxies") val customChainProxies: List<SubscriptionCustomChainProxy> = emptyList(),
     @SerialName("SourceFormat") val sourceFormat: SubscriptionSourceFormat = SubscriptionSourceFormat.StandardClash,
 ) {
-    // 只有核心代理经 mixed-port 下载；本地文件不下载。
-    val updatesViaCore: Boolean
-        get() = !isLocalFile && updateProxyMode == SubscriptionUpdateProxyMode.Core
-
     // 覆写应用顺序与 PC 相同：用户排序优先，其余选中项保持 OverrideIds 里的顺序。
     val orderedOverrideIds: List<String>
         get() {

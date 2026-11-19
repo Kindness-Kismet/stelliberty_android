@@ -29,6 +29,7 @@ class ProfileUpdateTask(
         }
         val updated = mutableListOf<String>()
         var failed = 0
+        controller.awaitExistingService()
         for (uuid in targets.distinct()) {
             val subscription = store.findImported(uuid) ?: continue
             if (subscription.isLocalFile) continue
@@ -48,8 +49,8 @@ class ProfileUpdateTask(
                 AppLogger.error(TAG, "Automatic profile update failed: $uuid", e)
             }
         }
-        // 下载整批订阅后再重启，后续经 mixed-port 的请求才能保持连接。
-        updated.forEach { controller.restartAfterProfileUpdate(it) }
+        // 整批下载后再应用当前订阅，后续下载保持使用相同分流规则。
+        updated.forEach { controller.reloadAfterProfileUpdate(it) }
         if (updated.isNotEmpty() || failed > 0) OperationFeedback.updateResult(updated.size, failed)
     }
 

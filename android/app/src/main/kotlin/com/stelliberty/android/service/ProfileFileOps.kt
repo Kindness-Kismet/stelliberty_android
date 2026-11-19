@@ -70,13 +70,25 @@ object ProfileFileOps {
 
     // processing 目录全进程只有一个（路径里不带订阅编号），所以从清空到提交必须完全串行。
     // 并发两个更新会交错清空同一个目录，把一个订阅下载的配置提交进另一个订阅里。
-    fun prepareProcessing(context: Context, uuid: String): File {
+    fun prepareProcessing(context: Context, uuid: String, reuseImported: Boolean = false): File {
         val processing = getProcessingDir(context)
         processing.deleteRecursively()
         processing.mkdirs()
         val pending = File(getWorkDir(context), "pending/$uuid")
         if (pending.exists()) {
             pending.copyRecursively(processing, overwrite = true)
+        }
+        if (reuseImported) {
+            val imported = getImportedDir(context, uuid)
+            val previous = File(processing, "previous")
+            previous.mkdirs()
+            File(imported, "config.yaml").copyTo(File(previous, "config.yaml"))
+            val providers = File(imported, PROVIDERS_DIR)
+            providers.walkTopDown().filter { it.isFile }.forEach { source ->
+                val target = File(previous, "$PROVIDERS_DIR/${source.relativeTo(providers).path}")
+                source.copyTo(target)
+                target.setLastModified(source.lastModified())
+            }
         }
         return processing
     }
@@ -130,6 +142,10 @@ object ProfileFileOps {
         try {
             staging.mkdirs()
             if (processing.exists()) processing.copyRecursively(staging, overwrite = true)
+            File(processing, PROVIDERS_DIR).walkTopDown().filter { it.isFile }.forEach { source ->
+                File(staging, source.relativeTo(processing).path).setLastModified(source.lastModified())
+            }
+            ensureGeodataLinks(context, staging)
         } catch (e: Throwable) {
             staging.deleteRecursively()
             throw e
@@ -196,6 +212,15 @@ object ProfileFileOps {
         return runtime
     }
 
+    // 重载期间保留运行目录和日志，只原子替换配置并补入更新后的 provider。
+    fun refreshRootRuntime(context: Context, uuid: String) {
+        val imported = getImportedDir(context, uuid)
+        val runtime = getRuntimeDir(context, uuid)
+        writeAtomically(File(runtime, "config.yaml"), File(imported, "config.yaml").readText())
+        seedRootProviders(File(imported, PROVIDERS_DIR), File(runtime, PROVIDERS_DIR), requireFresh = true)
+        ensureGeodataLinks(context, runtime)
+    }
+
     // provider 缓存跨启动保留，否则每次启动都要在就绪前同步重新下载全部 provider。
     fun cleanupRootRuntime(context: Context, uuid: String) {
         clearRootRuntime(getRuntimeDir(context, uuid))
@@ -205,15 +230,27 @@ object ProfileFileOps {
         runtime.listFiles()?.filter { it.name != PROVIDERS_DIR }?.forEach(::removeMaybeRootOwned)
     }
 
-    // 更新订阅会重下全部 provider，导入文件较新时替换，与 VPN 模式直接读导入目录一致；保留修改时间供内核判断过期。
-    // 内核自建的子目录归 root 所有、应用写不进去，这时沿用运行目录里的文件。
-    private fun seedRootProviders(source: File, target: File) {
+    // 保留 provider 修改时间供内核判断过期；重载必须同步最新文件，root 所有的文件通过 su 写入。
+    private fun seedRootProviders(source: File, target: File, requireFresh: Boolean = false) {
+        val rootCopies = mutableListOf<String>()
         source.walkTopDown().filter { it.isFile }.forEach { file ->
             val dest = File(target, file.relativeTo(source).path)
             if (dest.exists() && dest.lastModified() >= file.lastModified()) return@forEach
             runCatching {
                 file.copyTo(dest, overwrite = true)
                 dest.setLastModified(file.lastModified())
+            }.onFailure {
+                if (requireFresh) {
+                    val parent = RootHelper.escapeShellSingleQuoted(dest.parentFile!!.absolutePath)
+                    val from = RootHelper.escapeShellSingleQuoted(file.absolutePath)
+                    val to = RootHelper.escapeShellSingleQuoted(dest.absolutePath)
+                    rootCopies += "mkdir -p $parent\ncp -p $from $to"
+                }
+            }
+        }
+        if (rootCopies.isNotEmpty()) {
+            check(RootHelper.runRootScriptHeredoc("set -e\n" + rootCopies.joinToString("\n") + "\n") == 0) {
+                "Cannot refresh root provider cache"
             }
         }
     }

@@ -9,7 +9,7 @@ user_invocable: true
 1. 三阶段沙箱按 CREATE → APPLY（snapshot / fetchAndValid / commit）→ RELEASE 进行。`imported/` 一律「先拷后 rename」：update 路径下它是唯一副本。
 2. `ProfileProcessor.processLock` 是 companion 进程级锁：`processing/` 是不带 uuid 的单例目录，前台 VM 与后台 Worker 是不同实例，共用一把锁才能让配置提交到正确的 uuid。
 3. `kotlinx.coroutines.sync.Mutex` 不可重入：`markUpdated` / `commitPending` / `queryImported` / `queryPending` 由外层持锁调用，内部直接执行；`create` / `patch` / `release` / `delete` 直接被 VM 调用，自带锁。
-4. 更新后重启代理：mihomo 只在启动时读一次 config.yaml，embed mode 下 `/restart` 返回 404。五个入口（订阅页单条 / 全部 / 启动时更新 / 后台任务 / 调试指令）都调用 `restartAfterProfileUpdate`。
+4. 更新当前订阅后通过 `reloadAfterProfileUpdate` 重载配置，五个入口（订阅页单条 / 全部 / 启动时更新 / 后台任务 / 调试指令）共用此判定。内核扩展接口保留进程与隧道；批量更新整轮结束后只应用成功更新的当前订阅一次。
 
 ## 指引索引
 
@@ -18,7 +18,7 @@ user_invocable: true
 | 任务 | 指引 |
 |---|---|
 | 导入 / 校验 / 取消、锁、HTTP 与自动命名、age 加密、深链 | `guides/pipeline.md` |
-| 活跃订阅切换、更新后重启、流量数据合并、后台更新与闹钟 | `guides/lifecycle.md` |
+| 活跃订阅切换、更新后重载、流量数据合并、后台更新与闹钟 | `guides/lifecycle.md` |
 | WebDAV / 本地备份、恢复的两阶段写入与流式处理 | `guides/backup.md` |
 | 覆写文件、订阅选择与排序、保存校验和备份一致性 | `guides/overrides.md` |
 | 内置与自定义链式代理、候选项上下文、运行时展开规则 | `guides/chains.md` |

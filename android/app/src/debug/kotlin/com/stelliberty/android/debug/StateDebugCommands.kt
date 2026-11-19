@@ -15,6 +15,8 @@ internal fun runStateCommand(): Bundle {
         append("state=").append(status.state.name)
         append(" tunMode=").append(status.tunMode.name)
         append(" pid=").append(status.mihomoPid)
+        append(" configurationRevision=").append(status.configurationRevision)
+        append(" reloading=").append(status.isReloading)
         append(" externalController=").append(status.externalController)
         append(" notificationAllowed=").append(NotificationHelper.canShowProxyNotification(StellibertyApplication.instance))
         append(" notificationDismissed=").append(ProxyServiceBridge.notificationDismissed.value)

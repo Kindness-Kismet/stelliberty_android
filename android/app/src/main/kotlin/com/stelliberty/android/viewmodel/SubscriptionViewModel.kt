@@ -131,7 +131,7 @@ class SubscriptionViewModel(
         }
         runPipeline(ProfileOperation.Update) {
             processor.update(id, ::reportProgress)
-            serviceController.restartAfterProfileUpdate(id)
+            serviceController.reloadAfterProfileUpdate(id)
         }
     }
 
@@ -164,8 +164,7 @@ class SubscriptionViewModel(
         )
     }
 
-    // 逐条等它做完，只为让进度条一次只前进一格。让配置生效的那次重启排在整轮结束之后且只做一次：
-    // 中途重启会断网，后面还要下载的订阅会跟着一起失败。
+    // 整批下载完成后只应用当前订阅一次，避免改变后续下载使用的分流规则。
     private fun updateSubscriptions(targets: List<Subscription>) {
         if (targets.isEmpty()) {
             OperationFeedback.updateResult(0, 0)
@@ -205,7 +204,7 @@ class SubscriptionViewModel(
                     updateAll = null,
                     operation = null,
                 )
-                updated.forEach { serviceController.restartAfterProfileUpdate(it) }
+                updated.forEach { serviceController.reloadAfterProfileUpdate(it) }
                 OperationFeedback.updateResult(updated.size, failed)
             } catch (e: CancellationException) {
                 AppLogger.info(TAG, "Batch profile update cancelled")

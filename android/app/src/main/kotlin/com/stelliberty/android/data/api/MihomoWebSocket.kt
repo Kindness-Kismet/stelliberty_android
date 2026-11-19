@@ -36,7 +36,7 @@ class MihomoWebSocket(
         coerceInputValues = true
     }
 
-    private val socketClient = OkHttpClient()
+    private val socketClient = OkHttpClient.Builder().proxy(java.net.Proxy.NO_PROXY).build()
     private val wsClient = HttpClient(OkHttp) {
         engine {
             webSocketFactory = WebSocket.Factory { request, listener ->

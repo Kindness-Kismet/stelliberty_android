@@ -14,8 +14,8 @@ class AndroidProfileFileManager(private val context: Context) : ProfileFileManag
         ProfileFileOps.releasePending(context, uuid)
     }
 
-    override fun prepareProcessing(uuid: String): String {
-        return ProfileFileOps.prepareProcessing(context, uuid).absolutePath
+    override fun prepareProcessing(uuid: String, reuseImported: Boolean): String {
+        return ProfileFileOps.prepareProcessing(context, uuid, reuseImported).absolutePath
     }
 
     override fun writeProcessingConfig(workDir: String, content: String) {

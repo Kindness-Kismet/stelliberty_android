@@ -8,7 +8,7 @@ user_invocable: true
 
 1. 消费方统一从 `connectionManager.repository` 订阅 client：`MihomoConnectionManager` 是唯一负责 `close()` 的一方，切订阅时旧实例随之关闭。
 2. `setRepository` 先 cancel 旧拉取协程：`client.close()` 只让 in-flight 请求抛异常，协程本身会跑完并写入旧订阅的数据。
-3. embed mode 下配置类接口（`PATCH/PUT /configs`、`POST /restart`、`PUT/PATCH /rules` 等）返回 404；配置修改走 `OverrideJsonStore.update{}` + 重启。
+3. embed mode 下配置类接口（`PATCH/PUT /configs`、`POST /restart`、`PUT/PATCH /rules` 等）返回 404；服务设置修改走 `OverrideJsonStore.update{}` + 重启；订阅重载使用本项目扩展的 `POST /stelliberty/reload?pid=...`。
 4. 长生命周期流的错误处理留在流内重连循环：取消以外的异常都在流内转成重连，外挂的 `.catch` 执行不到。
 
 ## 指引索引

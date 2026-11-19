@@ -45,7 +45,7 @@ val dataModule = module {
     single { ProfileTransformWriter(get(), get(), get()) }
 
     single { OverrideJsonStore(get(), get()) }
-    single { SubscriptionProxyResolver(get()) }
+    single { SubscriptionProxyResolver() }
     single<AppUpdateRepository> { AppUpdateRepositoryImpl(get()) }
     single { RuleLatencyTester(get()) }
     single { MihomoConnectionManager(get()) }

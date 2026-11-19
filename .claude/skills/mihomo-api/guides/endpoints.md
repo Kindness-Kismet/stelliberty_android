@@ -8,7 +8,7 @@
 
 ## embed mode 下的配置接口
 
-CMFA embed mode 下 `PATCH/PUT /configs`、`POST /restart`、`POST /configs/geo`、`PUT/PATCH /rules`、`POST /upgrade` 均返回 404。配置修改走 `OverrideJsonStore.update{}` + `serviceController.restart()`，UI 用 `RestartRequiredHint` 提示。
+CMFA embed mode 下 `PATCH/PUT /configs`、`POST /restart`、`POST /configs/geo`、`PUT/PATCH /rules`、`POST /upgrade` 均返回 404。配置修改走 `OverrideJsonStore.update{}` + `serviceController.restart()`，UI 用 `RestartRequiredHint` 提示。订阅重载使用扩展 `POST /stelliberty/reload?pid=...`，沿用控制器 secret 并核对 PID，成功返回 204。扩展接口保留进程、控制器与入口参数；解析失败保留当前运行配置。
 
 ## provider 节点的命名空间
 

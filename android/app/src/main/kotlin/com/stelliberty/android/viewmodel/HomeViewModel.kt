@@ -46,6 +46,7 @@ data class HomeUiState(
     val isRunning: Boolean = false,
     val isStarting: Boolean = false,
     val isStopping: Boolean = false,
+    val isReloading: Boolean = false,
     val mode: String = "--",
     val tunStack: String = "",
     val tunMode: TunMode = TunMode.Vpn,
@@ -186,6 +187,7 @@ class HomeViewModel(
                         _uiState.value = _uiState.value.copy(
                             isStarting = true,
                             isStopping = false,
+                            isReloading = false,
                             tunMode = status.tunMode,
                             subscription = activeSubscriptionInfo(),
                         )
@@ -194,7 +196,9 @@ class HomeViewModel(
                     ProxyState.Running -> {
                         _uiState.value = _uiState.value.copy(
                             isStarting = false,
+                            isStopping = false,
                             isRunning = true,
+                            isReloading = status.isReloading,
                             tunMode = status.tunMode,
                             subscription = activeSubscriptionInfo(),
                         )
@@ -203,7 +207,9 @@ class HomeViewModel(
                     }
 
                     ProxyState.Stopping -> {
-                        _uiState.value = _uiState.value.copy(isRunning = false, isStopping = true)
+                        _uiState.value = _uiState.value.copy(
+                            isRunning = false, isStarting = false, isStopping = true, isReloading = false,
+                        )
                     }
 
                     // 这两个分支整体重建状态来清掉运行期的热数据，因此每个要留下的字段都得显式带上。
@@ -682,7 +688,14 @@ class HomeViewModel(
     }
 
     fun reloadConfig() {
-        serviceController.restart(getActiveSubscriptionId())
+        serviceController.reload(getActiveSubscriptionId())
+    }
+
+    fun refreshAfterReload() {
+        val repo = repository ?: return
+        initialLoadJob?.cancel()
+        initialLoadJob = viewModelScope.launch { loadConfig(repo) }
+        refreshProviderTraffic()
     }
 
     fun testLatency() {

@@ -31,6 +31,10 @@ Android `ProcessBuilder` fork 后会关闭全部非标准 fd，VPN 模式因此�
 ## 启动就绪契约
 
 - `runtime_probe.go` 通过 `route.Register` 注册 `/stelliberty/runtime`，沿用控制器 secret 鉴权。初始化期间返回 503、完成后返回 200，响应体都是 `{"pid":<pid>}`：应用只把目标进程的 200 当作就绪，凭 503 里的进程号确认仍在加载的是自己，其他进程的应答按端口被占用处理。
-- `hub.Parse` 返回、启用的 TUN 确认创建成功并注册退出信号后，才发布就绪状态；配置重载与退出期间撤销就绪。状态使用原子变量，与 HTTP 协程同步。TUN 初始化失败时按启动失败处理。
+- `hub.Parse` 返回、启用的 TUN 确认创建成功并注册退出信号后，才发布就绪状态；退出时撤销就绪，配置重载保留运行身份。状态使用原子变量，与 HTTP 协程同步。TUN 初始化失败时按启动失败处理。
+
+## 运行时重载
+
+`POST /stelliberty/reload?pid=...` 与 SIGHUP 共用串行重载，重新读取磁盘配置、age 解密、订阅变换和 provider 路径。先解析再应用，保留当前 Inbound（包括 TUN fd）与控制器，用 `executor.ApplyConfig(cfg, false)` 更新规则和节点。Selector 保留选择，URLTest / Fallback 只保留用户固定项，自动选择保持自动。
 
 规则编译缓存使用 `context.cacheDir/rule-cache`，JNI 初始化接收 `homeDir` 与 `cacheDir`，运行时通过 `--rule-cache-dir` 使用同一目录。三模式按 URL、行为与格式共享，导入时提前编译下载的规则；ROOT 进程保持应用 UID 为主 GID，派生文件权限为 `0640`，VPN 进程可读取。缓存目录由应用先创建，缓存回收与备份独立于订阅文件。

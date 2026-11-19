@@ -31,17 +31,17 @@ debug-call.sh -s <dev> -m subscription.activate -a Probe
 
 与 UI 一致：只有首次导入（列表原本为空）自动激活，其余用 `activate`。导入的订阅默认经内核更新（`UpdateProxyMode = Core`），与添加页默认值一致；`update_proxy` 可改为直连或系统代理。
 
-## 会重启代理的指令
+## 更新与服务状态
 
-`activate` / `update` / `update_all` / `delete`（删 active 那条时）都会重启整个进程：mihomo 只在启动时读一次 config.yaml，embed mode 又禁用了 `/restart`。`update` / `update_all` 另受 `RESTART_AFTER_PROFILE_UPDATE`（默认开）约束，且只对 active 订阅生效；`update_all` 在整轮结束后重启一次，后续下载全程有网。
+`activate` / `delete`（删除当前订阅）重启服务；`update` / `update_all` 受 `RESTART_AFTER_PROFILE_UPDATE`（默认开）约束，只重载成功更新的当前订阅，整轮结束后应用一次。
 
-判据是 PID 改变。重启异步进行，需要十几秒：
+更新的判据为 PID 不变、`configurationRevision` 递增且新配置已生效；请求异步完成：
 
 ```bash
 debug-call.sh -s <dev> -m state.get                       # 记下 pid
 debug-call.sh -s <dev> -m subscription.update -a <名字>
-sleep 20
-debug-call.sh -s <dev> -m state.get                       # pid 应已改变
+sleep 3
+debug-call.sh -s <dev> -m state.get                       # 核对 PID 不变与 configurationRevision 递增
 ```
 
 删掉最后一条订阅时改为停止代理。

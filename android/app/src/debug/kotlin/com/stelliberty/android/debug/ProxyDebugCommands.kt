@@ -51,6 +51,11 @@ internal fun runProxyCommand(context: Context, action: String, arg: String?, ext
             debugResult(true, "restart requested", command)
         }
 
+        "reload" -> {
+            controller.reload(extras.string(EXTRA_UUID))
+            debugResult(true, "reload requested", command)
+        }
+
         "set_mode" -> {
             val mode = extras.target(arg)?.lowercase()
                 ?: return debugResult(false, "Missing mode", command)

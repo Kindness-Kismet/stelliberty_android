@@ -340,8 +340,8 @@
     <string name="update_proxy_direct">直連</string>
     <string name="update_proxy_system">系統代理</string>
     <string name="update_proxy_core">核心代理</string>
-    <string name="settings_restart_after_update">更新後重新啟動代理</string>
-    <string name="settings_restart_after_update_summary">更新目前訂閱後重新啟動代理使新設定生效（會短暫中斷連線）</string>
+    <string name="settings_restart_after_update">更新後重新載入設定</string>
+    <string name="settings_restart_after_update_summary">更新目前訂閱後直接套用新設定，保留核心程序與通道</string>
     <string name="settings_auto_connect">啟動時自動連線</string>
     <string name="settings_auto_connect_summary">開啟應用程式時若有可用訂閱則啟動代理</string>
     <string name="settings_auto_restart">開機後自動重啟</string>
@@ -719,6 +719,7 @@
     <string name="operation_success">操作成功</string>
     <string name="operation_import_failed">匯入失敗，請檢查設定檔</string>
     <string name="operation_save_failed">儲存失敗，請再試一次</string>
+    <string name="operation_reload_failed">重新載入設定失敗，請查看記錄</string>
     <string name="operation_invalid_config">設定檔格式有誤</string>
     <string name="operation_invalid_url">連結格式有誤</string>
 </resources>

@@ -6,7 +6,6 @@ package main
 import "C"
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
@@ -14,11 +13,11 @@ import (
 	"io"
 	"mime"
 	"net"
-	"net/netip"
 	"net/url"
 	"os"
 	"path"
 	P "path"
+	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -30,7 +29,6 @@ import (
 	"github.com/metacubex/mihomo/component/dialer"
 	clashHttp "github.com/metacubex/mihomo/component/http"
 	"github.com/metacubex/mihomo/config"
-	Const "github.com/metacubex/mihomo/constant"
 	PProvider "github.com/metacubex/mihomo/constant/provider"
 	"github.com/metacubex/mihomo/log"
 	RP "github.com/metacubex/mihomo/rules/provider"
@@ -145,10 +143,13 @@ func runFetchAndValid(
 	if err := os.MkdirAll(providersDir, 0700); err != nil {
 		return nil, fmt.Errorf("create providers dir: %w", err)
 	}
+	seedRuleProviderCache(workDir, rawCfg)
 	patchProvidersPath(rawCfg, providersDir)
 	result.BuiltinChainProxyNames = builtinChainProxyNames(rawCfg.Proxy)
 
-	prefetchProviders(ctx, token, rawCfg, effectiveUA, client)
+	if err := prefetchProviders(ctx, token, rawCfg, effectiveUA, client); err != nil {
+		return nil, err
+	}
 
 	if ctx.Err() != nil {
 		return nil, ctx.Err()
@@ -201,14 +202,7 @@ func newFetchClient(httpProxy string) (*http.Client, error) {
 	dial := func(ctx context.Context, network, address string) (net.Conn, error) {
 		return dialer.DialContext(ctx, network, address)
 	}
-	if httpProxy != "" {
-		proxyURL, err := url.Parse(httpProxy)
-		if err != nil {
-			return nil, fmt.Errorf("parse http proxy: %w", err)
-		}
-		dial = connectDialer{proxyAddr: proxyURL.Host}.DialContext
-	}
-	return &http.Client{Transport: &http.Transport{
+	transport := &http.Transport{
 		DialContext:           dial,
 		TLSClientConfig:       tlsConfig,
 		ForceAttemptHTTP2:     true,
@@ -217,7 +211,16 @@ func newFetchClient(httpProxy string) (*http.Client, error) {
 		IdleConnTimeout:       30 * time.Second,
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: time.Second,
-	}}, nil
+	}
+	if httpProxy != "" {
+		proxyURL, err := url.Parse(httpProxy)
+		if err != nil {
+			return nil, fmt.Errorf("parse http proxy: %w", err)
+		}
+		// HTTP 使用代理请求，HTTPS 才建立 CONNECT 隧道，兼容限制 CONNECT 端口的系统代理。
+		transport.Proxy = http.ProxyURL(proxyURL)
+	}
+	return &http.Client{Transport: transport}, nil
 }
 
 func fetchRequest(ctx context.Context, client *http.Client, u *url.URL, userAgent string) (*http.Response, error) {
@@ -326,7 +329,52 @@ func parseUserinfo(header string, result *FetchResult) {
 	}
 }
 
-func prefetchProviders(ctx context.Context, token int32, cfg *config.RawConfig, userAgent string, client *http.Client) {
+// 规则集按自身更新间隔复用；来源和解析选项有变化时重新下载，节点订阅始终刷新。
+func seedRuleProviderCache(workDir string, cfg *config.RawConfig) {
+	previousDir := P.Join(workDir, "previous")
+	defer os.RemoveAll(previousDir)
+	raw, err := os.ReadFile(P.Join(previousDir, "config.yaml"))
+	if err != nil {
+		return
+	}
+	previous, err := config.UnmarshalRawConfig(raw)
+	if err != nil {
+		return
+	}
+	reused := 0
+	for name, rule := range cfg.RuleProvider {
+		if !reflect.DeepEqual(rule, previous.RuleProvider[name]) {
+			continue
+		}
+		seconds, err := strconv.ParseInt(fmt.Sprint(rule["interval"]), 10, 64)
+		if err != nil || seconds <= 0 {
+			continue
+		}
+		source := providerCachePath(P.Join(previousDir, "providers"), "rules", rule)
+		info, err := os.Stat(source)
+		if err != nil || !info.Mode().IsRegular() || time.Since(info.ModTime()).Seconds() >= float64(seconds) {
+			continue
+		}
+		dest := providerCachePath(P.Join(workDir, "providers"), "rules", rule)
+		file, err := os.Open(source)
+		if err != nil {
+			continue
+		}
+		if err = os.MkdirAll(P.Dir(dest), 0700); err == nil {
+			_, err = writeFileAtomic(dest, file)
+		}
+		file.Close()
+		if err == nil {
+			os.Chtimes(dest, info.ModTime(), info.ModTime())
+			reused++
+		}
+	}
+	log.Infoln("Reused %d unexpired rule provider caches", reused)
+}
+
+func prefetchProviders(ctx context.Context, token int32, cfg *config.RawConfig, userAgent string, client *http.Client) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	type item struct {
 		key  string
 		url  string
@@ -353,7 +401,7 @@ func prefetchProviders(ctx context.Context, token int32, cfg *config.RawConfig, 
 
 	total := len(items)
 	if total == 0 {
-		return
+		return nil
 	}
 	started := time.Now()
 	setProgress(token, FetchProgress{
@@ -365,6 +413,8 @@ func prefetchProviders(ctx context.Context, token int32, cfg *config.RawConfig, 
 
 	var done atomic.Int32
 	var wg sync.WaitGroup
+	var errorMu sync.Mutex
+	var firstError error
 	sem := make(chan struct{}, prefetchConcurrency)
 	for _, it := range items {
 		if ctx.Err() != nil {
@@ -378,12 +428,20 @@ func prefetchProviders(ctx context.Context, token int32, cfg *config.RawConfig, 
 			if ctx.Err() != nil {
 				return
 			}
-			if u, err := url.Parse(it.url); err == nil {
-				if err := fetchProvider(ctx, u, it.dest, userAgent, client); err != nil {
-					log.Warnln("Prefetch provider %s failed: %v", it.key, err)
-				} else if it.rule != nil && ctx.Err() == nil {
-					warmRuleProvider(it.key, it.rule)
+			u, err := url.Parse(it.url)
+			if err == nil {
+				err = fetchProvider(ctx, u, it.dest, userAgent, client)
+			}
+			if err != nil {
+				log.Warnln("Prefetch provider %s failed: %v", it.key, err)
+				errorMu.Lock()
+				if firstError == nil {
+					firstError = fmt.Errorf("prefetch provider %s: %w", it.key, err)
+					cancel()
 				}
+				errorMu.Unlock()
+			} else if it.rule != nil && ctx.Err() == nil {
+				warmRuleProvider(it.key, it.rule)
 			}
 			setProgress(token, FetchProgress{
 				Action:      "FetchProviders",
@@ -395,6 +453,7 @@ func prefetchProviders(ctx context.Context, token int32, cfg *config.RawConfig, 
 	}
 	wg.Wait()
 	log.Infoln("Provider prefetch complete: %d providers in %dms", total, time.Since(started).Milliseconds())
+	return firstError
 }
 
 func warmRuleProviders(ctx context.Context, cfg *config.RawConfig) {
@@ -481,58 +540,12 @@ func fetchProvider(ctx context.Context, u *url.URL, dest string, userAgent strin
 	if err := os.MkdirAll(path.Dir(dest), 0700); err != nil {
 		return err
 	}
-	_, err = writeFileAtomic(dest, resp.Body)
-	return err
-}
-
-// HttpRequest 的 Transport 不读代理环境变量，所以经代理下载只能换拨号器，用 HTTP CONNECT 建隧道。
-type connectDialer struct {
-	proxyAddr string
-}
-
-func (d connectDialer) DialContext(ctx context.Context, _, address string) (net.Conn, error) {
-	var dialer net.Dialer
-	conn, err := dialer.DialContext(ctx, "tcp", d.proxyAddr)
-	if err != nil {
-		return nil, err
-	}
-	// 握手期间取消或超时就关闭连接，阻塞的读写随之返回。
-	stop := context.AfterFunc(ctx, func() { _ = conn.Close() })
-	err = connectHandshake(conn, address)
-	if !stop() {
-		return nil, ctx.Err()
-	}
-	if err != nil {
-		_ = conn.Close()
-		return nil, err
-	}
-	return conn, nil
-}
-
-func (connectDialer) ListenPacket(context.Context, string, string, netip.AddrPort) (net.PacketConn, error) {
-	return nil, errors.New("udp is not supported by http proxy")
-}
-
-var _ Const.Dialer = connectDialer{}
-
-func connectHandshake(conn net.Conn, address string) error {
-	req := &http.Request{
-		Method: http.MethodConnect,
-		URL:    &url.URL{Opaque: address},
-		Host:   address,
-		Header: http.Header{},
-	}
-	if err := req.Write(conn); err != nil {
-		return err
-	}
-	// 隧道建立前对端不会先发数据，读取缓冲里不会多出属于隧道的字节。
-	resp, err := http.ReadResponse(bufio.NewReader(conn), req)
+	n, err := writeFileAtomic(dest, resp.Body)
 	if err != nil {
 		return err
 	}
-	_ = resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("proxy connect: %s", resp.Status)
+	if n == 0 {
+		return errors.New("empty response body")
 	}
 	return nil
 }

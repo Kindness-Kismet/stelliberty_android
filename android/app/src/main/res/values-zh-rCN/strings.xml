@@ -340,8 +340,8 @@
     <string name="update_proxy_direct">直连</string>
     <string name="update_proxy_system">系统代理</string>
     <string name="update_proxy_core">核心代理</string>
-    <string name="settings_restart_after_update">更新后重启代理</string>
-    <string name="settings_restart_after_update_summary">更新当前订阅后重启代理使新配置生效（会短暂中断连接）</string>
+    <string name="settings_restart_after_update">更新后重载配置</string>
+    <string name="settings_restart_after_update_summary">更新当前订阅后直接应用新配置，保留核心进程和隧道</string>
     <string name="settings_auto_connect">启动时自动连接</string>
     <string name="settings_auto_connect_summary">打开应用时若存在可用订阅则启动代理</string>
     <string name="settings_auto_restart">开机后自动重启</string>
@@ -719,6 +719,7 @@
     <string name="operation_success">操作成功</string>
     <string name="operation_import_failed">导入失败，请检查配置</string>
     <string name="operation_save_failed">保存失败，请重试</string>
+    <string name="operation_reload_failed">配置重载失败，请查看日志</string>
     <string name="operation_invalid_config">配置格式有误</string>
     <string name="operation_invalid_url">链接格式有误</string>
 </resources>

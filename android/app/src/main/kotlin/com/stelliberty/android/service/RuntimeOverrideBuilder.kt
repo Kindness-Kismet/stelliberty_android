@@ -9,7 +9,6 @@ import com.stelliberty.android.domain.model.TunOverride
 import com.stelliberty.android.platform.PlatformStorage
 import com.stelliberty.android.platform.StorageKeys
 import com.stelliberty.android.platform.TunMode
-import com.stelliberty.android.service.RuntimeOverrideBuilder.DEFAULT_MIXED_PORT
 import com.stelliberty.android.util.AppLogger
 import java.io.File
 import kotlinx.serialization.json.Json
@@ -39,7 +38,6 @@ object RuntimeOverrideBuilder {
         userOverride: ConfigurationOverride,
         tunFd: Int,
         tunMode: TunMode,
-        mixedPortRequired: Boolean,
         subscriptionMixedPort: Int?,
         tproxyForTether: Boolean = false,
     ): File {
@@ -54,8 +52,7 @@ object RuntimeOverrideBuilder {
             mixedPort = when {
                 userOverride.mixedPort != null -> userOverride.mixedPort
                 subscriptionMixedPort != null -> null
-                mixedPortRequired -> DEFAULT_MIXED_PORT
-                else -> null
+                else -> DEFAULT_MIXED_PORT
             },
             tproxyPort = when (tunMode) {
                 TunMode.RootTproxy -> RootTproxyApplier.TPROXY_PORT
@@ -83,14 +80,13 @@ object RuntimeOverrideBuilder {
         return file
     }
 
-    // 内核实际监听的 mixed-port：用户设置 > 订阅自带 > 需要时补默认值；null 表示不监听（含用户设 0）。
+    // 应用自身下载需要 mixed-port：用户设置 > 订阅自带 > 默认值；用户设 0 时不监听。
     // 订阅自带的值靠行扫描取得；覆写改了该端口时内核以覆写为准，这里取不到。
     fun resolveMixedPort(
         userOverride: ConfigurationOverride,
         subscriptionMixedPort: Int?,
-        mixedPortRequired: Boolean,
-    ): Int? = (userOverride.mixedPort ?: subscriptionMixedPort ?: DEFAULT_MIXED_PORT.takeIf { mixedPortRequired })
-        ?.takeIf { it > 0 }
+    ): Int? = (userOverride.mixedPort ?: subscriptionMixedPort ?: DEFAULT_MIXED_PORT)
+        .takeIf { it > 0 }
 
     private fun buildDnsOverride(tunMode: TunMode, userDns: DnsOverride?): DnsOverride? {
         if (tunMode == TunMode.Vpn) return userDns

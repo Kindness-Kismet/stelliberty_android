@@ -66,8 +66,8 @@ fun HomeScreen(
     var showSubscriptionTraffic by rememberSaveable { mutableStateOf(false) }
     var showSpeedDetail by rememberSaveable { mutableStateOf(false) }
     var requestedAction by rememberSaveable { mutableStateOf<HomeControlAction?>(null) }
-    LaunchedEffect(uiState.isRunning, uiState.isStarting, uiState.isStopping) {
-        if (!uiState.isStarting && !uiState.isStopping) requestedAction = null
+    LaunchedEffect(uiState.isRunning, uiState.isStarting, uiState.isStopping, uiState.isReloading) {
+        if (!uiState.isStarting && !uiState.isStopping && !uiState.isReloading) requestedAction = null
     }
     val topConnectionRates by (
             viewModel?.topConnectionRates?.collectAsStateWithLifecycle()
@@ -124,6 +124,7 @@ fun HomeScreen(
                     isRunning = uiState.isRunning,
                     isStarting = uiState.isStarting,
                     isStopping = uiState.isStopping,
+                    isReloading = uiState.isReloading,
                 )
                 overviewCardsSection(
                     speed = speed,

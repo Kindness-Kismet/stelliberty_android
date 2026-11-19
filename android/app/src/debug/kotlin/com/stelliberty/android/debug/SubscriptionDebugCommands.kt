@@ -68,15 +68,13 @@ internal fun runSubscriptionCommand(action: String, arg: String?, extras: Bundle
                 debugResult(true, "activated $uuid", command, uuid)
             }
 
-            // 更新完必须补 restartAfterProfileUpdate：内核只在启动时读一次配置，不重启就还跑着旧的。
-            // 三个真实入口（订阅页单条、订阅页全部、后台任务）都调了它，指令这条是第四个入口，
-            // 漏调就会让「更新成功」和「新配置生效」在指令这条路上不再是一回事。
+            // 与前台、后台更新共用当前订阅的配置应用入口。
             "update" -> {
                 val uuid = resolveUuid(repository, extras, arg)
                     ?: return@runBlocking debugResult(false, "Subscription not found", command, arg)
                 runCatching { koin<ProfileProcessor>().update(uuid) }.fold(
                     onSuccess = {
-                        koin<ProxyServiceController>().restartAfterProfileUpdate(uuid)
+                        koin<ProxyServiceController>().reloadAfterProfileUpdate(uuid)
                         debugResult(true, "updated $uuid", command, uuid)
                     },
                     onFailure = { debugResult(false, it.describeForDebug(), command, uuid) },
@@ -86,13 +84,14 @@ internal fun runSubscriptionCommand(action: String, arg: String?, extras: Bundle
             "update_all" -> {
                 val items = repository.subscriptions.value.filterNot { it.isLocalFile }
                 val processor = koin<ProfileProcessor>()
+                val updated = mutableListOf<String>()
                 val failed = items.mapNotNull { sub ->
-                    runCatching { processor.update(sub.id) }.exceptionOrNull()?.let { "${sub.name}: ${it.describeForDebug()}" }
+                    runCatching { processor.update(sub.id) }
+                        .onSuccess { updated += sub.id }
+                        .exceptionOrNull()?.let { "${sub.name}: ${it.describeForDebug()}" }
                 }
-                // 重启排在整轮之后：中途重启会断网，后面还要下载的订阅会跟着一起失败。
-                // 只有当前订阅那次真的会重启，其余被控制器内部的判断挡掉。
                 val controller = koin<ProxyServiceController>()
-                items.forEach { controller.restartAfterProfileUpdate(it.id) }
+                updated.forEach { controller.reloadAfterProfileUpdate(it) }
                 if (failed.isEmpty()) {
                     debugResult(true, "updated ${items.size} subscriptions", command)
                 } else {

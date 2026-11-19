@@ -11,14 +11,17 @@
 | `proxy.start` | `uuid`（可选，extra） | 启动；缺省用当前 active 订阅 |
 | `proxy.stop` | — | 停止 |
 | `proxy.restart` | `uuid`（可选，extra） | 重启（整进程重来） |
+| `proxy.reload` | `uuid`（可选，extra） | 重载当前配置，保持 PID 与隧道 |
 
-三者都经 `ProxyServiceController`，active 订阅与 `config.yaml` 的校验在那里完成，校验失败时 toast 并置 Error。指令的 `ok` 只表示请求已发出，结果看 `state.get`：
+这些入口都经 `ProxyServiceController`，active 订阅与 `config.yaml` 的校验在那里完成，校验失败时 toast 并置 Error。指令的 `ok` 只表示请求已发出，结果看 `state.get`：
 
 ```bash
 debug-call.sh -s <dev> -m proxy.start
 sleep 8                      # 有 provider 缓存时数秒就绪；缺缓存时可达一分钟，期间 state=Starting
 debug-call.sh -s <dev> -m state.get
 ```
+
+`state.get` 的 `configurationRevision` 在成功重载后递增，`reloading` 表示正在应用配置；同时核对 PID 不变和新配置内容。
 
 ## 出站模式
 

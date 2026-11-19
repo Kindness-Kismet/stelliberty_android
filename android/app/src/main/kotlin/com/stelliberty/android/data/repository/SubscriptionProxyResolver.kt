@@ -9,14 +9,15 @@ import java.net.InetSocketAddress
 import java.net.Proxy
 import java.net.ProxySelector
 import java.net.URI
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
-class SubscriptionProxyResolver(
-    private val overrideStore: OverrideJsonStore,
-) {
+class SubscriptionProxyResolver {
     // 与 PC 相同按 UpdateProxyMode 选出口；系统代理与核心代理都不可用时直连。
     suspend fun resolveForSubscription(mode: SubscriptionUpdateProxyMode, url: String): String? = when (mode) {
         SubscriptionUpdateProxyMode.Direct -> null
-        SubscriptionUpdateProxyMode.SystemProxy -> systemProxy(url)
+        SubscriptionUpdateProxyMode.SystemProxy -> withContext(Dispatchers.IO) { systemProxy(url) }
         SubscriptionUpdateProxyMode.Core -> resolve()
     }
 
@@ -24,8 +25,7 @@ class SubscriptionProxyResolver(
         val bridge = ProxyServiceBridge.state.value
         if (bridge.state != ProxyState.Running) return null
 
-        val port = overrideStore.load().mixedPort
-            ?: queryMixedPortFromApi(bridge)
+        val port = queryMixedPortFromApi(bridge)
         if (port == null || port <= 0) return null
         return "http://127.0.0.1:$port"
     }
@@ -34,7 +34,7 @@ class SubscriptionProxyResolver(
     private fun systemProxy(url: String): String? {
         val uri = runCatching { URI(url) }.getOrNull() ?: return null
         val address = ProxySelector.getDefault()?.select(uri)
-            ?.firstOrNull { it.type() == Proxy.Type.HTTP }
+            ?.firstOrNull()?.takeIf { it.type() == Proxy.Type.HTTP }
             ?.address() as? InetSocketAddress
             ?: return null
         val host = address.hostString.let { if (':' in it) "[$it]" else it }
@@ -45,8 +45,10 @@ class SubscriptionProxyResolver(
         val baseUrl = "http://${bridge.externalController}"
         val client = MihomoApiClient(baseUrl = baseUrl, secret = bridge.secret)
         return try {
-            client.getConfig().mixedPort.takeIf { it > 0 }
-        } catch (_: Throwable) {
+            client.getConfig(timeoutMillis = 3_000).mixedPort.takeIf { it > 0 }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
             null
         } finally {
             client.close()

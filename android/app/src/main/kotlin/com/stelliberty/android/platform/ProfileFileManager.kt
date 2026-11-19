@@ -4,7 +4,7 @@ interface ProfileFileManager {
     fun savePendingConfig(uuid: String, content: String)
     fun releasePending(uuid: String)
 
-    fun prepareProcessing(uuid: String): String
+    fun prepareProcessing(uuid: String, reuseImported: Boolean = false): String
 
     fun writeProcessingConfig(workDir: String, content: String)
 

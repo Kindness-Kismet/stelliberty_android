@@ -43,9 +43,10 @@ fun LazyListScope.actionButtonsSection(
     isRunning: Boolean = false,
     isStarting: Boolean = false,
     isStopping: Boolean = false,
+    isReloading: Boolean = false,
 ) {
     item(key = "actions") {
-        ActionButtonsRow(onRestart, onStop, onReload, onStart, isRunning, isStarting, isStopping)
+        ActionButtonsRow(onRestart, onStop, onReload, onStart, isRunning, isStarting, isStopping, isReloading)
     }
 }
 
@@ -58,6 +59,7 @@ private fun ActionButtonsRow(
     isRunning: Boolean,
     isStarting: Boolean,
     isStopping: Boolean,
+    isReloading: Boolean,
 ) {
     val canStart = !isRunning && !isStarting && !isStopping
     Card(
@@ -92,10 +94,11 @@ private fun ActionButtonsRow(
 
                 isRunning -> {
                     FlatActionButton(
-                        text = stringResource(R.string.home_reload),
+                        text = stringResource(if (isReloading) R.string.home_reloading else R.string.home_reload),
                         tint = StatusColors.actionButton(ActionKind.Reload).content,
                         onClick = onReload,
                         modifier = Modifier.weight(1f).testTag(TestTags.Home.RELOAD),
+                        enabled = !isReloading,
                     )
                     ActionSeparator()
                     FlatActionButton(

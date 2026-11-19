@@ -10,6 +10,7 @@ import android.system.OsConstants
 import com.stelliberty.android.R
 import com.stelliberty.android.StellibertyApplication
 import com.stelliberty.android.data.repository.OverrideJsonStore
+import com.stelliberty.android.data.repository.ProfileProcessor
 import com.stelliberty.android.data.store.ProfileTransformWriter
 import com.stelliberty.android.data.store.SubscriptionStore
 import com.stelliberty.android.domain.model.AppProxyMode
@@ -22,10 +23,13 @@ import com.stelliberty.android.platform.ProxyState
 import com.stelliberty.android.platform.StorageKeys
 import com.stelliberty.android.platform.TunMode
 import com.stelliberty.android.util.AppLogger
+import com.stelliberty.android.util.OperationFeedback
 import java.io.File
 import java.io.FileDescriptor
 import kotlin.time.Clock
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -94,6 +98,10 @@ class StellibertyTunService : VpnService() {
                 val subscriptionId = intent.getStringExtra(ProxyServiceController.EXTRA_SUBSCRIPTION_ID)
                 restartProxy(subscriptionId)
             }
+            ACTION_RELOAD -> {
+                val subscriptionId = intent.getStringExtra(ProxyServiceController.EXTRA_SUBSCRIPTION_ID)
+                reloadProxy(subscriptionId)
+            }
         }
         return START_STICKY
     }
@@ -160,8 +168,7 @@ class StellibertyTunService : VpnService() {
                 ConfigGenerator.readSubscriptionMixedPort(this@StellibertyTunService, it)
             }
             // 系统代理指向 mixed-port，开启时内核必须监听它。
-            val mixedPortRequired = systemProxy || subscriptionStore.anyUpdatesViaCore()
-            val mixedPort = RuntimeOverrideBuilder.resolveMixedPort(userOverride, subMixedPort, mixedPortRequired)
+            val mixedPort = RuntimeOverrideBuilder.resolveMixedPort(userOverride, subMixedPort)
             AppLogger.info(
                 TAG,
                 "VPN options: ipv6=$allowIpv6, bypassPrivate=$bypassPrivate, dnsHijacking=$dnsHijacking, " +
@@ -302,7 +309,6 @@ class StellibertyTunService : VpnService() {
                 userOverride = userOverride,
                 tunFd = fd,
                 tunMode = TunMode.Vpn,
-                mixedPortRequired = mixedPortRequired,
                 subscriptionMixedPort = subMixedPort,
             )
 
@@ -395,6 +401,30 @@ class StellibertyTunService : VpnService() {
         }
     }
 
+    private fun reloadProxy(subscriptionId: String?) {
+        scope.launch {
+            cleanupMutex.withLock {
+                if (ProxyServiceBridge.state.value.state != ProxyState.Running ||
+                    runner.activeSubscriptionId != subscriptionId
+                ) return@withLock
+                try {
+                    ProfileProcessor.withProcessLock {
+                        if (ProxyServiceBridge.state.value.state != ProxyState.Running ||
+                            subscriptionStore.currentId() != subscriptionId
+                        ) return@withProcessLock
+                        transformWriter.writeRuntime(subscriptionStore.current())
+                        withContext(NonCancellable) { runner.reload() }
+                    }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    AppLogger.error(TAG, "Failed to reload proxy configuration", e)
+                    OperationFeedback.show(R.string.operation_reload_failed)
+                }
+            }
+        }
+    }
+
     private fun stopProxy() {
         restartJob?.cancel()
         if (stopJob?.isActive == true) return
@@ -458,6 +488,7 @@ class StellibertyTunService : VpnService() {
         const val ACTION_START = "com.stelliberty.android.START"
         const val ACTION_STOP = "com.stelliberty.android.STOP"
         const val ACTION_RESTART = "com.stelliberty.android.RESTART"
+        const val ACTION_RELOAD = "com.stelliberty.android.RELOAD"
 
         private const val TUN_SUBNET_PREFIX = 30
         private const val TUN_GATEWAY = "198.18.0.1"

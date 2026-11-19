@@ -342,8 +342,8 @@
     <string name="update_proxy_direct">Direct</string>
     <string name="update_proxy_system">System Proxy</string>
     <string name="update_proxy_core">Core Proxy</string>
-    <string name="settings_restart_after_update">Restart after update</string>
-    <string name="settings_restart_after_update_summary">Restart the proxy when the active profile is updated, so the new config takes effect (briefly interrupts connections)</string>
+    <string name="settings_restart_after_update">Reload after update</string>
+    <string name="settings_restart_after_update_summary">Apply updates to the active profile without restarting the core or tunnel</string>
     <string name="settings_auto_connect">Connect on Launch</string>
     <string name="settings_auto_connect_summary">Start the proxy when the app opens, if a usable profile is available</string>
     <string name="settings_auto_restart">Restart on Boot</string>
@@ -721,6 +721,7 @@
     <string name="operation_success">Done</string>
     <string name="operation_import_failed">Import failed. Check the configuration</string>
     <string name="operation_save_failed">Save failed. Please try again</string>
+    <string name="operation_reload_failed">Configuration reload failed. Check the logs</string>
     <string name="operation_invalid_config">Invalid configuration</string>
     <string name="operation_invalid_url">Invalid URL</string>
 </resources>

@@ -38,6 +38,8 @@ data class ProxyServiceStatus(
     val startTime: Long = 0L,
     val mihomoPid: Int = -1,
     val errorNotified: Boolean = false,
+    val configurationRevision: Long = 0,
+    val isReloading: Boolean = false,
 )
 
 object ProxyServiceBridge {
@@ -80,6 +82,22 @@ object ProxyServiceBridge {
 
     fun requestNotificationRefresh() {
         _notificationRefresh.tryEmit(Unit)
+    }
+
+    fun markConfigurationReloaded(pid: Int) {
+        _state.update { current ->
+            if (current.state == ProxyState.Running && current.mihomoPid == pid) {
+                current.copy(configurationRevision = current.configurationRevision + 1)
+            } else current
+        }
+    }
+
+    fun setReloading(pid: Int, reloading: Boolean) {
+        _state.update { current ->
+            if (current.state == ProxyState.Running && current.mihomoPid == pid) {
+                current.copy(isReloading = reloading)
+            } else current
+        }
     }
 
     fun dismissNotification() {

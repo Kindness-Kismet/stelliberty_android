@@ -3,6 +3,8 @@ package com.stelliberty.android.service
 import android.content.Context
 import android.os.SystemClock
 import com.stelliberty.android.R
+import com.stelliberty.android.data.api.MihomoApiClient
+import com.stelliberty.android.platform.ProxyServiceBridge
 import com.stelliberty.android.domain.model.LogLevel
 import com.stelliberty.android.domain.model.LogSource
 import com.stelliberty.android.platform.PlatformStorage
@@ -156,6 +158,24 @@ class MihomoRunner(private val context: Context) {
             errorMessage = context.getString(R.string.error_generic_start_failed, e.message ?: "")
             AppLogger.error(TAG, "Failed to start mihomo", e)
             false
+        }
+    }
+
+    suspend fun reload() {
+        check(childPid > 0) { "Proxy is not running" }
+        val reloadingPid = childPid
+        ProxyServiceBridge.setReloading(reloadingPid, true)
+        val client = MihomoApiClient("http://$externalController", secret)
+        try {
+            activeSubscriptionId?.let { id ->
+                if (isRootMode) ProfileFileOps.refreshRootRuntime(context, id)
+            }
+            client.reloadConfig(reloadingPid)
+            AppLogger.info(TAG, "Configuration reloaded: pid=$reloadingPid")
+            ProxyServiceBridge.markConfigurationReloaded(reloadingPid)
+        } finally {
+            client.close()
+            ProxyServiceBridge.setReloading(reloadingPid, false)
         }
     }
 

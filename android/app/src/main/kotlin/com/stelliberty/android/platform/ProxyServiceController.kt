@@ -17,6 +17,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 class ProxyServiceController(
     private val context: Context,
@@ -31,6 +32,9 @@ class ProxyServiceController(
 
     @Volatile
     private var pendingRestartJob: Job? = null
+
+    @Volatile
+    private var pendingReloadJob: Job? = null
 
     val status: StateFlow<ProxyServiceStatus> = ProxyServiceBridge.state
 
@@ -50,6 +54,14 @@ class ProxyServiceController(
             target.id?.let { putExtra(EXTRA_SUBSCRIPTION_ID, it) }
         }
         context.startService(intent)
+    }
+
+    fun reload(subscriptionId: String? = null) {
+        val target = resolveStartTarget(subscriptionId) ?: return
+        val intent = buildServiceIntent(activeModeOrStored(), Op.Reload).apply {
+            target.id?.let { putExtra(EXTRA_SUBSCRIPTION_ID, it) }
+        }
+        if (status.value.state == ProxyState.Running) context.startService(intent)
     }
 
     fun stop(mode: TunMode = activeModeOrStored()) {
@@ -86,6 +98,8 @@ class ProxyServiceController(
     fun cancelPendingRestart() {
         pendingRestartJob?.cancel()
         pendingRestartJob = null
+        pendingReloadJob?.cancel()
+        pendingReloadJob = null
     }
 
     // 切换或删除当前订阅之后调。删光最后一条时改成停止：没有配置可切，重启只会失败成错误态。
@@ -99,12 +113,19 @@ class ProxyServiceController(
         restartWhenReady(subscriptionStore.currentId())
     }
 
-    // mihomo 只在启动时读一次配置文件，而内嵌模式下热重载接口全被关掉了，重启进程是唯一让新订阅生效的办法。
-    // 是否为当前订阅的判断统一收在这里，前台与后台任务不各写一套。
-    fun restartAfterProfileUpdate(uuid: String) {
+    // 自动应用只针对当前订阅，启动中的服务稳定后再次核对，停止中的服务保持停止。
+    @Synchronized
+    fun reloadAfterProfileUpdate(uuid: String) {
         if (storage.getString(StorageKeys.RESTART_AFTER_PROFILE_UPDATE, "true") != "true") return
         if (uuid != subscriptionStore.currentId()) return
-        restartWhenReady(uuid)
+        pendingReloadJob?.cancel()
+        pendingReloadJob = scope.launch {
+            val settled = status.first { it.state != ProxyState.Starting && it.state != ProxyState.Stopping }
+            if (settled.state == ProxyState.Running && uuid == subscriptionStore.currentId()) {
+                runCatching { reload(uuid) }
+                    .onFailure { AppLogger.error(TAG, "Profile reload request failed", it) }
+            }
+        }
     }
 
     fun reattachRoot() {
@@ -119,6 +140,19 @@ class ProxyServiceController(
             putExtra(StellibertyRootService.EXTRA_ATTACH_ONLY, true)
         }
         context.startForegroundService(intent)
+    }
+
+    // 后台任务可能先于 Activity 唤醒进程，只接管持久化的 ROOT 会话，不新建代理。
+    suspend fun awaitExistingService() {
+        if (status.value.state == ProxyState.Stopped && getTunMode() != TunMode.Vpn &&
+            storage.getString(StorageKeys.SERVICE_WAS_RUNNING, "false") == "true" &&
+            storage.getString(StorageKeys.ROOT_MIHOMO_PID, "").isNotEmpty() &&
+            !BootSession.hasRebootedSince(context, storage)
+        ) {
+            reattachRoot()
+            withTimeoutOrNull(5_000) { status.first { it.state != ProxyState.Stopped } }
+        }
+        status.first { it.state != ProxyState.Starting && it.state != ProxyState.Stopping }
     }
 
     // id 为 null 表示一条订阅都没有，此时用内置的最小配置启动，
@@ -183,7 +217,7 @@ class ProxyServiceController(
         }
     }
 
-    private enum class Op { Start, Restart, Stop }
+    private enum class Op { Start, Restart, Reload, Stop }
 
     // 类名和各个参数名一律用符号引用，不要写字符串常量：改名时编译器不会报错，
     // 故障表现是「只重连悄悄退化成了全新启动」，正好是最不该发生的那件事。
@@ -192,6 +226,7 @@ class ProxyServiceController(
             when (op) {
                 Op.Start -> StellibertyTunService.ACTION_START
                 Op.Restart -> StellibertyTunService.ACTION_RESTART
+                Op.Reload -> StellibertyTunService.ACTION_RELOAD
                 Op.Stop -> StellibertyTunService.ACTION_STOP
             }
         )
@@ -200,6 +235,7 @@ class ProxyServiceController(
             action = when (op) {
                 Op.Start -> StellibertyRootService.ACTION_START
                 Op.Restart -> StellibertyRootService.ACTION_RESTART
+                Op.Reload -> StellibertyRootService.ACTION_RELOAD
                 Op.Stop -> StellibertyRootService.ACTION_STOP
             }
             if (op != Op.Stop) {
@@ -231,7 +267,7 @@ class ProxyServiceController(
 
     fun getTunMode(): TunMode = TunMode.fromStorage(storage.getString(StorageKeys.TUN_MODE, TunMode.Vpn.storageValue))
 
-    fun verifyAndSyncState() {
+    fun verifyAndSyncState(): Boolean {
         val autoConnect = !launchAutoConnectConsumed &&
                 storage.getString(StorageKeys.AUTO_CONNECT_ON_LAUNCH, "false") == "true"
         launchAutoConnectConsumed = true
@@ -244,13 +280,11 @@ class ProxyServiceController(
                 storage.putString(StorageKeys.SERVICE_WAS_RUNNING, "false")
                 ProxyServiceBridge.markStopped(activeModeOrStored())
             }
-            return
+            return false
         }
 
         if (bridgeState == ProxyState.Stopping) {
-            storage.putString(StorageKeys.SERVICE_WAS_RUNNING, "false")
-            ProxyServiceBridge.updateState(ProxyServiceStatus(ProxyState.Stopped))
-            return
+            return false
         }
 
         val currentMode = getTunMode()
@@ -259,32 +293,32 @@ class ProxyServiceController(
             val rebooted = BootSession.hasRebootedSince(context, storage)
             if (hasPid && !rebooted) {
                 if (autoConnect) launchAutoConnect() else reattachRoot()
-                return
+                return true
             }
             storage.putString(StorageKeys.SERVICE_WAS_RUNNING, "false")
             storage.putString(StorageKeys.ROOT_MIHOMO_PID, "")
             BootSession.clear(storage)
-            if (autoConnect) launchAutoConnect()
-            return
+            return autoConnect && launchAutoConnect()
         }
 
         if (wasRunning && currentMode == TunMode.Vpn) {
             storage.putString(StorageKeys.SERVICE_WAS_RUNNING, "false")
         }
-        if (autoConnect) launchAutoConnect()
+        return autoConnect && launchAutoConnect()
     }
 
     // 自动连接不能弹错误打断只是打开应用的用户，所以走无副作用的校验版；
     // 一条订阅都没有时也照常连，跟手动点启动保持一致。
-    private fun launchAutoConnect() {
+    private fun launchAutoConnect(): Boolean {
         val hasBroken = subscriptionStore.currentId() != null &&
                 startableSubscriptionId() == null
-        if (hasBroken) return
+        if (hasBroken) return false
         if (getTunMode() == TunMode.Vpn && !hasVpnPermission()) {
             requestVpnPermission()
-            return
+            return false
         }
         start(startableSubscriptionId())
+        return true
     }
 
     companion object {

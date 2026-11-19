@@ -7,6 +7,7 @@ import com.stelliberty.android.platform.ProxyServiceStatus
 import com.stelliberty.android.platform.ProxyState
 import com.stelliberty.android.util.AppLogger
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,27 +22,35 @@ class MihomoConnectionManager(scope: CoroutineScope) {
 
     private val mutex = Mutex()
     private var current: MihomoRepository? = null
+    private var currentStatus: ProxyServiceStatus? = null
     private val coreLogs = CoreLogCollector(scope)
 
     init {
         scope.launch {
             ProxyServiceBridge.state.collect { status ->
-                runCatching { applyStatus(status) }
-                    .onFailure { AppLogger.error(TAG, "failed to apply proxy status ${status.state}", it) }
+                try {
+                    applyStatus(status)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    AppLogger.error(TAG, "failed to apply proxy status ${status.state}", e)
+                }
             }
         }
     }
 
     private suspend fun applyStatus(status: ProxyServiceStatus) {
+        val identity = status.copy(configurationRevision = 0, isReloading = false)
+        if (identity == currentStatus) return
         val next: MihomoRepository? = when (status.state) {
             ProxyState.Running -> buildRepository(status)
             else -> null
         }
         replace(next)
+        currentStatus = identity
     }
 
-    // 先拿到锁再换字段和数据流，最后才关掉旧的：先发布新的能保证下游立刻看到，
-    // 不做端点比对是有意的——重连时多重建一次不到 50 毫秒，比状态机比对出竞态划算。
+    // 进程身份变化时替换客户端；同一内核重载配置保留长连接。
     private suspend fun replace(next: MihomoRepository?) {
         mutex.withLock {
             val old = current

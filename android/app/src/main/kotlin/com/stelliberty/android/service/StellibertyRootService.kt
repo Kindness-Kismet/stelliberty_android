@@ -7,6 +7,7 @@ import android.os.SystemClock
 import com.stelliberty.android.R
 import com.stelliberty.android.StellibertyApplication
 import com.stelliberty.android.data.repository.OverrideJsonStore
+import com.stelliberty.android.data.repository.ProfileProcessor
 import com.stelliberty.android.data.store.ProfileTransformWriter
 import com.stelliberty.android.data.store.SubscriptionStore
 import com.stelliberty.android.domain.model.AppProxyMode
@@ -22,9 +23,11 @@ import com.stelliberty.android.platform.StorageKeys
 import com.stelliberty.android.platform.TunMode
 import com.stelliberty.android.service.StellibertyRootService.Companion.EXTRA_SUBMODE
 import com.stelliberty.android.util.AppLogger
+import com.stelliberty.android.util.OperationFeedback
 import java.io.File
 import kotlin.time.Clock
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
@@ -124,6 +127,10 @@ class StellibertyRootService : Service() {
             ACTION_RESTART -> {
                 val subscriptionId = intent.getStringExtra(ProxyServiceController.EXTRA_SUBSCRIPTION_ID)
                 restartProxy(subscriptionId)
+            }
+            ACTION_RELOAD -> {
+                val subscriptionId = intent.getStringExtra(ProxyServiceController.EXTRA_SUBSCRIPTION_ID)
+                reloadProxy(subscriptionId)
             }
         }
         return START_STICKY
@@ -352,7 +359,6 @@ class StellibertyRootService : Service() {
                 userOverride = userOverride,
                 tunFd = -1,
                 tunMode = submode.tunMode,
-                mixedPortRequired = subscriptionStore.anyUpdatesViaCore(),
                 subscriptionMixedPort = subMixedPort,
                 tproxyForTether = tproxyForTether,
             )
@@ -625,6 +631,30 @@ class StellibertyRootService : Service() {
         }
     }
 
+    private fun reloadProxy(subscriptionId: String?) {
+        scope.launch {
+            cleanupMutex.withLock {
+                if (ProxyServiceBridge.state.value.state != ProxyState.Running ||
+                    runner.activeSubscriptionId != subscriptionId
+                ) return@withLock
+                try {
+                    ProfileProcessor.withProcessLock {
+                        if (ProxyServiceBridge.state.value.state != ProxyState.Running ||
+                            subscriptionStore.currentId() != subscriptionId
+                        ) return@withProcessLock
+                        transformWriter.writeRuntime(subscriptionStore.current())
+                        withContext(NonCancellable) { runner.reload() }
+                    }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    AppLogger.error(TAG, "Failed to reload proxy configuration", e)
+                    OperationFeedback.show(R.string.operation_reload_failed)
+                }
+            }
+        }
+    }
+
     private fun stopProxy() {
         restartJob?.cancel()
         if (stopJob?.isActive == true) return
@@ -666,6 +696,7 @@ class StellibertyRootService : Service() {
         const val ACTION_START = "com.stelliberty.android.ROOT_START"
         const val ACTION_STOP = "com.stelliberty.android.ROOT_STOP"
         const val ACTION_RESTART = "com.stelliberty.android.ROOT_RESTART"
+        const val ACTION_RELOAD = "com.stelliberty.android.ROOT_RELOAD"
         const val EXTRA_SUBMODE = "submode"
         const val EXTRA_ATTACH_ONLY = "attach_only"
 

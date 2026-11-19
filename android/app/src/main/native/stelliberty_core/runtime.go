@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"sync"
 	"syscall"
 	"time"
 	"unsafe"
@@ -113,21 +114,15 @@ func runMihomo() int {
 		log.Fatalln("init config dir: %s", err.Error())
 	}
 
-	configBytes, err := os.ReadFile(configFile)
+	if transformPath == "" && overrideJSON != "" {
+		transformPath = filepath.Join(filepath.Dir(overrideJSON), "profile.transform.json")
+	}
+	loadConfig := func() ([]byte, error) {
+		return loadRuntimeConfig(configFile, transformPath, ageSecretKey)
+	}
+	configBytes, err := loadConfig()
 	if err != nil {
 		log.Fatalln("read config: %s", err.Error())
-	}
-	// 与 PC 相同：订阅覆写与链式代理先于 override-json 等运行参数生效。
-	if transformPath != "" {
-		if configBytes, err = applyTransformFile(configBytes, transformPath, ageSecretKey); err != nil {
-			log.Fatalln("apply transform: %s", err.Error())
-		}
-	} else if configBytes, err = decryptConfig(configBytes, ageSecretKey); err != nil {
-		log.Fatalln("%s", err.Error())
-	}
-	// 覆写也可能新增 provider，所以按变换后的配置改写路径。
-	if configBytes, err = patchProviderPathsYAML(configBytes, filepath.Join(Const.Path.HomeDir(), "providers")); err != nil {
-		log.Fatalln("patch provider paths: %s", err.Error())
 	}
 
 	var tunEnabled bool
@@ -139,7 +134,13 @@ func runMihomo() int {
 		options = append(options, hub.WithSecret(secret))
 	}
 
-	ready := registerRuntimeProbe()
+	var reloadMu sync.Mutex
+	reload := func() error {
+		reloadMu.Lock()
+		defer reloadMu.Unlock()
+		return reloadRuntimeConfig(loadConfig)
+	}
+	ready := registerRuntimeProbe(reload)
 	log.Infoln("Runtime config preparation complete in %dms", time.Since(preparationStarted).Milliseconds())
 	if err := hub.Parse(configBytes, options...); err != nil {
 		log.Fatalln("Parse config: %s", err.Error())
@@ -168,11 +169,9 @@ func runMihomo() int {
 		case <-termSig:
 			return 0
 		case <-hupSig:
-			ready.Store(false)
-			if err := hub.Parse(configBytes, options...); err != nil {
+			if err := reload(); err != nil {
 				log.Errorln("Reload config: %s", err.Error())
 			}
-			ready.Store(true)
 		}
 	}
 }

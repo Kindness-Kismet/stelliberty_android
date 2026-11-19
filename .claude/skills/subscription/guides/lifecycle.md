@@ -4,9 +4,9 @@
 
 `addSubscription` / `addFromFile` 成功后保持当前 active；仅首次导入（提交后列表只有这一条）由 `commitPending` 自动激活。当前订阅存在 `subscriptions/selection_state.json`，经 `SubscriptionStore.currentId()` 读取。
 
-## 更新后自动重启
+## 更新后自动重载
 
-mihomo 只在进程启动时读一次 config.yaml，embed mode 下 `/configs` / `/restart` 返回 404，更新生效只能靠重启进程。由 `RESTART_AFTER_PROFILE_UPDATE`（默认开）控制，手动单条、手动全部与后台 `ProfileUpdateTask` 成功后调用 `restartAfterProfileUpdate(uuid)`；编辑订阅不触发。**active 判定放在 controller 内**（读 `SubscriptionStore`）：前台与后台 Worker 共用这一处判定才能保持一致；非 active 订阅的更新直接忽略。批量更新在整轮结束后只重启一次，后续经 mixed-port 的下载全程有网。
+设置「更新后重载配置」沿用 `RESTART_AFTER_PROFILE_UPDATE` 存储键（默认开）。手动单条、手动全部、后台任务与调试指令更新成功后调用 `reloadAfterProfileUpdate(uuid)`；编辑订阅不触发。controller 核对当前订阅与服务状态，启动中等待稳定、停止后放弃。批量更新整轮结束后只应用成功更新的当前订阅一次，避免改变后续下载的分流规则。重载经服务的清理锁与 `ProfileProcessor.withProcessLock` 串行，重新生成订阅变换、同步 ROOT 运行目录，再调用 PID 鉴权的 `/stelliberty/reload`；成功后发布配置修订号供页面刷新，失败保留已运行配置并提示查看日志。
 
 ## 仓库单例与流量数据合并
 
@@ -24,12 +24,14 @@ mihomo 只在进程启动时读一次 config.yaml，embed mode 下 `/configs` / 
 
 ## 后台更新
 
+后台任务下载前调用 `awaitExistingService`，进程被回收后先接管仍运行的 ROOT 核心，再解析下载出口和更新后重载；只有已保存的运行会话允许 attach，用户停止的代理保持停止。
+
 **ProfileWorker 在主线程收尾**：请求计数、最新 startId 与任务完成都在主线程维护，计数归零后用最新 startId 调 `stopSelfResult`，IO 只执行更新。系统回收后重投 Intent；取消继续向上传递，不能写成更新失败。
 
 **自动更新闹钟是订阅列表的派生态**：唯一调度点 [ProfileUpdateScheduler](../../../../android/app/src/main/kotlin/com/stelliberty/android/service/ProfileUpdateScheduler.kt)，`StellibertyApplication.onCreate` 启动 collector，与 `SubscriptionStore.importedFlow` 对账（只为 `AutoUpdateMode = Interval` 且间隔不低于 15 分钟的非本地订阅布置，起点取 `LastUpdatedAt`（缺失时取 `CreatedAt`）与 `LastErrorAt` 中较晚者）：新增订阅、改间隔立即生效，删除时自动撤销闹钟。开机时 app 进程可能只为接收广播而启动，`ProfileReceiver` → ProfileWorker → `reconcileNow()` 借前台服务的存活窗口对账一次。进程重启后 `armed` 为空，列表里已不存在的孤儿闹钟无法枚举；它至多空跑一次 ProfileWorker（uuid 查不到即返回）且不再续期，因此无需额外持久化。
 
 **失败记录**：`ProfileProcessor` 的更新路径失败（取消除外）时在订阅锁内写入 `LastError` / `LastErrorAt`，成功获取时清掉。字段保留用于诊断和调度，订阅卡片不展示原始错误；操作结果通过 `OperationFeedback` 交给 Android 系统 Toast，以简短文案呈现成功、失败、部分失败、取消和无需更新。起点必须计入 `LastErrorAt`：失败会改动列表并触发对账，只看 `LastUpdatedAt` 时闹钟会立刻再响，陷入失败循环。
 
-**启动时更新按进程计**：`AutoUpdateMode = Startup` 的非本地订阅由 `MainActivity.onCreate` 调 `SubscriptionViewModel.runStartupUpdates()` 更新。ViewModel 是进程级单例，每个进程只跑一次，Activity 重建、切回前台都不重复；开机广播、磁贴等不建 Activity 的入口不触发，进程随后首次打开界面时再执行。ViewModel 只将 UUID 批次交给 `ProfileWorker`，更新由 `ProfileUpdateTask` 逐条执行并在整轮结束后重启一次，不写手动进度状态。自动更新使用静音前台服务通知，界面可见时通过同一系统 Toast 汇总结果，后台结果不排队到下次打开。
+**启动时更新按进程计**：`AutoUpdateMode = Startup` 的非本地订阅由 `MainActivity.onResume` 在 ROOT 权限与服务状态同步完成、启动或接管稳定后调 `SubscriptionViewModel.runStartupUpdates()` 更新。ViewModel 是进程级单例，每个进程只跑一次，Activity 重建、切回前台都不重复；开机广播、磁贴等不建 Activity 的入口不触发，进程随后首次打开界面时再执行。ViewModel 只将 UUID 批次交给 `ProfileWorker`，更新由 `ProfileUpdateTask` 逐条执行并在整轮结束后重载一次，不写手动进度状态。自动更新使用静音前台服务通知，界面可见时通过同一系统 Toast 汇总结果，后台结果不排队到下次打开。
 
 **后台限制与重试**：`startForegroundService` 或 `startForeground` 被系统拒绝时，将完整请求入队 `ProfileUpdateJobService`；JobScheduler 等待网络并在中止后重新投递未完成的 work item。两个执行入口共用 `ProfileUpdateTask` 与进程级批次锁，执行前核对订阅是否仍启用相应模式，定时任务还要检查到期时间。调度对账串行读取 store 当前值，避免旧快照覆盖新闹钟。
