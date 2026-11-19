@@ -24,6 +24,7 @@ HTTP domain / ipcidr 规则预取成功后，在同一下载协程中准备匹�
 
 ## HTTP 与自动命名
 
+- Core 模式仅在核心已停止或错误终态时允许直连；启动、停止过程中或运行中 mixed-port 查询失败、关闭时直接报错，避免在未知出口下发送订阅与覆写请求。
 - 订阅 HTTP 使用每次导入独立的客户端（进程内 cgo），单次请求超时 60s，订阅与 provider 预取共用连接池并启用 HTTP/2。客户端沿用 mihomo 的 TLS 信任配置与直连拨号器，经代理（mixed-port 或系统代理）时显式设置 `Transport.Proxy`，HTTP 走普通代理请求、HTTPS 走 CONNECT；导入结束即关闭空闲连接，下一次按最新代理设置重建。Transport 不读代理环境变量；provider 预取失败立即取消其余请求并返回错误，避免校验阶段改走直连重试。UA 默认取内核 `global-ua` 的默认值 `clash.meta/{mihomo 版本}`，由 `stellibertyCoreInit` 设为全局 UA，与运行时刷新 provider 一致：面板按 UA 里的客户端名与版本裁剪节点（如 Xboard 要求 CMFA ≥ 2.9.0 才下发 Hysteria2），版本报错会丢节点，并留下引用已删空组的代理组。用户可在 Add / Edit 页填自定义 UA，存入 `Subscription.userAgent`，经 PendingSnapshot 传到 Go `runFetchAndValid`：`effectiveUA = trim(userAgent) ?: clashHttp.UA()`。非 2xx 或空 body 返回 `StellibertyCoreError`。订阅内容原样交给 mihomo 解析，app 侧不做 base64 / V2Ray 转换。
 - **名字留空时自动命名**：Url 型允许名字留空（`enforceFieldValid` 放行）。fetch 响应的 `Content-Disposition` filename（Go 侧 `mime.ParseMediaType` 解析 RFC 5987，去掉 .yaml / .yml 后缀）经 `FetchResult.FileName` 回传；`commitPending(fallbackName)` 只在 commit 时 `pending.name` 仍为空时采用。用户输入（含深链 `name` 参数）优先，兜底链为 disposition > URL host > 调用方注入的默认名。更新订阅（isUpdate）保留原名。
 
