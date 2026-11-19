@@ -15,6 +15,8 @@
 
 订阅导入、编辑、单条与批量更新共用导航层的 `SubscriptionUpdateProgressDialog`，各页面不再创建进度窗口；导航栈保留组合时仍只显示一个。
 
+订阅卡片的更新按钮先打开 miuix `WindowListPopup + ListPopupColumn`，复用 `PopupMenuItem` 显示三种更新出口；点选关闭菜单并开始本次更新，取消菜单保持订阅不变。
+
 ## 操作反馈
 
 订阅、覆写与外部资源操作结果由导航层 `OperationFeedbackHost` 本地化后交给 Android 系统 Toast，使用简短文案；详情写日志，列表不保留原始错误块。宿主只在界面可见时收集消息，重复结果仍可再次提示。

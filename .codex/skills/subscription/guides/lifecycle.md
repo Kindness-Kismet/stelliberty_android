@@ -6,6 +6,8 @@
 
 ## 更新后自动重载
 
+单条手动更新先用 miuix 菜单选择 Direct / SystemProxy / Core，仅覆盖本次管线的下载出口；关闭菜单不开始更新。订阅保存的模式供批量、自动与调试更新使用，手动选择不改该字段。
+
 设置「更新后重载配置」沿用 `RESTART_AFTER_PROFILE_UPDATE` 存储键（默认开）。手动单条、手动全部、后台任务与调试指令更新成功后调用 `reloadAfterProfileUpdate(uuid)`；编辑订阅不触发。controller 核对当前订阅与服务状态，启动中等待稳定、停止后放弃。批量更新整轮结束后只应用成功更新的当前订阅一次，避免改变后续下载的分流规则。重载经服务的清理锁与 `ProfileProcessor.withProcessLock` 串行，重新生成订阅变换、同步 ROOT 运行目录，再调用 PID 鉴权的 `/stelliberty/reload`；成功后发布配置修订号供页面刷新，失败保留已运行配置并提示查看日志。
 
 ## 仓库单例与流量数据合并

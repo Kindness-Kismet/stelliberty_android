@@ -56,14 +56,19 @@ class ProfileProcessor(
         runProcess(uuid, isUpdate = false, onProgress)
     }
 
-    suspend fun update(uuid: String, onProgress: (ImportProgress) -> Unit = {}) {
-        runProcess(uuid, isUpdate = true, onProgress)
+    suspend fun update(
+        uuid: String,
+        updateProxyMode: SubscriptionUpdateProxyMode? = null,
+        onProgress: (ImportProgress) -> Unit = {},
+    ) {
+        runProcess(uuid, isUpdate = true, onProgress, updateProxyMode)
     }
 
     private suspend fun runProcess(
         uuid: String,
         isUpdate: Boolean,
         onProgress: (ImportProgress) -> Unit,
+        updateProxyMode: SubscriptionUpdateProxyMode? = null,
     ) = withContext(Dispatchers.IO) {
         processLock.withLock {
             val (snapshot, workDir) = repo.withProfileLock {
@@ -87,12 +92,13 @@ class ProfileProcessor(
 
             try {
                 val started = TimeSource.Monotonic.markNow()
+                val effectiveProxyMode = updateProxyMode ?: snapshot.updateProxyMode
                 val proxyUrl = if (snapshot.isLocalFile) null
-                else proxyResolver.resolveForSubscription(snapshot.updateProxyMode, snapshot.sourceLocation)
+                else proxyResolver.resolveForSubscription(effectiveProxyMode, snapshot.sourceLocation)
                 AppLogger.info(
                     TAG,
                     "Fetching profile $uuid: update=$isUpdate, source=${if (snapshot.isLocalFile) "file" else "url"}, " +
-                        "updateProxyMode=${snapshot.updateProxyMode}, proxy=${proxyUrl ?: "direct"}, " +
+                        "updateProxyMode=$effectiveProxyMode, proxy=${proxyUrl ?: "direct"}, " +
                         "customUserAgent=${snapshot.userAgent.isNotBlank()}, encrypted=${snapshot.ageSecretKey.isNotBlank()}",
                 )
 

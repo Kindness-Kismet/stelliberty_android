@@ -123,14 +123,14 @@ class SubscriptionViewModel(
         }
     }
 
-    fun fetchSubscription(id: String) {
+    fun fetchSubscription(id: String, updateProxyMode: SubscriptionUpdateProxyMode) {
         val sub = _uiState.value.subscriptions.find { it.id == id } ?: return
         if (sub.isLocalFile) {
             OperationFeedback.show(R.string.subscription_file_only_no_update)
             return
         }
         runPipeline(ProfileOperation.Update) {
-            processor.update(id, ::reportProgress)
+            processor.update(id, updateProxyMode, ::reportProgress)
             serviceController.reloadAfterProfileUpdate(id)
         }
     }

@@ -37,6 +37,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.stelliberty.android.BuildConfig
 import com.stelliberty.android.R
 import com.stelliberty.android.domain.model.Subscription
+import com.stelliberty.android.domain.model.SubscriptionUpdateProxyMode
 import com.stelliberty.android.ui.component.AdaptiveTopAppBar
 import com.stelliberty.android.ui.component.DialogButtons
 import com.stelliberty.android.ui.component.ListPopupDefaults.MenuPositionProvider
@@ -220,7 +221,7 @@ fun SubscriptionScreen(
                             viewModel.setActive(sub.id)
                             onActiveChanged?.invoke()
                         },
-                        onRefresh = { viewModel.fetchSubscription(sub.id) },
+                        onRefresh = { mode -> viewModel.fetchSubscription(sub.id, mode) },
                         onDelete = {
                             viewModel.removeSubscription(sub.id) { onActiveChanged?.invoke() }
                         },
@@ -238,11 +239,12 @@ private fun SubscriptionItem(
     isActive: Boolean,
     isLoading: Boolean,
     onSelect: () -> Unit,
-    onRefresh: () -> Unit,
+    onRefresh: (SubscriptionUpdateProxyMode) -> Unit,
     onDelete: () -> Unit,
     onEdit: () -> Unit,
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showUpdateMenu by remember { mutableStateOf(false) }
     val displayName = subscription.name.ifBlank { stringResource(R.string.subscription_config) }
 
     Card(
@@ -337,20 +339,57 @@ private fun SubscriptionItem(
                 )
             }
             Spacer(Modifier.width(8.dp))
-            IconButton(
-                onClick = onRefresh,
-                modifier = Modifier.testTag(TestTags.Subscription.update(subscription.id)),
-                enabled = !isLoading && !subscription.isLocalFile,
-                minHeight = 35.dp,
-                minWidth = 35.dp,
-                backgroundColor = MiuixTheme.colorScheme.secondaryContainer,
-            ) {
-                Icon(
-                    modifier = Modifier.size(20.dp),
-                    imageVector = AppIcons.SubscriptionRefresh,
-                    contentDescription = stringResource(R.string.common_update),
-                    tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                )
+            Box {
+                IconButton(
+                    onClick = { showUpdateMenu = true },
+                    holdDownState = showUpdateMenu,
+                    modifier = Modifier.testTag(TestTags.Subscription.update(subscription.id)),
+                    enabled = !isLoading && !subscription.isLocalFile,
+                    minHeight = 35.dp,
+                    minWidth = 35.dp,
+                    backgroundColor = MiuixTheme.colorScheme.secondaryContainer,
+                ) {
+                    Icon(
+                        modifier = Modifier.size(20.dp),
+                        imageVector = AppIcons.SubscriptionRefresh,
+                        contentDescription = stringResource(R.string.common_update),
+                        tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                    )
+                }
+                WindowListPopup(
+                    show = showUpdateMenu,
+                    popupPositionProvider = MenuPositionProvider,
+                    alignment = PopupPositionProvider.Align.TopEnd,
+                    onDismissRequest = { showUpdateMenu = false },
+                ) {
+                    Box(
+                        Modifier
+                            .semantics { testTagsAsResourceId = BuildConfig.DEBUG }
+                            .testTag(TestTags.Subscription.updateMenu(subscription.id)),
+                    ) {
+                        ListPopupColumn {
+                            SubscriptionUpdateProxyMode.entries.forEachIndexed { index, mode ->
+                                PopupMenuItem(
+                                    title = stringResource(
+                                        when (mode) {
+                                            SubscriptionUpdateProxyMode.Direct -> R.string.update_proxy_direct
+                                            SubscriptionUpdateProxyMode.SystemProxy -> R.string.update_proxy_system
+                                            SubscriptionUpdateProxyMode.Core -> R.string.update_proxy_core
+                                        },
+                                    ),
+                                    modifier = Modifier.testTag(TestTags.Subscription.updateMode(subscription.id, mode.name)),
+                                    enabled = !isLoading,
+                                    index = index,
+                                    optionCount = SubscriptionUpdateProxyMode.entries.size,
+                                    onClick = {
+                                        showUpdateMenu = false
+                                        onRefresh(mode)
+                                    },
+                                )
+                            }
+                        }
+                    }
+                }
             }
             Spacer(Modifier.width(8.dp))
             IconButton(

@@ -130,6 +130,10 @@ object TestTags {
 
         fun update(uuid: String) = "Subscription.Item.$uuid.UpdateButton"
 
+        fun updateMenu(uuid: String) = "Subscription.Item.$uuid.UpdateMenu"
+
+        fun updateMode(uuid: String, mode: String) = "Subscription.Item.$uuid.UpdateMode.$mode"
+
         fun delete(uuid: String) = "Subscription.Item.$uuid.DeleteButton"
     }
 

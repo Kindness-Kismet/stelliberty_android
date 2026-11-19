@@ -33,6 +33,8 @@ debug-call.sh -s <dev> -m subscription.activate -a Probe
 
 ## 更新与服务状态
 
+界面单条更新入口为 `Subscription.Item.<uuid>.UpdateButton`，打开 `Subscription.Item.<uuid>.UpdateMenu` 后选择 `Subscription.Item.<uuid>.UpdateMode.<Direct|SystemProxy|Core>` 才开始更新；该选择只用于本次下载。业务指令继续使用订阅保存的模式。
+
 `activate` / `delete`（删除当前订阅）重启服务；`update` / `update_all` 受 `RESTART_AFTER_PROFILE_UPDATE`（默认开）约束，只重载成功更新的当前订阅，整轮结束后应用一次。
 
 更新的判据为 PID 不变、`configurationRevision` 递增且新配置已生效；请求异步完成：
