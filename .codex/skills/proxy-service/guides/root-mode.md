@@ -56,7 +56,7 @@ ROOT 与 VPN 启动必须确认清理成功再继续。VPN 在 `hadRootPid || HA
 
 `attachToExisting` 按同一规则校验归属，并携带已保存的 secret 请求 `/stelliberty/runtime`，只接受 200 与目标 PID。订阅一致性由 `startProxy` 在 attach 前比对持久化的与请求的 subscriptionId，不一致时 cleanup + 全新启动。
 
-已确认归属且 API 就绪的进程还要核对 `/proc/<pid>/status` 的主 GID；不符合应用 UID 时重启并重新安装规则。这个迁移只作用于确认仍在运行的内核，过期 PID 保持停止。
+已确认归属且 API 就绪的进程还要核对可执行文件路径与主 GID；路径须匹配当前安装目录的 runner，GID 须匹配应用 UID，否则重启并重新安装规则。覆盖安装后旧 ROOT 进程仍加载旧库，必须迁移到新版才能使用新增接口；过期 PID 保持停止。
 
 app 重新打开（`onResume` → `verifyAndSyncState`）时，ROOT 模式走 `reattachRoot()`，发送带 `EXTRA_ATTACH_ONLY=true` 的 START intent；`startProxy(attachOnly=true)` 在 attach 失败时保持停止（清状态、置 Stopped、`stopSelf`），重启后自动拉起代理只由开机自启负责。`SERVICE_WAS_RUNNING` / `ROOT_MIHOMO_PID` 存在 SharedPreferences 里、跨重启保留，而重启会杀死 root mihomo，PID 随之过期。两层防护：
 

@@ -17,8 +17,9 @@ internal object RootProcessScript {
 
     fun isAlive(packageName: String, pid: Int): String = identity(packageName) + "\nis_mihomo $pid"
 
-    fun group(packageName: String, pid: Int): String = identity(packageName) + "\n" + """
+    fun runtimeInfo(packageName: String, pid: Int): String = identity(packageName) + "\n" + """
         is_mihomo $pid || exit 1
+        readlink /proc/$pid/exe || exit 1
         awk '/^Gid:/ { print ${'$'}2 }' /proc/$pid/status
     """.trimIndent()
 

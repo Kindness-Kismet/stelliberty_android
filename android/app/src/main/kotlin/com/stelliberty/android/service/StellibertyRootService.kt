@@ -209,13 +209,18 @@ class StellibertyRootService : Service() {
                 AppLogger.info(TAG, "Submode changed while app was killed (active=$submodeActive, requested=${submode.storageValue}), restarting")
             }
             var restartForProxyGroup = false
+            var restartForAppUpgrade = false
             if (existingPid > 0 && existingSecret.isNotEmpty() && !subscriptionMismatch && !tetherModeMismatch && !submodeMismatch) {
                 val ec = overrideStore.load().resolveExternalController()
                 val attached = runner.attachToExisting(existingPid, existingSecret, ec, subscriptionId)
                 if (attached) {
-                    restartForProxyGroup = RootHelper.mihomoGroup(existingPid) != appUid
+                    val runtime = RootHelper.mihomoRuntimeInfo(existingPid)
+                    restartForProxyGroup = runtime?.group != appUid
+                    // 覆盖安装后旧进程仍加载旧库，必须换成当前安装目录的内核才能使用新增接口。
+                    val currentExecutable = File(applicationInfo.nativeLibraryDir, "libmihomo_runner.so").canonicalPath
+                    restartForAppUpgrade = runtime != null && runtime.executable != currentExecutable
                 }
-                if (attached && !restartForProxyGroup) {
+                if (attached && !restartForProxyGroup && !restartForAppUpgrade) {
                     val existingStartTime =
                         storage.getString(StorageKeys.ROOT_START_TIME, "").toLongOrNull() ?: Clock.System.now().toEpochMilliseconds()
                     AppLogger.info(TAG, "Reconnected to existing mihomo: pid=$existingPid submode=${submode.storageValue}")
@@ -263,13 +268,14 @@ class StellibertyRootService : Service() {
                 }
                 AppLogger.info(
                     TAG,
-                    if (restartForProxyGroup) "Restarting existing mihomo to assign its proxy group"
+                    if (restartForAppUpgrade) "Restarting existing mihomo after application upgrade"
+                    else if (restartForProxyGroup) "Restarting existing mihomo to assign its proxy group"
                     else "Existing process pid=$existingPid failed attach verification, cleaning up",
                 )
             }
 
-            // 已确认仍在运行的旧内核需要重启迁移 GID，过期 PID 仍保持停止。
-            if (attachOnly && !restartForProxyGroup) {
+            // 已确认仍在运行的内核可迁移版本与 GID，过期 PID 仍保持停止。
+            if (attachOnly && !restartForProxyGroup && !restartForAppUpgrade) {
                 if (!isActive) {
                     AppLogger.info(TAG, "Attach-only start superseded, leaving state to the new start")
                     return@launch

@@ -125,12 +125,17 @@ object RootHelper {
         }
     }
 
-    fun mihomoGroup(pid: Int): Int? {
-        val script = RootProcessScript.group(BuildConfig.APPLICATION_ID, pid)
+    data class RuntimeInfo(val executable: String, val group: Int)
+
+    fun mihomoRuntimeInfo(pid: Int): RuntimeInfo? {
+        val script = RootProcessScript.runtimeInfo(BuildConfig.APPLICATION_ID, pid)
         return runCatching {
             val process = ProcessBuilder("su", "-c", script).redirectErrorStream(true).start()
             val result = awaitDrained(process, 5)
-            if (result.code == 0) result.output.toIntOrNull() else null
+            if (result.code != 0) return@runCatching null
+            val lines = result.output.lines()
+            val group = lines.getOrNull(1)?.toIntOrNull() ?: return@runCatching null
+            RuntimeInfo(lines.first(), group)
         }.getOrNull()
     }
 
