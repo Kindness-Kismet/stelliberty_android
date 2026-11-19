@@ -50,7 +50,6 @@ import com.stelliberty.android.ui.util.TestTags
 import com.stelliberty.android.ui.util.WideContentBox
 import com.stelliberty.android.util.FormatUtils
 import com.stelliberty.android.util.formatEpochMillisAsLocal
-import com.stelliberty.android.viewmodel.ProfileOperation
 import com.stelliberty.android.viewmodel.SubscriptionViewModel
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
@@ -231,17 +230,6 @@ fun SubscriptionScreen(
             }
         }
     }
-
-    val title = when (uiState.operation) {
-        ProfileOperation.Update -> stringResource(R.string.subscription_update_config)
-        else -> stringResource(R.string.subscription_import_config)
-    }
-    ImportProgressDialog(
-        show = uiState.importProgress != null,
-        step = uiState.importProgress?.let { importStepLabel(it) } ?: stringResource(R.string.common_processing),
-        title = title,
-        onCancel = { viewModel.cancelCurrentUpdate() },
-    )
 }
 
 @Composable

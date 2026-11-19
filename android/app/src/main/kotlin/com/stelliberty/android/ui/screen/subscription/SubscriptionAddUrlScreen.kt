@@ -290,10 +290,4 @@ fun SubscriptionAddUrlScreen(
             }
         }
     }
-
-    ImportProgressDialog(
-        show = uiState.isLoading,
-        step = uiState.importProgress?.let { importStepLabel(it) } ?: stringResource(R.string.common_processing),
-        onCancel = { viewModel.cancelCurrentUpdate() },
-    )
 }

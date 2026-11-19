@@ -5,9 +5,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.stelliberty.android.R
+import com.stelliberty.android.viewmodel.ProfileOperation
 import com.stelliberty.android.viewmodel.SubscriptionViewModel
 
-// 批量更新可在任意页面启动，状态收集必须跟随应用导航层，不能受离屏订阅页的生命周期限制。
+// 导航栈中的页面会同时保留组合，所有订阅操作共用导航层的唯一进度窗口。
 @Composable
 fun SubscriptionUpdateProgressDialog(viewModel: SubscriptionViewModel) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -21,13 +22,20 @@ fun SubscriptionUpdateProgressDialog(viewModel: SubscriptionViewModel) {
         )
         progress.currentStep?.let { "$label\n${importStepLabel(it)}" } ?: label
     } else {
-        stringResource(R.string.common_processing)
+        uiState.importProgress?.let { importStepLabel(it) } ?: stringResource(R.string.common_processing)
     }
 
     ImportProgressDialog(
-        show = progress != null,
+        show = uiState.isLoading || progress != null,
         step = step,
-        title = stringResource(R.string.subscription_updating_title),
+        title = stringResource(
+            when {
+                progress != null -> R.string.subscription_updating_title
+                uiState.operation == ProfileOperation.Update -> R.string.subscription_update_config
+                uiState.operation == ProfileOperation.Edit -> R.string.subscription_config
+                else -> R.string.subscription_import_config
+            },
+        ),
         onCancel = viewModel::cancelCurrentUpdate,
     )
 }
