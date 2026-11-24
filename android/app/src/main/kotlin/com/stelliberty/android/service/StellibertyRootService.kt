@@ -63,6 +63,7 @@ class StellibertyRootService : Service() {
         DynamicNotificationManager(this, scope, StellibertyApplication.instance.connectionManager)
     }
 
+    private val serviceController: ProxyServiceController by inject()
     private val overrideStore: OverrideJsonStore by inject()
     private val subscriptionStore: SubscriptionStore by inject()
     private val transformWriter: ProfileTransformWriter by inject()
@@ -106,18 +107,23 @@ class StellibertyRootService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_STOP) {
-            stopProxy()
-            return START_STICKY
+        if (intent == null) {
+            if (serviceController.restoreAfterProcessDeath(currentSubmode.tunMode)) return START_STICKY
+            stopSelf()
+            return START_NOT_STICKY
         }
-        val requested = Submode.from(intent?.getStringExtra(EXTRA_SUBMODE))
-        currentSubmode = if (intent?.hasExtra(EXTRA_SUBMODE) == true) {
+        if (intent.action == ACTION_STOP) {
+            stopProxy()
+            return START_NOT_STICKY
+        }
+        val requested = Submode.from(intent.getStringExtra(EXTRA_SUBMODE))
+        currentSubmode = if (intent.hasExtra(EXTRA_SUBMODE)) {
             requested
         } else {
             val active = PlatformStorage(this).getString(StorageKeys.ROOT_SUBMODE_ACTIVE, "")
             Submode.from(active.ifEmpty { requested.storageValue })
         }
-        when (intent?.action) {
+        when (intent.action) {
             ACTION_START -> {
                 val subscriptionId = intent.getStringExtra(ProxyServiceController.EXTRA_SUBSCRIPTION_ID)
                 val attachOnly = intent.getBooleanExtra(EXTRA_ATTACH_ONLY, false)

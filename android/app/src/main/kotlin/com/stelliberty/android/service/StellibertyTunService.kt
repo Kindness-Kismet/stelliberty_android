@@ -52,6 +52,7 @@ class StellibertyTunService : VpnService() {
         DynamicNotificationManager(this, scope, StellibertyApplication.instance.connectionManager)
     }
 
+    private val serviceController: ProxyServiceController by inject()
     private val overrideStore: OverrideJsonStore by inject()
     private val subscriptionStore: SubscriptionStore by inject()
     private val transformWriter: ProfileTransformWriter by inject()
@@ -87,13 +88,21 @@ class StellibertyTunService : VpnService() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        when (intent?.action) {
+        if (intent == null) {
+            if (serviceController.restoreAfterProcessDeath(TunMode.Vpn)) return START_STICKY
+            stopSelf()
+            return START_NOT_STICKY
+        }
+        when (intent.action) {
             ACTION_START -> {
                 val subscriptionId = intent.getStringExtra(ProxyServiceController.EXTRA_SUBSCRIPTION_ID)
                 startProxy(subscriptionId)
             }
 
-            ACTION_STOP -> stopProxy()
+            ACTION_STOP -> {
+                stopProxy()
+                return START_NOT_STICKY
+            }
             ACTION_RESTART -> {
                 val subscriptionId = intent.getStringExtra(ProxyServiceController.EXTRA_SUBSCRIPTION_ID)
                 restartProxy(subscriptionId)
@@ -428,6 +437,7 @@ class StellibertyTunService : VpnService() {
     private fun stopProxy() {
         restartJob?.cancel()
         if (stopJob?.isActive == true) return
+        PlatformStorage(this).putString(StorageKeys.SERVICE_WAS_RUNNING, "false")
         AppLogger.info(TAG, "Stopping proxy...")
         ProxyServiceBridge.updateState(ProxyServiceStatus(ProxyState.Stopping, tunMode = TunMode.Vpn))
         dynamicNotification.stop()
@@ -437,7 +447,6 @@ class StellibertyTunService : VpnService() {
                 monitorJob?.cancelAndJoin()
                 runner.stop()
                 closeTunFd()
-                PlatformStorage(this@StellibertyTunService).putString(StorageKeys.SERVICE_WAS_RUNNING, "false")
                 ProxyServiceBridge.markStopped(TunMode.Vpn)
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()

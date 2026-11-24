@@ -8,6 +8,13 @@
 - 新增入口（Wear / shortcut / 自动化）一律经 controller；Service 内的 `ProfileFileOps.hasValidConfig` 兜住 ADB 与第三方 Intent。
 - Tile / 通知等没有 Activity 上下文的入口在 VPN 模式下经 [VpnPermissionActivity](../../../../android/app/src/main/kotlin/com/stelliberty/android/service/VpnPermissionActivity.kt) 弹授权（`VpnService.prepare()` 需要 Activity context）。
 
+## 最近任务与进程恢复
+
+- 两个代理 Service 显式设置 `stopWithTask=false`，任务卡片移除与「清除所有」保持前台服务和核心运行。
+- `START_STICKY` 重建收到空 Intent 时，经 Koin 单例 `ProxyServiceController.restoreAfterProcessDeath` 校验当前配置并发送启动指令；只恢复 `SERVICE_WAS_RUNNING=true` 的会话，VPN 授权撤销时保持停止。
+- 恢复采用服务所属的运行模式，ROOT 子模式读取 `ROOT_SUBMODE_ACTIVE`；已有 ROOT 内核沿用进程归属与 API 身份校验，接管后继续监控与维护规则。
+- 主动停止返回 `START_NOT_STICKY`；VPN 停止与授权撤销在清理前清除运行标记，避免清理期间进程死亡又被恢复。
+
 ## 幂等串行
 
 `StellibertyRootService` / `StellibertyTunService` 用 `startJob`（`@Volatile`，主线程与 IO 协程共用）守门：已有启动在进行时，新的 `ACTION_START` 直接忽略。`stopProxy` / `restartProxy` / `onRevoke` 依次等待 `startJob?.cancelAndJoin()`、`monitorJob?.cancelAndJoin()`，再停止内核；监控由启动末尾创建，必须先等启动结束才能取消到它。

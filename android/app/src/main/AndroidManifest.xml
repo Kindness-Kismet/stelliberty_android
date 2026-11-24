@@ -77,6 +77,7 @@
             android:exported="false"
             android:foregroundServiceType="specialUse"
             android:permission="android.permission.BIND_VPN_SERVICE"
+            android:stopWithTask="false"
             tools:ignore="VpnServicePolicy">
             <intent-filter>
                 <action android:name="android.net.VpnService" />
@@ -89,7 +90,8 @@
         <service
             android:name=".service.StellibertyRootService"
             android:exported="false"
-            android:foregroundServiceType="specialUse">
+            android:foregroundServiceType="specialUse"
+            android:stopWithTask="false">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Runs the mihomo proxy core as a privileged process for as long as the user keeps the proxy connected." />

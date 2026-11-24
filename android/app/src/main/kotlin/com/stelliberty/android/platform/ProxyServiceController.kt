@@ -39,12 +39,28 @@ class ProxyServiceController(
     val status: StateFlow<ProxyServiceStatus> = ProxyServiceBridge.state
 
     fun start(subscriptionId: String? = null) {
-        val target = resolveStartTarget(subscriptionId) ?: return
-        val mode = getTunMode()
+        start(getTunMode(), subscriptionId)
+    }
+
+    // 系统重建服务时沿用正在运行的模式，设置里待切换的模式不能接管旧会话。
+    fun restoreAfterProcessDeath(mode: TunMode): Boolean {
+        if (storage.getString(StorageKeys.SERVICE_WAS_RUNNING, "false") != "true") return false
+        if (mode == TunMode.Vpn && VpnService.prepare(context) != null) {
+            storage.putString(StorageKeys.SERVICE_WAS_RUNNING, "false")
+            ProxyServiceBridge.markStopped(mode)
+            return false
+        }
+        AppLogger.info(TAG, "Restoring proxy service after process death (mode=$mode)")
+        return start(mode, null)
+    }
+
+    private fun start(mode: TunMode, subscriptionId: String?): Boolean {
+        val target = resolveStartTarget(subscriptionId) ?: return false
         val intent = buildServiceIntent(mode, Op.Start).apply {
             target.id?.let { putExtra(EXTRA_SUBSCRIPTION_ID, it) }
         }
         context.startForegroundService(intent)
+        return true
     }
 
     fun restart(subscriptionId: String? = null) {
